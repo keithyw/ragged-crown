@@ -1,75 +1,65 @@
-# React + TypeScript + Vite
+# Ragged Crown
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+A turn-based, tile-based retro RPG engine inspired by classics like _Wizardry VI/VII_ and _Ultima V_, built with React, TypeScript, and Vite.
 
-Currently, two official plugins are available:
+## 🛠 Tech Stack
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+- **UI & Rendering:** React 19, Tailwind CSS
+- **Build System:** Vite
+- **State Management:** Zustand
+- **Language:** TypeScript
+- **Tooling:** ESLint, Prettier
 
-## React Compiler
+---
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+## 🏗 Engine Architecture
 
-## Expanding the ESLint configuration
+The game uses a decoupled, event-driven architecture to keep game rules testable and isolated from the React view layer.
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+- **Lifecycle / Template Engine (`src/engine/BaseGameEngine.ts`):** Uses the **Template Method** design pattern to enforce a unified game lifecycle (`initialize` → `loadAssets` → `setupState` → `startLoop`). Concrete engines (`OverworldEngine`, `CombatEngine`) inherit from this base class.
+- **Command Bus (`src/engine/CommandBus.ts`):** Decouples player input handlers and UI controls from core game mechanics. Inputs dispatch lightweight typed commands (`MOVE_PLAYER`, `INTERACT`, etc.) that are handled by active engine subscribers.
+- **Reactive View Layer:** React components read state from Zustand stores and render visual views based on engine ticks and state updates.
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+---
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+## 🚀 Getting Started
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+### Prerequisites
 
+Ensure you have [Node.js](https://nodejs.org/) installed (v18+ recommended) along with `pnpm`.
+
+### Installation
+
+```bash
+# Clone the repository
+git clone [https://github.com/your-username/ragged-crown.git](https://github.com/your-username/ragged-crown.git)
+cd ragged-crown
+
+# Install dependencies
+pnpm install
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+## Development
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
-
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-
+```bash
+# Start the development server
+pnpm dev
 ```
+
+```bash
+# Run ESLint check
+pnpm lint
+```
+
+```bash
+# Format codebase with Prettier
+pnpm format
+```
+
+## Building for Production
+
+```bash
+pnpm build
+```
+
+Open [ http://localhost:5173/](http://localhost:5173/) with your browser to see the result.
