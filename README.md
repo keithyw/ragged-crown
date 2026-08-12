@@ -32,7 +32,7 @@ Ensure you have [Node.js](https://nodejs.org/) installed (v18+ recommended) alon
 
 ```bash
 # Clone the repository
-git clone [https://github.com/your-username/ragged-crown.git](https://github.com/your-username/ragged-crown.git)
+git clone [https://github.com/keithyw/ragged-crown.git](https://github.com/keithyw/ragged-crown.git)
 cd ragged-crown
 
 # Install dependencies
