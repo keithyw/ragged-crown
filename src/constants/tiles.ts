@@ -1,6 +1,18 @@
 import type { TileDef, TileType } from '../types'
 
-export const TILE_DEFS: Record<TileType, TileDef> = {
+export const TILE_KEY_MAP: Record<string, TileType> = {
+	G: 'GRASS',
+	D: 'DIRT',
+	R: 'ROAD',
+	F: 'FOREST',
+	M: 'MOUNTAIN',
+	W: 'WATER',
+	C: 'CASTLE',
+	H: 'HUT',
+	S: 'CHEST',
+}
+
+export const TILE_REGISTRY: Record<TileType, TileDef> = {
 	GRASS: {
 		type: 'GRASS',
 		symbol: '::',
@@ -9,6 +21,17 @@ export const TILE_DEFS: Record<TileType, TileDef> = {
 		name: 'Plains',
 		moveCost: 1,
 		description: 'The wild terrain stretches out in all directions.',
+		spriteCoords: { x: 0, y: 0 },
+	},
+	DIRT: {
+		type: 'DIRT',
+		symbol: '·',
+		color: 'text-amber-600/70',
+		bg: 'bg-amber-950/30',
+		name: 'Dirt Path',
+		moveCost: 1,
+		description: 'A well-traveled cobblestone highway.',
+		spriteCoords: { x: 1, y: 0 },
 	},
 	FOREST: {
 		type: 'FOREST',
@@ -18,6 +41,7 @@ export const TILE_DEFS: Record<TileType, TileDef> = {
 		name: 'Dense Forest',
 		moveCost: 2,
 		description: 'Towering trees block out the sun overhead.',
+		spriteCoords: { x: 3, y: 0 },
 	},
 	MOUNTAIN: {
 		type: 'MOUNTAIN',
@@ -27,6 +51,7 @@ export const TILE_DEFS: Record<TileType, TileDef> = {
 		name: 'High Peaks',
 		moveCost: 3,
 		description: 'Treacherous rocky crags loom around you.',
+		spriteCoords: { x: 4, y: 0 },
 	},
 	WATER: {
 		type: 'WATER',
@@ -36,6 +61,7 @@ export const TILE_DEFS: Record<TileType, TileDef> = {
 		name: 'Deep Water',
 		moveCost: 99,
 		description: 'Impassable rushing waters.',
+		spriteCoords: { x: 5, y: 0 },
 	},
 	ROAD: {
 		type: 'ROAD',
@@ -45,6 +71,7 @@ export const TILE_DEFS: Record<TileType, TileDef> = {
 		name: 'Cobblestone Road',
 		moveCost: 0.5,
 		description: 'A well-traveled cobblestone highway.',
+		spriteCoords: { x: 2, y: 0 },
 	},
 	CASTLE: {
 		type: 'CASTLE',
@@ -54,6 +81,7 @@ export const TILE_DEFS: Record<TileType, TileDef> = {
 		name: 'Castle Britannia',
 		moveCost: 1,
 		description: 'The grand gates of Castle Britannia loom before the party.',
+		spriteCoords: { x: 0, y: 1 },
 	},
 	HUT: {
 		type: 'HUT',
@@ -63,6 +91,7 @@ export const TILE_DEFS: Record<TileType, TileDef> = {
 		name: "Iolo's Hut",
 		moveCost: 1,
 		description: "Iolo's wooden cottage sits quietly near the tree line.",
+		spriteCoords: { x: 0, y: 2 },
 	},
 	CHEST: {
 		type: 'CHEST',
@@ -73,5 +102,6 @@ export const TILE_DEFS: Record<TileType, TileDef> = {
 		moveCost: 1,
 		description:
 			'A heavy oak chest bound in tarnished iron rests in the grass.',
+		spriteCoords: { x: 0, y: 3 },
 	},
 }

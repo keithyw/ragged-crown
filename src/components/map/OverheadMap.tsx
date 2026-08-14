@@ -4,7 +4,8 @@ import {
 	DEFAULT_VIEWPORT_GRID_SIZE,
 	DEFAULT_STARTING_POSITION,
 } from '@/constants'
-import { indexToCoords, isSamePosition, type Position } from '@/utils'
+import type { Position } from '@/types'
+import { indexToCoords, isSamePosition } from '@/utils'
 
 interface OverheadMapProps {
 	gridSize?: number

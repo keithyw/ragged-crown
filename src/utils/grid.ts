@@ -1,7 +1,4 @@
-export interface Position {
-	x: number
-	y: number
-}
+import type { Position } from '@/types'
 
 /** Converts a 1D array index to 2D grid coordinates based on column count */
 export const indexToCoords = (index: number, cols: number): Position => ({

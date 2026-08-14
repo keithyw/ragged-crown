@@ -1,0 +1,37 @@
+{
+	"id": "ZONE_A1_VALLEY",
+	"name": "Crag Valley",
+	"dimensions": { "width": 16, "height": 16 },
+	"dangerLevel": 1,
+	"terrain": [
+		"MMMMMMMMRRMMMMMM",
+		"MGGGGGGGRRGGGGGM",
+		"MGGFFFFFRRGGGGGM",
+		"MGGFFFFFRRGGGGGM",
+		"MGGGGGGGRRGGGGGM",
+		"MGGGGGGGRRGGGGGM",
+		"MGGDDDDDRRGGGGGM",
+		"MGGDDDDDRRGGGGGM",
+		"MGGGGGGGRRGGGGGM",
+		"MGGGGGGGRRGGGGGM",
+		"MGGFFFFFRRGGGGGM",
+		"MGGFFFFFRRGGGGGM",
+		"MGGGGGGGRRGGGGGM",
+		"MGGGGGGGRRGGGGGM",
+		"MGGGGGGGRRGGGGGM",
+		"MMMMMMMMMMMMMMMM"
+	],
+	"events": {
+		"8,6": {
+			"id": "SIGN_WELCOME",
+			"triggerOn": "BUMP_INTERACT",
+			"text": "Sign reads: Welcome to Crag Valley. Beware of wolves to the West."
+		},
+		"8,0": {
+			"id": "EXIT_NORTH",
+			"triggerOn": "WALK_OVER",
+			"targetZone": "ZONE_A2_PASS",
+			"targetPos": { "x": 8, "y": 15 }
+		}
+	}
+}
