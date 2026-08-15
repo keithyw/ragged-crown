@@ -1,5 +1,7 @@
 import type { TileDef, TileType } from '../types'
 
+export const TILE_SIZE_PX = 16
+
 export const TILE_KEY_MAP: Record<string, TileType> = {
 	G: 'GRASS',
 	D: 'DIRT',

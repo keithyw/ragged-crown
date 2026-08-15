@@ -1,6 +1,7 @@
 import { TILE_KEY_MAP, TILE_REGISTRY } from '@/constants'
 import type { Position, TileEvent, Zone, TileDef } from '@/types'
 
+// move this into type file
 export interface ResolvedCell {
 	position: Position
 	tile: TileDef
