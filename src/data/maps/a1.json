@@ -29,7 +29,7 @@
 		},
 		"8,0": {
 			"id": "EXIT_NORTH",
-			"triggerOn": "WALK_OVER",
+			"triggerOn": "WALK",
 			"targetZone": "ZONE_A2_PASS",
 			"targetPos": { "x": 8, "y": 15 }
 		}

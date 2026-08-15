@@ -1,4 +1,4 @@
-import type { TileDef, TileType } from '../types'
+import type { TileDef, TileType } from '@/types'
 
 export const TILE_SIZE_PX = 16
 

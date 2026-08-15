@@ -26,12 +26,22 @@ export interface TileDef {
 }
 
 export type InteractionType =
-	'WALK' | 'TALK' | 'PICKUP' | 'DROP' | 'USE' | 'OPEN' | 'CLOSE'
+	| 'WALK'
+	| 'TALK'
+	| 'PICKUP'
+	| 'DROP'
+	| 'USE'
+	| 'OPEN'
+	| 'CLOSE'
+	| 'BUMP_INTERACT'
+
 export interface TileEvent {
 	id: string
 	triggerOn: InteractionType
 	text?: string
 	itemId?: string
+	targetZone?: string
+	targetPos?: Position
 }
 
 export interface Zone {
