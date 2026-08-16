@@ -3,6 +3,10 @@ import type { CommandType, Command, CommandHandler } from '@/types'
 export class CommandBus {
 	private handlers: Map<CommandType, CommandHandler[]> = new Map()
 
+	public clear(): void {
+		this.handlers.clear()
+	}
+
 	public subscribe(type: CommandType, handler: CommandHandler): () => void {
 		if (!this.handlers.has(type)) {
 			this.handlers.set(type, [])

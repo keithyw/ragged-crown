@@ -48,6 +48,7 @@ export class InputManager {
 	}
 
 	public attachListeners(): void {
+		window.removeEventListener('keydown', this.handleKeyDown)
 		window.addEventListener('keydown', this.handleKeyDown)
 	}
 

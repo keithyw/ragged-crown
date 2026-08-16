@@ -7,19 +7,21 @@ export class GameEngine extends BaseGameEngine {
 	public commandBus: CommandBus
 	public inputManager!: InputManager
 	public gameTime: number
+	private isInitialized = false
 
 	constructor() {
 		super()
 		this.commandBus = new CommandBus()
-		// this.inputManager = new InputManager(this.commandBus)
 		this.gameTime = 0
 	}
 
 	public override async initialize(): Promise<void> {
+		if (this.isInitialized) return
 		if (!this.inputManager) {
 			this.inputManager = new InputManager(this.commandBus)
 		}
 		await super.initialize()
+		this.isInitialized = true
 	}
 
 	/** Template Method Step 1: Load essential initial assets */
@@ -47,6 +49,7 @@ export class GameEngine extends BaseGameEngine {
 
 	/** Template Method Step 3: Map command types on CommandBus to store actions */
 	protected registerCommandHandlers(): void {
+		this.commandBus.clear()
 		// Handle Movement
 		this.commandBus.subscribe('MOVE_PLAYER', (cmd: Command) => {
 			const { dx, dy } = cmd.payload as { dx: number; dy: number }
@@ -87,6 +90,7 @@ export class GameEngine extends BaseGameEngine {
 		if (this.inputManager) {
 			this.inputManager.detachListeners()
 		}
+		this.commandBus.clear()
 	}
 }
 
@@ -98,6 +102,3 @@ export const getGameEngine = (): GameEngine => {
 	}
 	return instance
 }
-
-// Singleton instance
-// export const gameEngine = new GameEngine()

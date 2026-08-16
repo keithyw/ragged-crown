@@ -34,7 +34,6 @@ export const evaluateMove = (
 	zone: Zone,
 ): MoveResult => {
 	const nextPos = { x: currentPos.x + dx, y: currentPos.y + dy }
-
 	// 1. Boundary check
 	if (!isWithinBounds(nextPos, zone)) {
 		return {
