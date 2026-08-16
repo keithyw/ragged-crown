@@ -1,19 +1,14 @@
 import { useMemo } from 'react'
 import { MapSquare } from '@/components/map/MapSquare'
 import { PanelHeader } from '@/components/ui/PanelHeader'
-import { DEFAULT_VIEWPORT_GRID_SIZE } from '@/constants'
 import { useGameStore } from '@/store/useGameStore'
 import { isSamePosition, parseZoneGrid } from '@/utils'
 
 interface OverheadMapProps {
-	gridSize?: number
 	title?: string
 }
 
-export const OverheadMap = ({
-	gridSize = DEFAULT_VIEWPORT_GRID_SIZE,
-	title = 'Overhead View',
-}: OverheadMapProps) => {
+export const OverheadMap = ({ title = 'Overhead View' }: OverheadMapProps) => {
 	const currentZone = useGameStore((state) => state.currentZone)
 	const playerPosition = useGameStore((state) => state.playerPosition)
 	const isMapLoading = useGameStore((state) => state.isMapLoading)
@@ -29,6 +24,8 @@ export const OverheadMap = ({
 			</div>
 		)
 
+	const { width, height } = currentZone.dimensions
+
 	return (
 		<div className='flex h-full w-full flex-col'>
 			<PanelHeader title={title} />
@@ -36,7 +33,8 @@ export const OverheadMap = ({
 				<div
 					className='grid aspect-square w-full max-w-120 gap-1'
 					style={{
-						gridTemplateColumns: `repeat(${gridSize}, minmax(0, 1fr))`,
+						gridTemplateColumns: `repeat(${width}, minmax(0, 1fr))`,
+						gridTemplateRows: `repeat(${height}, minmax(0, 1fr))`,
 					}}
 				>
 					{grid.flatMap((row) =>
