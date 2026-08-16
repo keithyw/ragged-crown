@@ -18,7 +18,7 @@ const INITIAL_PARTY: PlayerCharacter[] = Array.from({ length: 16 }, (_, i) => ({
 interface GameState {
 	currentZone: Zone | null
 	currentScreen: GameScreen
-	isLoadingMap: boolean
+	isMapLoading: boolean
 	playerPosition: Position
 	party: PlayerCharacter[]
 	selectedCharId: string
@@ -36,7 +36,7 @@ interface GameState {
 export const useGameStore = create<GameState>((set, get) => ({
 	currentScreen: 'INTRO',
 	currentZone: null,
-	isLoadingMap: false,
+	isMapLoading: false,
 	playerPosition: { x: 10, y: 8 },
 	party: INITIAL_PARTY,
 	selectedCharId: 'char-1',
@@ -48,12 +48,12 @@ export const useGameStore = create<GameState>((set, get) => ({
 		set((state) => ({ logs: [message, ...state.logs.slice(0, 9)] })),
 
 	loadMap: async (zoneId: string, startingPosition?: Position) => {
-		set({ isLoadingMap: true })
+		set({ isMapLoading: true })
 		try {
 			const zone = await mapLoaderService.loadZone(zoneId)
 			set({
 				currentZone: zone,
-				isLoadingMap: false,
+				isMapLoading: false,
 				...(startingPosition && { playerPosition: startingPosition }),
 			})
 
@@ -65,7 +65,7 @@ export const useGameStore = create<GameState>((set, get) => ({
 			}
 		} catch (e) {
 			console.error(e)
-			set({ isLoadingMap: false })
+			set({ isMapLoading: false })
 		}
 	},
 

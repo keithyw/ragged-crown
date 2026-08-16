@@ -1,4 +1,4 @@
-import type { CommandType, Command, CommandHandler } from '../types'
+import type { CommandType, Command, CommandHandler } from '@/types'
 
 export class CommandBus {
 	private handlers: Map<CommandType, CommandHandler[]> = new Map()

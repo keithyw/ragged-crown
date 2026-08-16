@@ -7,4 +7,10 @@ export interface GameTime {
 export type Direction = 'NORTH' | 'SOUTH' | 'EAST' | 'WEST'
 
 export type GameScreen =
-	'INTRO' | 'MAIN_MENU' | 'CHARACTER_CREATION' | 'SETTINGS' | 'WORLD_MAP'
+	| 'INTRO'
+	| 'MAIN_MENU'
+	| 'CHARACTER_CREATION'
+	| 'SETTINGS'
+	| 'WORLD_MAP'
+	| 'COMBAT'
+	| 'DIALOGUE'

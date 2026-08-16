@@ -1,4 +1,3 @@
-// src/engine/BaseGameEngine.ts
 export abstract class BaseGameEngine {
 	protected isRunning: boolean = false
 

@@ -1,31 +1,37 @@
+import { useMemo } from 'react'
 import { MapSquare } from '@/components/map/MapSquare'
 import { PanelHeader } from '@/components/ui/PanelHeader'
-import {
-	DEFAULT_VIEWPORT_GRID_SIZE,
-	DEFAULT_STARTING_POSITION,
-} from '@/constants'
-import type { Position } from '@/types'
-import { indexToCoords, isSamePosition } from '@/utils'
+import { DEFAULT_VIEWPORT_GRID_SIZE } from '@/constants'
+import { useGameStore } from '@/store/useGameStore'
+import { isSamePosition, parseZoneGrid } from '@/utils'
 
 interface OverheadMapProps {
 	gridSize?: number
-	locationName?: string
-	mapData?: number[][]
-	playerPosition?: Position
 	title?: string
 }
 
 export const OverheadMap = ({
-	locationName,
-	playerPosition = DEFAULT_STARTING_POSITION,
 	gridSize = DEFAULT_VIEWPORT_GRID_SIZE,
 	title = 'Overhead View',
 }: OverheadMapProps) => {
-	const totalCells = gridSize * gridSize
+	const currentZone = useGameStore((state) => state.currentZone)
+	const playerPosition = useGameStore((state) => state.playerPosition)
+	const isMapLoading = useGameStore((state) => state.isMapLoading)
+
+	const grid = useMemo(() => {
+		return currentZone ? parseZoneGrid(currentZone) : []
+	}, [currentZone])
+
+	if (isMapLoading || !currentZone)
+		return (
+			<div className='flex h-full w-full items-center justify-center text-xs text-slate-500'>
+				Loading...
+			</div>
+		)
 
 	return (
 		<div className='flex h-full w-full flex-col'>
-			<PanelHeader title={title} subtitle={locationName} />
+			<PanelHeader title={title} />
 			<div className='flex min-h-0 flex-1 items-center justify-center overflow-hidden rounded border border-slate-800/80 bg-slate-950 p-2'>
 				<div
 					className='grid aspect-square w-full max-w-120 gap-1'
@@ -33,14 +39,18 @@ export const OverheadMap = ({
 						gridTemplateColumns: `repeat(${gridSize}, minmax(0, 1fr))`,
 					}}
 				>
-					{Array.from({ length: totalCells }).map((_, index) => {
-						const coords = indexToCoords(index, gridSize)
-						const isPlayer = isSamePosition(coords, playerPosition)
-
-						return (
-							<MapSquare key={`${coords.x}-${coords.y}`} isPlayer={isPlayer} />
-						)
-					})}
+					{grid.flatMap((row) =>
+						row.map((cell) => {
+							const isPlayer = isSamePosition(cell.position, playerPosition)
+							return (
+								<MapSquare
+									key={`${cell.position.x}-${cell.position.y}`}
+									tile={cell.tile}
+									isPlayer={isPlayer}
+								/>
+							)
+						}),
+					)}
 				</div>
 			</div>
 		</div>
