@@ -1,28 +1,33 @@
 import { TILE_SIZE_PX, SHAPES, SURFACES, TEXT } from '@/constants'
 import type { TileDef } from '@/types'
 import { cn } from '@/utils'
+
 interface MapSquareProps {
 	isPlayer: boolean
 	tile?: TileDef
 	useSprites?: boolean
 }
 
+const getSpriteStyle = (x: number, y: number): React.CSSProperties => ({
+	backgroundPosition: `-${x * TILE_SIZE_PX}px -${y * TILE_SIZE_PX}px`,
+})
+
 export const MapSquare = ({
 	isPlayer,
 	tile,
 	useSprites = false,
 }: MapSquareProps) => {
-	const baseSquare = cn(SHAPES.square, TEXT.monoBadge)
+	const baseSquare = cn(
+		'w-full h-full select-none overflow-hidden',
+		SHAPES.square,
+		TEXT.monoBadge,
+	)
 
 	if (useSprites && tile?.spriteCoords) {
-		const spriteStyle = {
-			// wonder if this should be put in a function
-			backgroundPosition: `-${tile.spriteCoords.x * TILE_SIZE_PX}px -${tile.spriteCoords.y * TILE_SIZE_PX}px`,
-		}
 		return (
 			<div
 				className={cn(baseSquare, 'tile-sprite border border-black/20')}
-				style={spriteStyle}
+				style={getSpriteStyle(tile.spriteCoords.x, tile.spriteCoords.y)}
 				title={tile.name}
 			>
 				{isPlayer && (
