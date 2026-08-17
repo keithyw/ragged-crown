@@ -1,5 +1,5 @@
 import { BaseGameEngine, CommandBus, InputManager } from '@/engine'
-import { mapLoaderService } from '@/services'
+import { mapLoaderService, PartyService } from '@/services'
 import { useGameStore } from '@/store/useGameStore'
 import type { Command, GameScreen } from '@/types'
 
@@ -40,12 +40,19 @@ export class GameEngine extends BaseGameEngine {
 	/** Template Method Step 2: Hydrate initial store state */
 	protected async setupState(): Promise<void> {
 		if (this.isInitialized) return
-		useGameStore.setState({
-			playerPosition: { x: 5, y: 5 },
-		})
-		useGameStore
-			.getState()
-			.addLog('> Game initialized. Welcome to Crag Valley.')
+		try {
+			const party = await PartyService.fetchParty()
+			useGameStore.setState({
+				party,
+				playerPosition: { x: 5, y: 5 },
+			})
+			useGameStore
+				.getState()
+				.addLog('> Game initialized. Welcome to Crag Valley.')
+		} catch (e) {
+			console.error(e)
+			useGameStore.getState().addLog('> Failed to load party data.')
+		}
 	}
 
 	/** Template Method Step 3: Map command types on CommandBus to store actions */

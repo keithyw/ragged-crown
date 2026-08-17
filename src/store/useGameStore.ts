@@ -3,18 +3,6 @@ import { mapLoaderService } from '@/services'
 import type { GameScreen, PlayerCharacter, Position, Zone } from '@/types'
 import { evaluateMove } from '@/utils'
 
-// Initial Mock Party (16 members)
-const INITIAL_PARTY: PlayerCharacter[] = Array.from({ length: 16 }, (_, i) => ({
-	id: `char-${i + 1}`,
-	name: i === 0 ? 'Valerius' : i === 1 ? 'Lyra the Bold' : `Recruit ${i + 1}`,
-	class: i % 3 === 0 ? 'Fighter' : i % 3 === 1 ? 'Mage' : 'Cleric',
-	hp: { current: Math.max(0, 30 - i * 2), max: 30 },
-	mp: { current: 15, max: 15 },
-	row: i < 5 ? 'F' : i < 10 ? 'M' : 'B',
-	status: i === 2 ? 'PSN' : i === 5 ? 'CRIT' : 'OK',
-	level: 1,
-}))
-
 interface GameState {
 	currentZone: Zone | null
 	currentScreen: GameScreen
@@ -29,6 +17,7 @@ interface GameState {
 	selectCharacter: (id: string) => void
 	addLog: (message: string) => void
 	loadMap: (zoneId: string, startingPosition?: Position) => Promise<void>
+	setParty: (party: PlayerCharacter[]) => void
 	setPlayerPosition: (position: Position) => void
 	setScreen: (screen: GameScreen) => void
 }
@@ -38,7 +27,7 @@ export const useGameStore = create<GameState>((set, get) => ({
 	currentZone: null,
 	isMapLoading: false,
 	playerPosition: { x: 10, y: 8 },
-	party: INITIAL_PARTY,
+	party: [],
 	selectedCharId: 'char-1',
 	logs: [],
 
@@ -89,6 +78,8 @@ export const useGameStore = create<GameState>((set, get) => ({
 			)
 		}
 	},
+
+	setParty: (party) => set({ party }),
 
 	setPlayerPosition: (position: Position) => set({ playerPosition: position }),
 

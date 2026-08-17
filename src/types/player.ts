@@ -1,7 +1,9 @@
-export type FormationRow = 'F' | 'M' | 'B' // Front, Middle, Back
-export type StatusEffect = 'OK' | 'PSN' | 'CRIT' | 'PAR' | 'DED'
-export type CharacterClass = 'Fighter' | 'Mage' | 'Cleric' | 'Rogue' | 'Paladin'
+export type Debuff =
+	'poisoned' | 'paralyzed' | 'silenced' | 'blinded' | 'cursed' | 'dead'
+export type ClassType = 'Fighter' | 'Mage' | 'Cleric' | 'Rogue' | 'Paladin'
 
+export type GenderType = 'male' | 'female' | 'non-binary'
+export type Race = 'human' | 'elf' | 'dwarf' | 'half-orc' | 'halfling'
 export interface ResourceBar {
 	current: number
 	max: number
@@ -10,10 +12,13 @@ export interface ResourceBar {
 export interface PlayerCharacter {
 	id: string
 	name: string
-	class: CharacterClass
-	hp: ResourceBar
-	mp: ResourceBar
-	row: FormationRow
-	status: StatusEffect
+	gender: GenderType
+	race: Race
+	class: ClassType
 	level: number
+	hp: ResourceBar
+	sp: ResourceBar
+	order: number
+	debuffs: Debuff[]
+	portrait?: string
 }

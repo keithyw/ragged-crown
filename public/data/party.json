@@ -1,0 +1,74 @@
+[
+	{
+		"id": "char-1",
+		"name": "Valerius",
+		"gender": "male",
+		"race": "human",
+		"class": "Fighter",
+		"level": 3,
+		"hp": {
+			"current": 28,
+			"max": 32
+		},
+		"sp": {
+			"current": 0,
+			"max": 0
+		},
+		"order": 1,
+		"debuffs": []
+	},
+	{
+		"id": "char-2",
+		"name": "Elysia",
+		"gender": "female",
+		"race": "elf",
+		"class": "Mage",
+		"level": 3,
+		"hp": {
+			"current": 14,
+			"max": 14
+		},
+		"sp": {
+			"current": 22,
+			"max": 25
+		},
+		"order": 2,
+		"debuffs": []
+	},
+	{
+		"id": "char-3",
+		"name": "Big Peenus",
+		"gender": "male",
+		"race": "dwarf",
+		"class": "Cleric",
+		"level": 2,
+		"hp": {
+			"current": 18,
+			"max": 20
+		},
+		"sp": {
+			"current": 10,
+			"max": 12
+		},
+		"order": 3,
+		"debuffs": ["poisoned"]
+	},
+	{
+		"id": "char-4",
+		"name": "Tessa",
+		"gender": "female",
+		"race": "halfling",
+		"class": "Rogue",
+		"level": 3,
+		"hp": {
+			"current": 19,
+			"max": 19
+		},
+		"sp": {
+			"current": 0,
+			"max": 0
+		},
+		"order": 4,
+		"debuffs": []
+	}
+]
