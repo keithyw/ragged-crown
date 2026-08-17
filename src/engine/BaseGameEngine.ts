@@ -4,7 +4,7 @@ export abstract class BaseGameEngine {
 	// The Template Method: Enforces execution order
 	public async initialize(): Promise<void> {
 		await this.loadAssets()
-		await this.setupState()
+		this.setupState()
 		this.registerCommandHandlers()
 		this.onInitialized()
 		this.startLoop()
@@ -12,7 +12,7 @@ export abstract class BaseGameEngine {
 
 	// Lifecycle Hooks (to be implemented by concrete engines)
 	protected abstract loadAssets(): Promise<void>
-	protected abstract setupState(): Promise<void>
+	protected abstract setupState(): void
 	protected abstract registerCommandHandlers(): void
 	protected abstract update(deltaTime: number): void
 	protected onInitialized(): void {}

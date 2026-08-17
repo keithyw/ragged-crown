@@ -26,33 +26,35 @@ export class GameEngine extends BaseGameEngine {
 
 	/** Template Method Step 1: Load essential initial assets */
 	protected async loadAssets(): Promise<void> {
+		if (this.isInitialized || useGameStore.getState().isMapLoading) return
 		useGameStore.setState({ isMapLoading: true })
 
 		// Load default starting zone map asset
-		const startingZone = await mapLoaderService.loadZone('a1')
-
-		useGameStore.setState({
-			currentZone: startingZone,
-			isMapLoading: false,
-		})
+		try {
+			const [startingZone, party] = await Promise.all([
+				mapLoaderService.loadZone('a1'),
+				PartyService.fetchParty(),
+			])
+			useGameStore.setState({
+				currentZone: startingZone,
+				isMapLoading: false,
+				party,
+			})
+		} catch (e) {
+			console.error(e)
+			useGameStore.getState().addLog('> Failed to load assets.')
+		}
 	}
 
 	/** Template Method Step 2: Hydrate initial store state */
-	protected async setupState(): Promise<void> {
+	protected setupState(): void {
 		if (this.isInitialized) return
-		try {
-			const party = await PartyService.fetchParty()
-			useGameStore.setState({
-				party,
-				playerPosition: { x: 5, y: 5 },
-			})
-			useGameStore
-				.getState()
-				.addLog('> Game initialized. Welcome to Crag Valley.')
-		} catch (e) {
-			console.error(e)
-			useGameStore.getState().addLog('> Failed to load party data.')
-		}
+		useGameStore.setState({
+			playerPosition: { x: 5, y: 5 },
+		})
+		useGameStore
+			.getState()
+			.addLog('> Game initialized. Welcome to Crag Valley.')
 	}
 
 	/** Template Method Step 3: Map command types on CommandBus to store actions */
