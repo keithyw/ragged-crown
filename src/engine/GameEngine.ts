@@ -39,6 +39,7 @@ export class GameEngine extends BaseGameEngine {
 
 	/** Template Method Step 2: Hydrate initial store state */
 	protected async setupState(): Promise<void> {
+		if (this.isInitialized) return
 		useGameStore.setState({
 			playerPosition: { x: 5, y: 5 },
 		})
