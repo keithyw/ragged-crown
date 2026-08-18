@@ -24,6 +24,7 @@ export const TILE_REGISTRY: Record<TileType, TileDef> = {
 		moveCost: 1,
 		description: 'The wild terrain stretches out in all directions.',
 		spriteCoords: { x: 0, y: 0 },
+		encounterRate: 0.08,
 	},
 	DIRT: {
 		type: 'DIRT',
@@ -34,6 +35,7 @@ export const TILE_REGISTRY: Record<TileType, TileDef> = {
 		moveCost: 1,
 		description: 'A well-traveled cobblestone highway.',
 		spriteCoords: { x: 1, y: 0 },
+		encounterRate: 0.03,
 	},
 	FOREST: {
 		type: 'FOREST',
@@ -44,6 +46,7 @@ export const TILE_REGISTRY: Record<TileType, TileDef> = {
 		moveCost: 2,
 		description: 'Towering trees block out the sun overhead.',
 		spriteCoords: { x: 3, y: 0 },
+		encounterRate: 0.15,
 	},
 	MOUNTAIN: {
 		type: 'MOUNTAIN',
@@ -54,6 +57,7 @@ export const TILE_REGISTRY: Record<TileType, TileDef> = {
 		moveCost: 3,
 		description: 'Treacherous rocky crags loom around you.',
 		spriteCoords: { x: 4, y: 0 },
+		encounterRate: 0.2,
 	},
 	WATER: {
 		type: 'WATER',
@@ -64,6 +68,7 @@ export const TILE_REGISTRY: Record<TileType, TileDef> = {
 		moveCost: 99,
 		description: 'Impassable rushing waters.',
 		spriteCoords: { x: 5, y: 0 },
+		encounterRate: 0,
 	},
 	ROAD: {
 		type: 'ROAD',
@@ -74,6 +79,7 @@ export const TILE_REGISTRY: Record<TileType, TileDef> = {
 		moveCost: 0.5,
 		description: 'A well-traveled cobblestone highway.',
 		spriteCoords: { x: 2, y: 0 },
+		encounterRate: 0.02,
 	},
 	CASTLE: {
 		type: 'CASTLE',
@@ -84,6 +90,7 @@ export const TILE_REGISTRY: Record<TileType, TileDef> = {
 		moveCost: 1,
 		description: 'The grand gates of Castle Britannia loom before the party.',
 		spriteCoords: { x: 0, y: 1 },
+		encounterRate: 0,
 	},
 	HUT: {
 		type: 'HUT',
@@ -94,6 +101,7 @@ export const TILE_REGISTRY: Record<TileType, TileDef> = {
 		moveCost: 1,
 		description: "Iolo's wooden cottage sits quietly near the tree line.",
 		spriteCoords: { x: 0, y: 2 },
+		encounterRate: 0,
 	},
 	CHEST: {
 		type: 'CHEST',
@@ -105,5 +113,6 @@ export const TILE_REGISTRY: Record<TileType, TileDef> = {
 		description:
 			'A heavy oak chest bound in tarnished iron rests in the grass.',
 		spriteCoords: { x: 0, y: 3 },
+		encounterRate: 0,
 	},
 }

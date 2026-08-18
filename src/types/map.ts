@@ -23,6 +23,8 @@ export interface TileDef {
 	isWalkable?: boolean
 	spriteCoords: Position
 	description?: string
+	encounterRate?: number
+	encounterTableKey?: string
 }
 
 export type InteractionType =
@@ -50,5 +52,6 @@ export interface Zone {
 	dimensions: { width: number; height: number }
 	dangerLevel: number
 	terrain: string[]
+	// tileLegend: Record<string, TileDef>
 	events?: Record<string, TileEvent>
 }

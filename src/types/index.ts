@@ -1,4 +1,5 @@
 export * from './commands'
 export * from './game'
 export * from './map'
+export * from './monster'
 export * from './player'

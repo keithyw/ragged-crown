@@ -1,31 +1,42 @@
 import { create } from 'zustand'
 import { mapLoaderService } from '@/services'
-import type { GameScreen, PlayerCharacter, Position, Zone } from '@/types'
-import { evaluateMove } from '@/utils'
+import type {
+	ActiveEncounter,
+	GameScreen,
+	Monster,
+	PlayerCharacter,
+	Position,
+	Zone,
+} from '@/types'
 
 interface GameState {
 	currentZone: Zone | null
 	currentScreen: GameScreen
+	encounter: ActiveEncounter | null
 	isMapLoading: boolean
+	monsters: Monster[]
 	playerPosition: Position
 	party: PlayerCharacter[]
 	selectedCharId: string
 	logs: string[]
 
 	// Actions
-	movePlayer: (dx: number, dy: number) => void
 	selectCharacter: (id: string) => void
 	addLog: (message: string) => void
 	loadMap: (zoneId: string, startingPosition?: Position) => Promise<void>
+	setEncounter: (encounter: ActiveEncounter) => void
+	setMonsters: (monsters: Monster[]) => void
 	setParty: (party: PlayerCharacter[]) => void
 	setPlayerPosition: (position: Position) => void
 	setScreen: (screen: GameScreen) => void
 }
 
-export const useGameStore = create<GameState>((set, get) => ({
+export const useGameStore = create<GameState>((set) => ({
 	currentScreen: 'INTRO',
 	currentZone: null,
+	encounter: null,
 	isMapLoading: false,
+	monsters: [],
 	playerPosition: { x: 10, y: 8 },
 	party: [],
 	selectedCharId: 'char-1',
@@ -58,30 +69,9 @@ export const useGameStore = create<GameState>((set, get) => ({
 		}
 	},
 
-	movePlayer: (dx: number, dy: number) => {
-		const { playerPosition, currentZone, addLog } = get()
-		if (!currentZone) return
-
-		const res = evaluateMove(playerPosition, dx, dy, currentZone)
-		if (!res.canMove) {
-			if (res.blockReason) {
-				addLog(`> ${res.blockReason}`)
-			}
-			return
-		}
-
-		set({ playerPosition: res.nextPos })
-
-		if (res.targetTile) {
-			addLog(
-				`> Moved to ${res.targetTile.name} (${res.nextPos.x}, ${res.nextPos.y}).`,
-			)
-		}
-	},
-
+	setEncounter: (encounter) => set({ encounter }),
+	setMonsters: (monsters) => set({ monsters }),
 	setParty: (party) => set({ party }),
-
 	setPlayerPosition: (position: Position) => set({ playerPosition: position }),
-
 	setScreen: (screen) => set({ currentScreen: screen }),
 }))

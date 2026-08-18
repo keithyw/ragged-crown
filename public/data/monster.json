@@ -1,0 +1,34 @@
+{
+	"goblin": {
+		"id": "goblin",
+		"name": "Goblin",
+		"level": 1,
+		"maxHp": 6,
+		"portraitSymbol": "g",
+		"color": "text-emerald-400"
+	},
+	"orc": {
+		"id": "orc",
+		"name": "Orc",
+		"level": 2,
+		"maxHp": 12,
+		"portraitSymbol": "o",
+		"color": "text-green-600"
+	},
+	"giant_spider": {
+		"id": "giant_spider",
+		"name": "Giant Spider",
+		"level": 1,
+		"maxHp": 8,
+		"portraitSymbol": "s",
+		"color": "text-purple-400"
+	},
+	"bandit": {
+		"id": "bandit",
+		"name": "Road Bandit",
+		"level": 2,
+		"maxHp": 14,
+		"portraitSymbol": "b",
+		"color": "text-amber-600"
+	}
+}

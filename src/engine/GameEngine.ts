@@ -1,7 +1,8 @@
 import { BaseGameEngine, CommandBus, InputManager } from '@/engine'
-import { mapLoaderService, PartyService } from '@/services'
+import { mapLoaderService, EncounterService, PartyService } from '@/services'
 import { useGameStore } from '@/store/useGameStore'
-import type { Command, GameScreen } from '@/types'
+import type { Command, GameScreen, TileDef } from '@/types'
+import { evaluateMove } from '@/utils'
 
 export class GameEngine extends BaseGameEngine {
 	public commandBus: CommandBus
@@ -31,13 +32,15 @@ export class GameEngine extends BaseGameEngine {
 
 		// Load default starting zone map asset
 		try {
-			const [startingZone, party] = await Promise.all([
+			const [startingZone, monsters, party] = await Promise.all([
 				mapLoaderService.loadZone('a1'),
+				EncounterService.fetchMonsters(),
 				PartyService.fetchParty(),
 			])
 			useGameStore.setState({
 				currentZone: startingZone,
 				isMapLoading: false,
+				monsters,
 				party,
 			})
 		} catch (e) {
@@ -62,8 +65,7 @@ export class GameEngine extends BaseGameEngine {
 		this.commandBus.clear()
 		// Handle Movement
 		this.commandBus.subscribe('MOVE_PLAYER', (cmd: Command) => {
-			const { dx, dy } = cmd.payload as { dx: number; dy: number }
-			useGameStore.getState().movePlayer(dx, dy)
+			this.movePlayer(cmd.payload as { dx: number; dy: number })
 		})
 
 		// Handle Interactions
@@ -101,6 +103,45 @@ export class GameEngine extends BaseGameEngine {
 			this.inputManager.detachListeners()
 		}
 		this.commandBus.clear()
+	}
+
+	private movePlayer({ dx, dy }: { dx: number; dy: number }): void {
+		const store = useGameStore.getState()
+		if (store.currentScreen !== 'WORLD_MAP' || !store.currentZone) return
+		const res = evaluateMove(store.playerPosition, dx, dy, store.currentZone)
+		if (!res.canMove) {
+			if (res.blockReason) {
+				store.addLog(`> ${res.blockReason}`)
+			}
+			return
+		}
+
+		console.log('eval move', res)
+
+		store.setPlayerPosition(res.nextPos)
+
+		if (res.targetTile) {
+			store.addLog(
+				`> Moved to ${res.targetTile.name} (${res.nextPos.x}, ${res.nextPos.y}).`,
+			)
+		}
+
+		if (
+			EncounterService.shouldTriggerEncounter(
+				res.targetTile as TileDef,
+				store.currentZone,
+			)
+		) {
+			const encounter = EncounterService.generateEncounter(
+				store.currentZone,
+				res.targetTile as TileDef,
+			)
+
+			// Set store active encounter and switch engine screen context to COMBAT
+			store.setEncounter(encounter)
+			this.setScreenContext('COMBAT')
+			store.addLog(`> ENCOUNTER! Enemies approach!`)
+		}
 	}
 }
 
