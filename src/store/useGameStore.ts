@@ -24,7 +24,7 @@ interface GameState {
 	selectCharacter: (id: string) => void
 	addLog: (message: string) => void
 	loadMap: (zoneId: string, startingPosition?: Position) => Promise<void>
-	setEncounter: (encounter: ActiveEncounter) => void
+	setEncounter: (encounter: ActiveEncounter | null) => void
 	setMonsters: (monsters: Monster[]) => void
 	setParty: (party: PlayerCharacter[]) => void
 	setPlayerPosition: (position: Position) => void

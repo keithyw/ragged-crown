@@ -77,6 +77,10 @@ export class GameEngine extends BaseGameEngine {
 		this.commandBus.subscribe('COMBAT_ATTACK', () => {
 			useGameStore.getState().addLog('> You strike with your weapon!')
 		})
+
+		this.commandBus.subscribe('COMBAT_FLEE', () => {
+			this.fleeComabt()
+		})
 	}
 
 	/** Template Method Step 4: Called once initialization completes */
@@ -105,6 +109,13 @@ export class GameEngine extends BaseGameEngine {
 		this.commandBus.clear()
 	}
 
+	private fleeComabt(): void {
+		const store = useGameStore.getState()
+		store.setEncounter(null)
+		this.setScreenContext('WORLD_MAP')
+		store.addLog(`> You flee the battle!`)
+	}
+
 	private movePlayer({ dx, dy }: { dx: number; dy: number }): void {
 		const store = useGameStore.getState()
 		if (store.currentScreen !== 'WORLD_MAP' || !store.currentZone) return
@@ -115,8 +126,6 @@ export class GameEngine extends BaseGameEngine {
 			}
 			return
 		}
-
-		console.log('eval move', res)
 
 		store.setPlayerPosition(res.nextPos)
 

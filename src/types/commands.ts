@@ -5,6 +5,7 @@ export type CommandType =
 	| 'EXECUTE_ATTACK'
 	| 'CAST_SPELL'
 	| 'START_GAME'
+	| 'START_FIGHT'
 	| 'COMBAT_ATTACK'
 	| 'COMBAT_DEFEND'
 	| 'COMBAT_CAST_SPELL'
