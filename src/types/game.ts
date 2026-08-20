@@ -13,4 +13,5 @@ export type GameScreen =
 	| 'SETTINGS'
 	| 'WORLD_MAP'
 	| 'COMBAT'
+	| 'COMBAT_PLANNING'
 	| 'DIALOGUE'

@@ -2,6 +2,7 @@ import { create } from 'zustand'
 import { mapLoaderService } from '@/services'
 import type {
 	ActiveEncounter,
+	CombatPhase,
 	GameScreen,
 	Monster,
 	PlayerCharacter,
@@ -10,6 +11,7 @@ import type {
 } from '@/types'
 
 interface GameState {
+	combatPhase: CombatPhase | null
 	currentZone: Zone | null
 	currentScreen: GameScreen
 	encounter: ActiveEncounter | null
@@ -24,6 +26,7 @@ interface GameState {
 	selectCharacter: (id: string) => void
 	addLog: (message: string) => void
 	loadMap: (zoneId: string, startingPosition?: Position) => Promise<void>
+	setCombatPhase: (phase: CombatPhase) => void
 	setEncounter: (encounter: ActiveEncounter | null) => void
 	setMonsters: (monsters: Monster[]) => void
 	setParty: (party: PlayerCharacter[]) => void
@@ -32,6 +35,7 @@ interface GameState {
 }
 
 export const useGameStore = create<GameState>((set) => ({
+	combatPhase: null,
 	currentScreen: 'INTRO',
 	currentZone: null,
 	encounter: null,
@@ -69,6 +73,7 @@ export const useGameStore = create<GameState>((set) => ({
 		}
 	},
 
+	setCombatPhase: (phase) => set({ combatPhase: phase }),
 	setEncounter: (encounter) => set({ encounter }),
 	setMonsters: (monsters) => set({ monsters }),
 	setParty: (party) => set({ party }),

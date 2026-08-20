@@ -73,13 +73,12 @@ export class GameEngine extends BaseGameEngine {
 			useGameStore.getState().addLog('> You interact with the surroundings.')
 		})
 
-		// Handle Combat Commands (for future expansion)
-		this.commandBus.subscribe('COMBAT_ATTACK', () => {
-			useGameStore.getState().addLog('> You strike with your weapon!')
+		this.commandBus.subscribe('COMBAT_FLEE', () => {
+			this.fleeCombat()
 		})
 
-		this.commandBus.subscribe('COMBAT_FLEE', () => {
-			this.fleeComabt()
+		this.commandBus.subscribe('COMBAT_START', () => {
+			this.startCombat()
 		})
 	}
 
@@ -109,11 +108,16 @@ export class GameEngine extends BaseGameEngine {
 		this.commandBus.clear()
 	}
 
-	private fleeComabt(): void {
+	public fleeCombat(): void {
 		const store = useGameStore.getState()
 		store.setEncounter(null)
 		this.setScreenContext('WORLD_MAP')
 		store.addLog(`> You flee the battle!`)
+	}
+
+	public startCombat(): void {
+		const { addLog } = useGameStore.getState()
+		addLog('> Fight chosen! (Planning Phase coming soon...)')
 	}
 
 	private movePlayer({ dx, dy }: { dx: number; dy: number }): void {
@@ -147,6 +151,7 @@ export class GameEngine extends BaseGameEngine {
 			)
 
 			// Set store active encounter and switch engine screen context to COMBAT
+			store.setCombatPhase('INIT')
 			store.setEncounter(encounter)
 			this.setScreenContext('COMBAT')
 			store.addLog(`> ENCOUNTER! Enemies approach!`)

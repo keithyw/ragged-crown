@@ -31,7 +31,12 @@ export class InputManager {
 			},
 			COMBAT: {
 				r: () => ({ type: 'COMBAT_FLEE', payload: {} }),
-				f: () => ({ type: 'START_FIGHT', payload: {} }),
+				f: () => ({ type: 'COMBAT_START', payload: {} }),
+			},
+			COMBAT_PLANNING: {
+				a: () => ({ type: 'COMBAT_ATTACK', payload: {} }),
+				c: () => ({ type: 'COMBAT_CAST_SPELL', payload: {} }),
+				d: () => ({ type: 'COMBAT_DEFEND', payload: {} }),
 			},
 			DIALOGUE: {
 				'1': () => ({ type: 'SELECT_OPTION', payload: { optionIndex: 0 } }),
