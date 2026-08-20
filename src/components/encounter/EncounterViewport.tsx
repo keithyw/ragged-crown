@@ -4,11 +4,15 @@ import { PanelHeader } from '@/components/ui/PanelHeader'
 import { SHAPES, SURFACES } from '@/constants'
 import { getGameEngine } from '@/engine/GameEngine'
 import { useGameStore } from '@/store/useGameStore'
+import type { CombatActionType } from '@/types'
 import { cn } from '@/utils'
 
 export const EncounterViewport = () => {
 	const activeEncounter = useGameStore((state) => state.encounter)
 	const combatPhase = useGameStore((state) => state.combatPhase)
+	const activeCharacter = useGameStore((state) => state.activeCharacter)
+	const party = useGameStore((state) => state.party)
+	// const currentCharacter = party.find((p) => p.id === useGameStore.getState().selectedCharId)
 
 	if (!activeEncounter) {
 		return (
@@ -34,6 +38,14 @@ export const EncounterViewport = () => {
 		getGameEngine().startCombat()
 	}
 
+	const handleAction = (actionType: CombatActionType) => {
+		getGameEngine().handleCharacterAction(actionType)
+	}
+
+	const handleReset = () => {
+		useGameStore.getState().resetPlanning()
+	}
+
 	return (
 		<div className={cn(SHAPES.panel, SURFACES.panelDark)}>
 			<PanelHeader
@@ -49,8 +61,12 @@ export const EncounterViewport = () => {
 
 				{/* Bottom Half: Phase 1 Action Options */}
 				<EncounterActionsSection
+					activeCharacter={activeCharacter}
 					combatPhase={combatPhase}
+					party={party}
+					handleAction={handleAction}
 					handleFight={handleFight}
+					handleReset={handleReset}
 					handleRun={handleRun}
 				/>
 			</div>

@@ -1,7 +1,7 @@
 import { BaseGameEngine, CommandBus, InputManager } from '@/engine'
 import { mapLoaderService, EncounterService, PartyService } from '@/services'
 import { useGameStore } from '@/store/useGameStore'
-import type { Command, GameScreen, TileDef } from '@/types'
+import type { CombatActionType, Command, GameScreen, TileDef } from '@/types'
 import { evaluateMove } from '@/utils'
 
 export class GameEngine extends BaseGameEngine {
@@ -80,6 +80,18 @@ export class GameEngine extends BaseGameEngine {
 		this.commandBus.subscribe('COMBAT_START', () => {
 			this.startCombat()
 		})
+
+		this.commandBus.subscribe('COMBAT_ATTACK', () => {
+			this.handleCharacterAction('ATTACK')
+		})
+
+		this.commandBus.subscribe('COMBAT_DEFEND', () => {
+			this.handleCharacterAction('DEFEND')
+		})
+
+		this.commandBus.subscribe('COMBAT_CAST_SPELL', () => {
+			this.handleCharacterAction('CAST_SPELL')
+		})
 	}
 
 	/** Template Method Step 4: Called once initialization completes */
@@ -116,8 +128,46 @@ export class GameEngine extends BaseGameEngine {
 	}
 
 	public startCombat(): void {
-		const { addLog } = useGameStore.getState()
-		addLog('> Fight chosen! (Planning Phase coming soon...)')
+		this.setScreenContext('COMBAT_PLANNING')
+		const store = useGameStore.getState()
+		store.setCombatPhase('PLANNING')
+		store.setActiveCharacter(0)
+		store.addLog('> Fight chosen! (Planning Phase coming soon...)')
+	}
+
+	// Helper methods in GameEngine.ts
+	public handleCharacterAction(
+		actionType: CombatActionType,
+		targetGroupIndex: number = 0,
+	): void {
+		const store = useGameStore.getState()
+		if (store.combatPhase !== 'PLANNING' || !store.party) return
+
+		const currentChar = store.party[store.activeCharacter]
+		if (!currentChar) return
+
+		// 1. Queue Action
+		store.queueAction({
+			actorId: currentChar.id,
+			actorType: 'PARTY',
+			actionType,
+			target: {
+				type: 'MONSTER_GROUP',
+				id: String(targetGroupIndex),
+			},
+		})
+
+		store.addLog(`> ${currentChar.name} queued: ${actionType}`)
+
+		// 2. Advance to next character or finish planning
+		const nextIndex = store.activeCharacter + 1
+
+		if (nextIndex < store.party.length) {
+			store.setActiveCharacter(nextIndex)
+		} else {
+			store.setCombatPhase('CONFIRMATION')
+			store.addLog('> All character actions assigned. Confirm round?')
+		}
 	}
 
 	private movePlayer({ dx, dy }: { dx: number; dy: number }): void {

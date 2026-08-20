@@ -16,6 +16,7 @@ export interface QueuedAction {
 }
 
 export type CombatPhase = 'INIT' | 'PLANNING' | 'CONFIRMATION'
+
 // | 'ACTION_SELECT' // Choosing Attack, Defend, Spell, etc.
 // | 'TARGET_SELECT' // Choosing target group/PC
 // | 'SPELL_SELECT' // Choosing spell from spellbook

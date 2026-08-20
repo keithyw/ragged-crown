@@ -6,11 +6,14 @@ import type {
 	GameScreen,
 	Monster,
 	PlayerCharacter,
+	QueuedAction,
 	Position,
 	Zone,
 } from '@/types'
 
 interface GameState {
+	activeCharacter: number | 0
+	actionQueue: QueuedAction[]
 	combatPhase: CombatPhase | null
 	currentZone: Zone | null
 	currentScreen: GameScreen
@@ -26,6 +29,10 @@ interface GameState {
 	selectCharacter: (id: string) => void
 	addLog: (message: string) => void
 	loadMap: (zoneId: string, startingPosition?: Position) => Promise<void>
+	clearActionQueue: () => void
+	queueAction: (action: QueuedAction) => void
+	resetPlanning: () => void
+	setActiveCharacter: (id: number) => void
 	setCombatPhase: (phase: CombatPhase) => void
 	setEncounter: (encounter: ActiveEncounter | null) => void
 	setMonsters: (monsters: Monster[]) => void
@@ -35,6 +42,8 @@ interface GameState {
 }
 
 export const useGameStore = create<GameState>((set) => ({
+	activeCharacter: 0,
+	actionQueue: [],
 	combatPhase: null,
 	currentScreen: 'INTRO',
 	currentZone: null,
@@ -73,6 +82,15 @@ export const useGameStore = create<GameState>((set) => ({
 		}
 	},
 
+	clearActionQueue: () => set({ actionQueue: [] }),
+	queueAction: (action) =>
+		set((state) => ({
+			actionQueue: [...state.actionQueue, action],
+		})),
+	resetPlanning: () =>
+		set({ actionQueue: [], activeCharacter: 0, combatPhase: 'PLANNING' }),
+
+	setActiveCharacter: (id) => set({ activeCharacter: id }),
 	setCombatPhase: (phase) => set({ combatPhase: phase }),
 	setEncounter: (encounter) => set({ encounter }),
 	setMonsters: (monsters) => set({ monsters }),

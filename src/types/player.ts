@@ -9,6 +9,8 @@ export interface ResourceBar {
 	max: number
 }
 
+export const SpellCaster: string[] = ['Mage', 'Cleric', 'Paladin']
+
 export interface PlayerCharacter {
 	id: string
 	name: string
