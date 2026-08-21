@@ -2,9 +2,9 @@ import { EncounterActionsSection } from '@/components/encounter/EncounterActions
 import { MonsterGroupSection } from '@/components/encounter/MonsterGroupSection'
 import { PanelHeader } from '@/components/ui/PanelHeader'
 import { SHAPES, SURFACES } from '@/constants'
-import { getGameEngine } from '@/engine/GameEngine'
+import { combatEngine } from '@/engine'
 import { useGameStore } from '@/store/useGameStore'
-import type { CombatActionType } from '@/types'
+// import type { CombatActionType } from '@/types'
 import { cn } from '@/utils'
 
 export const EncounterViewport = () => {
@@ -31,15 +31,15 @@ export const EncounterViewport = () => {
 	const leadGroup = activeEncounter.groups[0]
 
 	const handleRun = () => {
-		getGameEngine().fleeCombat()
+		combatEngine.flee()
 	}
 
 	const handleFight = () => {
-		getGameEngine().startCombat()
+		combatEngine.enterCombat()
 	}
 
-	const handleAction = (actionType: CombatActionType) => {
-		getGameEngine().handleCharacterAction(actionType)
+	const handleAction = (actionType: string) => {
+		combatEngine.handleActionSelectInput(actionType)
 	}
 
 	const handleReset = () => {

@@ -1,17 +1,12 @@
 import { TEXT } from '@/constants'
-import {
-	SpellCaster,
-	type CombatActionType,
-	type CombatPhase,
-	type PlayerCharacter,
-} from '@/types'
+import { SpellCaster, type CombatPhase, type PlayerCharacter } from '@/types'
 import { cn } from '@/utils'
 
 interface EncounterActionsSectionProps {
 	activeCharacter: number | 0
 	combatPhase: CombatPhase | null
 	party: PlayerCharacter[] | null
-	handleAction: (actionType: CombatActionType) => void
+	handleAction: (actionType: string) => void
 	handleFight: () => void
 	handleReset: () => void
 	handleRun: () => void
@@ -61,13 +56,13 @@ export const EncounterActionsSection = ({
 					</div>
 					<div className='flex gap-2 text-xs'>
 						<button
-							onClick={() => handleAction('ATTACK')}
+							onClick={() => handleAction('a')}
 							className='rounded bg-amber-600 px-3 py-1 font-bold text-slate-950 hover:bg-amber-500'
 						>
 							[A] Attack
 						</button>
 						<button
-							onClick={() => handleAction('DEFEND')}
+							onClick={() => handleAction('d')}
 							className='rounded border border-slate-700 bg-slate-800 px-3 py-1 text-slate-200 hover:bg-slate-700'
 						>
 							[D] Defend
@@ -76,7 +71,7 @@ export const EncounterActionsSection = ({
 							(c) => (c as string) === currentCharacter.class,
 						) && (
 							<button
-								onClick={() => handleAction('CAST_SPELL')}
+								onClick={() => handleAction('c')}
 								className='rounded bg-cyan-700 px-3 py-1 font-bold text-slate-100 hover:bg-cyan-600'
 							>
 								[C] Cast Spell

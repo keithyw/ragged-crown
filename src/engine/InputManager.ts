@@ -1,57 +1,9 @@
-import type { CommandBus } from '@/engine'
-import type { Command, GameScreen } from '@/types'
-
-type KeyBindingMap = Record<string, () => Command | null>
+export type KeyHandler = (key: string, event: KeyboardEvent) => boolean | void
 
 export class InputManager {
-	private bus: CommandBus
-	private currentContext: GameScreen = 'WORLD_MAP'
-	private keyMaps: Record<GameScreen, KeyBindingMap>
-
-	constructor(bus: CommandBus) {
-		this.bus = bus
-		this.keyMaps = {
-			INTRO: {
-				' ': () => ({ type: 'START_GAME' }),
-				Enter: () => ({ type: 'START_GAME' }),
-			},
-			MAIN_MENU: {},
-			CHARACTER_CREATION: {},
-			SETTINGS: {},
-			WORLD_MAP: {
-				w: () => ({ type: 'MOVE_PLAYER', payload: { dx: 0, dy: -1 } }),
-				ArrowUp: () => ({ type: 'MOVE_PLAYER', payload: { dx: 0, dy: -1 } }),
-				s: () => ({ type: 'MOVE_PLAYER', payload: { dx: 0, dy: 1 } }),
-				ArrowDown: () => ({ type: 'MOVE_PLAYER', payload: { dx: 0, dy: 1 } }),
-				a: () => ({ type: 'MOVE_PLAYER', payload: { dx: -1, dy: 0 } }),
-				ArrowLeft: () => ({ type: 'MOVE_PLAYER', payload: { dx: -1, dy: 0 } }),
-				d: () => ({ type: 'MOVE_PLAYER', payload: { dx: 1, dy: 0 } }),
-				ArrowRight: () => ({ type: 'MOVE_PLAYER', payload: { dx: 1, dy: 0 } }),
-				e: () => ({ type: 'INTERACT' }),
-			},
-			COMBAT: {
-				r: () => ({ type: 'COMBAT_FLEE', payload: {} }),
-				f: () => ({ type: 'COMBAT_START', payload: {} }),
-			},
-			COMBAT_PLANNING: {
-				a: () => ({ type: 'COMBAT_ATTACK', payload: {} }),
-				c: () => ({ type: 'COMBAT_CAST_SPELL', payload: {} }),
-				d: () => ({ type: 'COMBAT_DEFEND', payload: {} }),
-			},
-			DIALOGUE: {
-				'1': () => ({ type: 'SELECT_OPTION', payload: { optionIndex: 0 } }),
-				'2': () => ({ type: 'SELECT_OPTION', payload: { optionIndex: 1 } }),
-				Escape: () => ({ type: 'CLOSE_DIALOGUE' }),
-			},
-		}
-	}
-
-	public setContext(context: GameScreen): void {
-		this.currentContext = context
-	}
+	private activeHandlers: Set<KeyHandler> = new Set()
 
 	public attachListeners(): void {
-		window.removeEventListener('keydown', this.handleKeyDown)
 		window.addEventListener('keydown', this.handleKeyDown)
 	}
 
@@ -59,17 +11,23 @@ export class InputManager {
 		window.removeEventListener('keydown', this.handleKeyDown)
 	}
 
-	private handleKeyDown = (event: KeyboardEvent): void => {
-		const keyMap = this.keyMaps[this.currentContext]
-		if (!keyMap) return
+	public registerHandler(handler: KeyHandler): () => void {
+		this.activeHandlers.add(handler)
+		return () => {
+			this.activeHandlers.delete(handler)
+		}
+	}
 
-		const action = keyMap[event.key] || keyMap[event.key.toLowerCase()]
-		if (action) {
-			const command = action()
-			if (command) {
-				event.preventDefault()
-				this.bus.dispatch(command)
-			}
+	private handleKeyDown = (event: KeyboardEvent): void => {
+		if (event.repeat) return
+
+		// Run backwards through registered handlers (top of stack/latest first)
+		const handlers = Array.from(this.activeHandlers).reverse()
+		for (const handler of handlers) {
+			const handled = handler(event.key, event)
+			if (handled) break
 		}
 	}
 }
+
+export const inputManager = new InputManager()
