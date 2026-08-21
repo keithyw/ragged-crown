@@ -189,11 +189,103 @@ export class CombatEngine {
 		this.startPlanning()
 	}
 
+	private resolvePartyAttack(
+		actorName: string,
+		targetGroupIndex: number,
+	): void {
+		const store = useGameStore.getState()
+		const encounter = store.encounter
+		if (!encounter || !encounter.groups[targetGroupIndex]) return
+
+		const targetGroup = encounter.groups[targetGroupIndex]
+
+		// Placeholder combat calculation: 1d6 + 2 damage
+		const damage = Math.floor(Math.random() * 6) + 3
+		store.addLog(
+			`> ${actorName} attacks ${targetGroup.name} for ${damage} damage!`,
+		)
+
+		// Simple placeholder health/count reduction
+		// In future iterations, this updates individual enemy hit points
+	}
+
+	private resolveMonsterAttack(groupName: string): void {
+		const store = useGameStore.getState()
+		const party = store.party
+		const livingMembers = party.filter((p) => p.hp.current > 0)
+
+		if (livingMembers.length === 0) return
+
+		// Pick a random living party target
+		const target =
+			livingMembers[Math.floor(Math.random() * livingMembers.length)]
+		const damage = Math.floor(Math.random() * 4) + 1
+
+		store.addLog(`> ${groupName} strikes ${target.name} for ${damage} damage!`)
+	}
+
+	private transitionToPostCombat(): void {
+		// const store = useGameStore.getState()
+		// store.setScreen('POST_COMBAT')
+	}
+
+	private evaluateCombatOutcome(): void {
+		const store = useGameStore.getState()
+		const encounter = store.encounter
+
+		// Check Victory
+		const allEnemiesDefeated = encounter?.groups.every((g) => g.count <= 0)
+		if (allEnemiesDefeated) {
+			store.addLog('> Victory! All enemies defeated.')
+			this.transitionToPostCombat()
+			return
+		}
+
+		// Check Wipe
+		const partyWiped = store.party.every((p) => p.hp.current <= 0)
+		if (partyWiped) {
+			store.addLog('> Your party has fallen... Game Over.')
+			return
+		}
+
+		// Continue to next round
+		store.clearActionQueue()
+		store.setActiveCharacter(0)
+		this.startPlanning()
+	}
+
 	public executeRound(): void {
 		const store = useGameStore.getState()
 		store.setCombatPhase('EXECUTING')
 		store.addLog('> Round executing...')
-		// Future turn resolution loop will run here
+		const queue = store.actionQueue
+
+		// 1. Resolve Party Queued Actions in Order
+		for (const action of queue) {
+			const actor = store.party.find((p) => p.id === action.actorId)
+			if (!actor || actor.hp.current <= 0) continue // Skip if downed
+
+			if (action.actionType === 'ATTACK') {
+				const targetIdx = action.target?.index ?? 0
+				this.resolvePartyAttack(actor.name, targetIdx)
+			} else if (action.actionType === 'DEFEND') {
+				store.addLog(`> ${actor.name} takes a defensive stance!`)
+			} else if (action.actionType === 'CAST_SPELL') {
+				store.addLog(`> ${actor.name} weaves a spell!`)
+			}
+		}
+
+		// 2. Resolve Monster Group Counter-Attacks
+		if (store.encounter) {
+			for (const group of store.encounter.groups) {
+				if (group.count > 0) {
+					this.resolveMonsterAttack(group.name)
+				}
+			}
+		}
+
+		// 3. Round Cleanup & Transition Check
+		this.evaluateCombatOutcome()
 	}
 
 	public flee(): void {
