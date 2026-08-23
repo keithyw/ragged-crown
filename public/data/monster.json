@@ -1,5 +1,5 @@
-{
-	"goblin": {
+[
+	{
 		"id": "goblin",
 		"name": "Goblin",
 		"level": 1,
@@ -7,7 +7,7 @@
 		"portraitSymbol": "g",
 		"color": "text-emerald-400"
 	},
-	"orc": {
+	{
 		"id": "orc",
 		"name": "Orc",
 		"level": 2,
@@ -15,7 +15,7 @@
 		"portraitSymbol": "o",
 		"color": "text-green-600"
 	},
-	"giant_spider": {
+	{
 		"id": "giant_spider",
 		"name": "Giant Spider",
 		"level": 1,
@@ -23,7 +23,7 @@
 		"portraitSymbol": "s",
 		"color": "text-purple-400"
 	},
-	"bandit": {
+	{
 		"id": "bandit",
 		"name": "Road Bandit",
 		"level": 2,
@@ -31,4 +31,4 @@
 		"portraitSymbol": "b",
 		"color": "text-amber-600"
 	}
-}
+]

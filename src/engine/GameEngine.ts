@@ -111,7 +111,7 @@ export class GameEngine extends BaseGameEngine {
 				store.currentZone,
 			)
 		) {
-			const encounter = EncounterService.generateEncounter(
+			const encounter = combatEngine.generateEncounter(
 				store.currentZone,
 				res.targetTile as TileDef,
 			)

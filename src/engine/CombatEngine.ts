@@ -2,9 +2,15 @@ import { inputManager } from '@/engine'
 import { useGameStore } from '@/store/useGameStore'
 import {
 	SpellCaster,
+	type ActiveEncounter,
+	type ActiveMonster,
 	type CombatActionType,
+	type Monster,
+	type MonsterGroup,
 	type PlanningSubPhase,
 	type QueuedAction,
+	type TileDef,
+	type Zone,
 } from '@/types'
 
 export class CombatEngine {
@@ -130,6 +136,83 @@ export class CombatEngine {
 			return true
 		}
 		return false
+	}
+
+	public createMonsterGroup(
+		monsterTemplate: Monster,
+		count: number,
+		inMeleeRange: boolean,
+	): MonsterGroup {
+		const monsters: ActiveMonster[] = []
+
+		for (let i = 0; i < count; i++) {
+			// Future: Evaluate variable HP roll (e.g. 1d6) here
+			const hpValue = monsterTemplate.maxHp || 8
+
+			monsters.push({
+				id: `${monsterTemplate.id}-${Date.now()}-${i}`,
+				templateId: monsterTemplate.id,
+				name: `${monsterTemplate.name} #${i + 1}`,
+				hp: {
+					current: hpValue,
+					max: hpValue,
+				},
+			})
+		}
+
+		return {
+			id: `group-${monsterTemplate.id}`,
+			name: monsterTemplate.name,
+			count: monsters.length,
+			inMeleeRange,
+			monsters,
+		}
+	}
+
+	public generateEncounter(zone: Zone, tile: TileDef): ActiveEncounter {
+		const store = useGameStore.getState()
+		const monsterTemplates = store.monsters
+		console.log('monsterTemplates', monsterTemplates)
+
+		// need to eventually convert this into something that uses
+		// a category based system
+		const isRoad = tile.name.toLowerCase().includes('road')
+		const primaryDefId = isRoad ? 'bandit' : 'goblin'
+		const primaryCount = isRoad
+			? Math.floor(Math.random() * 3) + 1
+			: Math.floor(Math.random() * 4) + 1
+
+		const groups: MonsterGroup[] = []
+
+		// Instantiate primary group
+		const monster = monsterTemplates.find((m) => m.id === primaryDefId)
+		const primaryGroup = this.createMonsterGroup(
+			monster as Monster,
+			primaryCount,
+			true,
+		)
+		if (primaryGroup) groups.push(primaryGroup)
+
+		// 30% chance for secondary ranged group
+		if (Math.random() < 0.3) {
+			const secondMonster = monsterTemplates.find(
+				(m) => m.id === 'giant_spider',
+			)
+			const secondaryGroup = this.createMonsterGroup(
+				secondMonster as Monster,
+				Math.floor(Math.random() * 2) + 1,
+				false,
+			)
+			if (secondaryGroup) groups.push(secondaryGroup)
+		}
+
+		return {
+			id: `enc-${Date.now()}`,
+			zoneId: zone.id,
+			dangerLevel: zone.dangerLevel,
+			groups,
+			phase: 'INIT',
+		}
 	}
 
 	private commitAction(
