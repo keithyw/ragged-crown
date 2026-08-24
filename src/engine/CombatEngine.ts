@@ -282,14 +282,27 @@ export class CombatEngine {
 
 		const targetGroup = encounter.groups[targetGroupIndex]
 
+		const targetMonster = targetGroup.monsters.find((m) => m.hp.current > 0)
+
+		if (!targetMonster) {
+			store.addLog(
+				`> ${actorName} attacks ${targetGroup.name}, but no targets remain!`,
+			)
+			return
+		}
+
 		// Placeholder combat calculation: 1d6 + 2 damage
 		const damage = Math.floor(Math.random() * 6) + 3
+		targetMonster.hp.current = Math.max(0, targetMonster.hp.current - damage)
 		store.addLog(
 			`> ${actorName} attacks ${targetGroup.name} for ${damage} damage!`,
 		)
 
-		// Simple placeholder health/count reduction
-		// In future iterations, this updates individual enemy hit points
+		if (targetMonster.hp.current <= 0) {
+			store.addLog(`> ${targetMonster.name} is defeated!`)
+		}
+
+		store.setEncounter({ ...encounter })
 	}
 
 	private resolveMonsterAttack(groupName: string): void {

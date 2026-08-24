@@ -1,4 +1,5 @@
 export * from './cn'
+export * from './combat'
 export * from './grid'
 export * from './mapLoader'
 export * from './movement'

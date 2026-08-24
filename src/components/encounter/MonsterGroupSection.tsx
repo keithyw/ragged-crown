@@ -1,4 +1,7 @@
+// import { TEXT } from '@/constants'
 import type { ActiveEncounter, MonsterGroup } from '@/types'
+// import { calculateHPPercent, cn } from '@/utils'
+import { MonsterEncounterStats } from './MonsterEncounterStats'
 
 interface MonsterGroupSectionProps {
 	activeEncounter: ActiveEncounter
@@ -28,19 +31,10 @@ export const MonsterGroupSection = ({
 				</div>
 				{activeEncounter.groups
 					.filter((g) => g.inMeleeRange)
-					.map((group, idx) => {
-						const aliveCount = group.monsters.filter(
-							(m) => m.hp.current > 0,
-						).length
-						if (aliveCount === 0) return null
-						return (
-							<div key={idx} className='flex justify-between text-slate-200'>
-								<span>
-									{aliveCount}x {group.name}
-								</span>
-								<span className='text-[10px] text-slate-500'>[Melee]</span>
-							</div>
-						)
+					.map((group) => {
+						return group.monsters.map((monster, midx) => {
+							return <MonsterEncounterStats monster={monster} midx={midx} />
+						})
 					})}
 
 				<div className='border-b border-slate-800 pt-2 pb-1 font-bold text-cyan-400'>
@@ -51,19 +45,10 @@ export const MonsterGroupSection = ({
 				) : (
 					activeEncounter.groups
 						.filter((g) => !g.inMeleeRange)
-						.map((group, idx) => {
-							const aliveCount = group.monsters.filter(
-								(m) => m.hp.current > 0,
-							).length
-							if (aliveCount === 0) return null
-							return (
-								<div key={idx} className='flex justify-between text-slate-300'>
-									<span>
-										{aliveCount}x {group.name}
-									</span>
-									<span className='text-[10px] text-slate-500'>[Distant]</span>
-								</div>
-							)
+						.map((group) => {
+							return group.monsters.map((monster, midx) => {
+								return <MonsterEncounterStats monster={monster} midx={midx} />
+							})
 						})
 				)}
 			</div>

@@ -15,6 +15,11 @@ export const SHAPES = {
  * Text & typography scale.
  */
 export const TEXT = {
+	hpAlive: 'text-emerald-500/50',
+	hpDead: 'text-red-500/50',
+	hpPercentGood: 'bg-emerald-500',
+	hpPercentWarning: 'bg-amber-500',
+	hpPercentBad: 'bg-red-500',
 	monoBadge: 'font-mono text-xs font-bold leading-none',
 	panelHeader: 'text-xs uppercase tracking-wider font-semibold',
 	label: 'text-sm font-medium',
