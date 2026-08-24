@@ -33,7 +33,13 @@ export const MonsterGroupSection = ({
 					.filter((g) => g.inMeleeRange)
 					.map((group) => {
 						return group.monsters.map((monster, midx) => {
-							return <MonsterEncounterStats monster={monster} midx={midx} />
+							return (
+								<MonsterEncounterStats
+									key={monster.id}
+									monster={monster}
+									midx={midx}
+								/>
+							)
 						})
 					})}
 
@@ -47,7 +53,13 @@ export const MonsterGroupSection = ({
 						.filter((g) => !g.inMeleeRange)
 						.map((group) => {
 							return group.monsters.map((monster, midx) => {
-								return <MonsterEncounterStats monster={monster} midx={midx} />
+								return (
+									<MonsterEncounterStats
+										key={monster.id}
+										monster={monster}
+										midx={midx}
+									/>
+								)
 							})
 						})
 				)}
