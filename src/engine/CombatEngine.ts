@@ -332,8 +332,18 @@ export class CombatEngine {
 	}
 
 	private transitionToPostCombat(): void {
-		// const store = useGameStore.getState()
-		// store.setScreen('POST_COMBAT')
+		const store = useGameStore.getState()
+		store.setCombatPhase('POST_COMBAT')
+		store.addLog('> Victory! All enemies are dead.')
+		store.addLog('> Press [ENTER] to return to exploration...')
+		this.unbindInput?.()
+		this.unbindInput = inputManager.registerHandler((key) => {
+			if (key === ' ' || key === 'Enter') {
+				this.finishCombat()
+				return true
+			}
+			return false
+		})
 	}
 
 	private evaluateCombatOutcome(): void {
@@ -392,6 +402,15 @@ export class CombatEngine {
 
 		// 3. Round Cleanup & Transition Check
 		this.evaluateCombatOutcome()
+	}
+
+	private finishCombat(): void {
+		const store = useGameStore.getState()
+		this.cleanup()
+		store.setEncounter(null)
+		store.setScreen('WORLD_MAP')
+		store.clearActionQueue()
+		this.onExitCombat?.()
 	}
 
 	public flee(): void {

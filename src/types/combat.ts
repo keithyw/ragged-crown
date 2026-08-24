@@ -1,5 +1,6 @@
 // src/types/combat.ts
-export type CombatPhase = 'INIT' | 'PLANNING' | 'CONFIRMATION' | 'EXECUTING'
+export type CombatPhase =
+	'INIT' | 'PLANNING' | 'CONFIRMATION' | 'EXECUTING' | 'POST_COMBAT'
 export type PlanningSubPhase =
 	'ACTION_SELECT' | 'TARGET_SELECT' | 'SPELL_SELECT'
 
