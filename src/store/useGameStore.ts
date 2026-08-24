@@ -30,6 +30,7 @@ interface GameState {
 	addLog: (message: string) => void
 	loadMap: (zoneId: string, startingPosition?: Position) => Promise<void>
 	clearActionQueue: () => void
+	damageCharacter: (id: string, damage: number) => void
 	queueAction: (action: QueuedAction) => void
 	resetPlanning: () => void
 	setActiveCharacter: (id: number) => void
@@ -83,6 +84,19 @@ export const useGameStore = create<GameState>((set) => ({
 	},
 
 	clearActionQueue: () => set({ actionQueue: [] }),
+
+	damageCharacter: (id: string, damage: number) =>
+		set((state) => ({
+			party: state.party.map((p) => {
+				if (p.id !== id) return p
+				const nextHp = Math.max(0, p.hp.current - damage)
+				return {
+					...p,
+					hp: { ...p.hp, current: nextHp },
+				}
+			}),
+		})),
+
 	queueAction: (action) =>
 		set((state) => ({
 			actionQueue: [...state.actionQueue, action],

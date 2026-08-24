@@ -305,19 +305,30 @@ export class CombatEngine {
 		store.setEncounter({ ...encounter })
 	}
 
-	private resolveMonsterAttack(groupName: string): void {
+	private resolveMonsterAttack(): void {
 		const store = useGameStore.getState()
-		const party = store.party
-		const livingMembers = party.filter((p) => p.hp.current > 0)
+		const encounter = store.encounter
+		if (!encounter) return
 
-		if (livingMembers.length === 0) return
+		const monsters = encounter.groups.flatMap((g) =>
+			g.monsters.filter((m) => m.hp.current > 0),
+		)
 
-		// Pick a random living party target
-		const target =
-			livingMembers[Math.floor(Math.random() * livingMembers.length)]
-		const damage = Math.floor(Math.random() * 4) + 1
+		for (const m of monsters) {
+			const party = store.party
+			const livingMembers = party.filter((p) => p.hp.current > 0)
+			if (livingMembers.length === 0) break
+			const target =
+				livingMembers[Math.floor(Math.random() * livingMembers.length)]
+			const damage = Math.floor(Math.random() * 4) + 1
 
-		store.addLog(`> ${groupName} strikes ${target.name} for ${damage} damage!`)
+			store.addLog(`> ${m.name} hits ${target.name} for ${damage} damage!`)
+			store.damageCharacter(target.id, damage)
+
+			if (target.hp.current - damage <= 0) {
+				store.addLog(`> ${target.name} is killed by ${m.name}!`)
+			}
+		}
 	}
 
 	private transitionToPostCombat(): void {
@@ -330,9 +341,13 @@ export class CombatEngine {
 		const encounter = store.encounter
 
 		// Check Victory
-		const allEnemiesDefeated = encounter?.groups.every((g) => g.count <= 0)
+		const allEnemiesDefeated = encounter?.groups.every((g) =>
+			g.monsters.every((m) => m.hp.current <= 0),
+		)
 		if (allEnemiesDefeated) {
 			store.addLog('> Victory! All enemies defeated.')
+			// need function
+			// this.finishCombatVictory()
 			this.transitionToPostCombat()
 			return
 		}
@@ -357,6 +372,7 @@ export class CombatEngine {
 		const queue = store.actionQueue
 
 		// 1. Resolve Party Queued Actions in Order
+		// move into function
 		for (const action of queue) {
 			const actor = store.party.find((p) => p.id === action.actorId)
 			if (!actor || actor.hp.current <= 0) continue // Skip if downed
@@ -372,13 +388,7 @@ export class CombatEngine {
 		}
 
 		// 2. Resolve Monster Group Counter-Attacks
-		if (store.encounter) {
-			for (const group of store.encounter.groups) {
-				if (group.count > 0) {
-					this.resolveMonsterAttack(group.name)
-				}
-			}
-		}
+		this.resolveMonsterAttack()
 
 		// 3. Round Cleanup & Transition Check
 		this.evaluateCombatOutcome()
