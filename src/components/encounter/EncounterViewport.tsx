@@ -12,6 +12,7 @@ export const EncounterViewport = () => {
 	const combatPhase = useGameStore((state) => state.combatPhase)
 	const activeCharacter = useGameStore((state) => state.activeCharacter)
 	const party = useGameStore((state) => state.party)
+	const selectedTargetIndex = useGameStore((state) => state.selectedTargetIndex)
 	// const currentCharacter = party.find((p) => p.id === useGameStore.getState().selectedCharId)
 
 	if (!activeEncounter) {
@@ -57,6 +58,7 @@ export const EncounterViewport = () => {
 				<MonsterGroupSection
 					activeEncounter={activeEncounter}
 					leadGroup={leadGroup}
+					selectedTargetIndex={selectedTargetIndex}
 				/>
 
 				{/* Bottom Half: Phase 1 Action Options */}

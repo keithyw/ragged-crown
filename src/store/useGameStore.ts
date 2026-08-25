@@ -5,6 +5,7 @@ import type {
 	CombatPhase,
 	GameScreen,
 	Monster,
+	PlanningSubPhase,
 	PlayerCharacter,
 	QueuedAction,
 	Position,
@@ -23,6 +24,8 @@ interface GameState {
 	playerPosition: Position
 	party: PlayerCharacter[]
 	selectedCharId: string
+	selectedTargetIndex: number
+	subPhase: PlanningSubPhase
 	logs: string[]
 
 	// Actions
@@ -38,8 +41,10 @@ interface GameState {
 	setEncounter: (encounter: ActiveEncounter | null) => void
 	setMonsters: (monsters: Monster[]) => void
 	setParty: (party: PlayerCharacter[]) => void
+	setSubPhase: (phase: PlanningSubPhase) => void
 	setPlayerPosition: (position: Position) => void
 	setScreen: (screen: GameScreen) => void
+	setSelectedTargetIndex: (index: number) => void
 }
 
 export const useGameStore = create<GameState>((set) => ({
@@ -50,11 +55,13 @@ export const useGameStore = create<GameState>((set) => ({
 	currentZone: null,
 	encounter: null,
 	isMapLoading: false,
+	logs: [],
 	monsters: [],
 	playerPosition: { x: 10, y: 8 },
 	party: [],
 	selectedCharId: 'char-1',
-	logs: [],
+	subPhase: 'ACTION_SELECT',
+	selectedTargetIndex: 0,
 
 	selectCharacter: (id: string) => set({ selectedCharId: id }),
 
@@ -111,4 +118,6 @@ export const useGameStore = create<GameState>((set) => ({
 	setParty: (party) => set({ party }),
 	setPlayerPosition: (position: Position) => set({ playerPosition: position }),
 	setScreen: (screen) => set({ currentScreen: screen }),
+	setSelectedTargetIndex: (index) => set({ selectedTargetIndex: index }),
+	setSubPhase: (phase) => set({ subPhase: phase }),
 }))

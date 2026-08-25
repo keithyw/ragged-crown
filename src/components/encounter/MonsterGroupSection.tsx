@@ -1,17 +1,55 @@
-// import { TEXT } from '@/constants'
+import { useGameStore } from '@/store/useGameStore'
 import type { ActiveEncounter, MonsterGroup } from '@/types'
-// import { calculateHPPercent, cn } from '@/utils'
+import { cn } from '@/utils'
 import { MonsterEncounterStats } from './MonsterEncounterStats'
 
 interface MonsterGroupSectionProps {
 	activeEncounter: ActiveEncounter
 	leadGroup: MonsterGroup
+	selectedTargetIndex: number
 }
 
 export const MonsterGroupSection = ({
 	activeEncounter,
 	leadGroup,
+	selectedTargetIndex,
 }: MonsterGroupSectionProps) => {
+	const subPhase = useGameStore((state) => state.subPhase)
+	const isTargeting = subPhase === 'TARGET_SELECT'
+
+	// Partition groups while preserving original array indices
+	const indexedGroups = activeEncounter.groups.map((group, originalIndex) => ({
+		group,
+		originalIndex,
+	}))
+
+	const meleeGroups = indexedGroups.filter(({ group }) => group.inMeleeRange)
+	const rangedGroups = indexedGroups.filter(({ group }) => !group.inMeleeRange)
+
+	const renderGroup = (group: MonsterGroup, originalIndex: number) => {
+		const isSelected = isTargeting && originalIndex === selectedTargetIndex
+
+		return (
+			<div
+				key={group.id}
+				className={cn(
+					'rounded border p-2 transition-all',
+					isSelected
+						? 'border-amber-400 bg-amber-950/20 ring-1 ring-amber-400/50'
+						: 'border-slate-800 bg-slate-900/60',
+				)}
+			>
+				{group.monsters.map((monster, midx) => (
+					<MonsterEncounterStats
+						key={monster.id}
+						monster={monster}
+						midx={midx}
+					/>
+				))}
+			</div>
+		)
+	}
+
 	return (
 		<div className='flex items-start gap-4'>
 			{/* Lead Monster Portrait Box */}
@@ -29,39 +67,23 @@ export const MonsterGroupSection = ({
 				<div className='border-b border-slate-800 pb-1 font-bold text-amber-400'>
 					MELEE RANGE
 				</div>
-				{activeEncounter.groups
-					.filter((g) => g.inMeleeRange)
-					.map((group) => {
-						return group.monsters.map((monster, midx) => {
-							return (
-								<MonsterEncounterStats
-									key={monster.id}
-									monster={monster}
-									midx={midx}
-								/>
-							)
-						})
-					})}
+				{meleeGroups.length === 0 ? (
+					<div className='text-[11px] text-slate-600 italic'>None</div>
+				) : (
+					meleeGroups.map(({ group, originalIndex }) =>
+						renderGroup(group, originalIndex),
+					)
+				)}
 
 				<div className='border-b border-slate-800 pt-2 pb-1 font-bold text-cyan-400'>
 					RANGED / DISTANT
 				</div>
-				{activeEncounter.groups.filter((g) => !g.inMeleeRange).length === 0 ? (
+				{rangedGroups.length === 0 ? (
 					<div className='text-[11px] text-slate-600 italic'>None</div>
 				) : (
-					activeEncounter.groups
-						.filter((g) => !g.inMeleeRange)
-						.map((group) => {
-							return group.monsters.map((monster, midx) => {
-								return (
-									<MonsterEncounterStats
-										key={monster.id}
-										monster={monster}
-										midx={midx}
-									/>
-								)
-							})
-						})
+					rangedGroups.map(({ group, originalIndex }) =>
+						renderGroup(group, originalIndex),
+					)
 				)}
 			</div>
 		</div>

@@ -7,7 +7,6 @@ import {
 	type CombatActionType,
 	type Monster,
 	type MonsterGroup,
-	type PlanningSubPhase,
 	type QueuedAction,
 	type TileDef,
 	type Zone,
@@ -17,7 +16,6 @@ export class CombatEngine {
 	private unbindInput?: () => void
 	private onExitCombat?: () => void
 
-	private subPhase: PlanningSubPhase = 'ACTION_SELECT'
 	private pendingActionType: CombatActionType | null = null
 
 	public enterCombat(onExitCombat?: () => void): void {
@@ -35,7 +33,8 @@ export class CombatEngine {
 	public startPlanning(): void {
 		const store = useGameStore.getState()
 		store.setCombatPhase('PLANNING')
-		this.subPhase = 'ACTION_SELECT'
+		store.setSubPhase('ACTION_SELECT')
+		store.setSelectedTargetIndex(-1)
 		this.bindPlanningInputs()
 	}
 
@@ -56,6 +55,7 @@ export class CombatEngine {
 	}
 
 	private bindPlanningInputs(): void {
+		const store = useGameStore.getState()
 		this.unbindInput?.()
 		this.unbindInput = inputManager.registerHandler((key) => {
 			if (key === 'Backspace') {
@@ -63,14 +63,45 @@ export class CombatEngine {
 				return true
 			}
 
-			if (this.subPhase === 'ACTION_SELECT') {
+			if (store.subPhase === 'ACTION_SELECT') {
 				return this.handleActionSelectInput(key.toLowerCase())
 			}
 
-			if (this.subPhase === 'TARGET_SELECT') {
+			if (store.subPhase === 'TARGET_SELECT') {
 				return this.handleTargetSelectInput(key)
 			}
 
+			return false
+		})
+	}
+
+	public bindTargetSelectInput(monsterGroup: number[]): void {
+		let pos = 0
+		const store = useGameStore.getState()
+		store.setSelectedTargetIndex(monsterGroup[pos])
+		this.unbindInput?.()
+
+		this.unbindInput = inputManager.registerHandler((key) => {
+			if (key === 'ArrowUp') {
+				pos = (pos - 1 + monsterGroup.length) % monsterGroup.length
+				store.setSelectedTargetIndex(monsterGroup[pos])
+				return true
+			}
+			if (key === 'ArrowDown') {
+				pos = (pos + 1) % monsterGroup.length
+				store.setSelectedTargetIndex(monsterGroup[pos])
+				return true
+			}
+			if (key === 'Enter') {
+				if (this.pendingActionType) {
+					this.commitAction(this.pendingActionType, monsterGroup[pos])
+				}
+				return true
+			}
+			if (key === 'Escape') {
+				this.cancelTargetSelection()
+				return true
+			}
 			return false
 		})
 	}
@@ -108,22 +139,30 @@ export class CombatEngine {
 		if (encounter.groups.length <= 1) {
 			this.commitAction(actionType, 0)
 		} else {
+			const monsterGroups = encounter.groups
+				.map((g, idx) => (g.monsters.some((m) => m.hp.current > 0) ? idx : -1))
+				.filter((idx) => idx !== -1)
+			if (monsterGroups.length === 0) return
+
 			this.pendingActionType = actionType
-			this.subPhase = 'TARGET_SELECT'
+			store.setSubPhase('TARGET_SELECT')
+			store.setSelectedTargetIndex(monsterGroups[0])
 			store.addLog(`> Select Target Group [1-${encounter.groups.length}]`)
+			this.bindTargetSelectInput(monsterGroups)
 		}
 	}
 
 	private handleTargetSelectInput(key: string): boolean {
+		const store = useGameStore.getState()
 		if (key === 'Escape') {
-			this.subPhase = 'ACTION_SELECT'
+			store.setSubPhase('ACTION_SELECT')
 			this.pendingActionType = null
-			useGameStore.getState().addLog('> Target selection cancelled.')
+			store.addLog('> Target selection cancelled.')
 			return true
 		}
 
 		const groupIndex = Number(key) - 1
-		const encounter = useGameStore.getState().encounter
+		const encounter = store.encounter
 		if (
 			!isNaN(groupIndex) &&
 			encounter &&
@@ -172,7 +211,6 @@ export class CombatEngine {
 	public generateEncounter(zone: Zone, tile: TileDef): ActiveEncounter {
 		const store = useGameStore.getState()
 		const monsterTemplates = store.monsters
-		console.log('monsterTemplates', monsterTemplates)
 
 		// need to eventually convert this into something that uses
 		// a category based system
@@ -215,6 +253,15 @@ export class CombatEngine {
 		}
 	}
 
+	private cancelTargetSelection(): void {
+		const store = useGameStore.getState()
+		this.pendingActionType = null
+		store.setSubPhase('ACTION_SELECT')
+		store.setSelectedTargetIndex(-1)
+		store.addLog('> Target selection cancelled.')
+		this.bindPlanningInputs()
+	}
+
 	private commitAction(
 		actionType: CombatActionType,
 		targetGroupIndex?: number,
@@ -236,13 +283,15 @@ export class CombatEngine {
 		store.addLog(`> ${currentChar.name} queued: ${actionType}`)
 
 		// Reset internal sub-state for next actor
-		this.subPhase = 'ACTION_SELECT'
 		this.pendingActionType = null
+		store.setSubPhase('ACTION_SELECT')
+		store.setSelectedTargetIndex(-1)
 
 		// Advance actor or finish planning phase
 		const nextIndex = store.activeCharacter + 1
 		if (nextIndex < party.length) {
 			store.setActiveCharacter(nextIndex)
+			this.bindPlanningInputs()
 		} else {
 			store.setCombatPhase('CONFIRMATION')
 			this.bindConfirmationInputs()
