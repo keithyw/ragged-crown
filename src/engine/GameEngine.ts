@@ -50,7 +50,13 @@ export class GameEngine extends BaseGameEngine {
 	}
 
 	protected override onInitialized(): void {
-		this.enterWorldMode()
+		// this.enterWorldMode()
+		this.startGame()
+	}
+
+	public startGame(): void {
+		const store = useGameStore.getState()
+		store.setScreen('INTRO')
 	}
 
 	public enterWorldMode(): void {
