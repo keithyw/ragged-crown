@@ -10,6 +10,7 @@ export type GameScreen =
 	| 'INTRO'
 	| 'MAIN_MENU'
 	| 'CHARACTER_CREATION'
+	| 'PARTY_ROSTER'
 	| 'SETTINGS'
 	| 'WORLD_MAP'
 	| 'COMBAT'

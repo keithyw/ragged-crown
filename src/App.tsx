@@ -1,7 +1,7 @@
 import { useEffect } from 'react'
 import { EncounterViewport } from '@/components/encounter/EncounterViewport'
 import { EventLog } from '@/components/log/EventLog'
-import { GameLayout, SplashScreen } from '@/components/layout'
+import { GameLayout, MainMenuScreen, SplashScreen } from '@/components/layout'
 import { OverheadMap } from '@/components/map/OverheadMap'
 import { PartyRoster } from '@/components/party/Roster'
 import { getGameEngine } from '@/engine'
@@ -19,6 +19,7 @@ export default function App() {
 	return (
 		<>
 			{screen === 'INTRO' && <SplashScreen />}
+			{screen === 'MAIN_MENU' && <MainMenuScreen />}
 			{screen === 'WORLD_MAP' && (
 				<GameLayout
 					header={<div>{/* <Header /> */}</div>}
