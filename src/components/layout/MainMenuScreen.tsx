@@ -28,6 +28,9 @@ export const MainMenuScreen = () => {
 				label: 'Create Character',
 				screen: 'CHARACTER_CREATION',
 				requiresParty: false,
+				action: () => {
+					getGameEngine().enterCharacterCreationMode()
+				},
 			},
 			{
 				id: 2,

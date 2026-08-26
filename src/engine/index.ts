@@ -1,5 +1,4 @@
 export * from './BaseGameEngine'
 export * from './CombatEngine'
-export * from './CommandBus'
 export * from './GameEngine'
 export * from './InputManager'

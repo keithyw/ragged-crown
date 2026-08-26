@@ -50,13 +50,17 @@ export class GameEngine extends BaseGameEngine {
 	}
 
 	protected override onInitialized(): void {
-		// this.enterWorldMode()
 		this.startGame()
 	}
 
 	public startGame(): void {
 		const store = useGameStore.getState()
 		store.setScreen('INTRO')
+	}
+
+	public enterCharacterCreationMode(): void {
+		this.unbindWorldInput?.()
+		useGameStore.getState().setScreen('CHARACTER_CREATION')
 	}
 
 	public enterWorldMode(): void {

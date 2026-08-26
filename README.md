@@ -17,7 +17,6 @@ A turn-based, tile-based retro RPG engine inspired by classics like _Wizardry VI
 The game uses a decoupled, event-driven architecture to keep game rules testable and isolated from the React view layer.
 
 - **Lifecycle / Template Engine (`src/engine/BaseGameEngine.ts`):** Uses the **Template Method** design pattern to enforce a unified game lifecycle (`initialize` → `loadAssets` → `setupState` → `startLoop`). Concrete engines (`OverworldEngine`, `CombatEngine`) inherit from this base class.
-- **Command Bus (`src/engine/CommandBus.ts`):** Decouples player input handlers and UI controls from core game mechanics. Inputs dispatch lightweight typed commands (`MOVE_PLAYER`, `INTERACT`, etc.) that are handled by active engine subscribers.
 - **Reactive View Layer:** React components read state from Zustand stores and render visual views based on engine ticks and state updates.
 
 ---
