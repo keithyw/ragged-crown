@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState, useMemo } from 'react'
-import { inputManager } from '@/engine'
+import { inputManager, getGameEngine } from '@/engine'
 import { useGameStore } from '@/store/useGameStore'
 import type { GameScreen } from '@/types'
 
@@ -61,7 +61,7 @@ export const MainMenuScreen = () => {
 				action: () => {
 					if (hasPartyMembers) {
 						addLog('> Entering the realm...')
-						setScreen('WORLD_MAP')
+						getGameEngine().enterWorldMode()
 					} else {
 						setNotice('Add at least 1 character to your party to start!')
 					}
@@ -69,7 +69,7 @@ export const MainMenuScreen = () => {
 				requiresParty: true,
 			},
 		],
-		[addLog, hasPartyMembers, party, setScreen],
+		[addLog, hasPartyMembers, party],
 	)
 
 	const handleExecuteOption = useCallback(

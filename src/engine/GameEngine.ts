@@ -121,11 +121,8 @@ export class GameEngine extends BaseGameEngine {
 				store.currentZone,
 				res.targetTile as TileDef,
 			)
-
 			this.unbindWorldInput?.()
 			store.setEncounter(encounter)
-			store.setScreen('COMBAT')
-
 			combatEngine.enterCombat(() => this.enterWorldMode())
 		}
 	}
