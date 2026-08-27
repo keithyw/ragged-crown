@@ -77,7 +77,7 @@ export const CharacterNameStep = ({
 					type='submit'
 					className='w-1/2 rounded border border-amber-500 bg-amber-950/50 p-2 text-xs font-bold text-amber-400 hover:bg-amber-500 hover:text-slate-950'
 				>
-					[ ENTER ] Continue
+					[ ENTER ] Next
 				</button>
 			</div>
 		</form>

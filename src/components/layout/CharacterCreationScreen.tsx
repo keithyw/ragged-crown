@@ -1,3 +1,4 @@
+import { CharacterGenderStep } from '@/components/characterCreation/CharacterGenderStep'
 import { CharacterNameStep } from '@/components/characterCreation/CharacterNameStep'
 import { CharacterPreviewPanel } from '@/components/characterCreation/CharacterPreviewPanel'
 import { useCharacterCreationStore } from '@/store/useCharacterCreationStore'
@@ -37,6 +38,7 @@ export const CharacterCreationScreen = () => {
 							onCancel={handleCancel}
 						/>
 					)}
+					{currentStep === 1 && <CharacterGenderStep onCancel={handleCancel} />}
 				</div>
 			</div>
 		</div>
