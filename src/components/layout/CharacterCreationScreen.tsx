@@ -1,4 +1,5 @@
 import { CharacterNameStep } from '@/components/characterCreation/CharacterNameStep'
+import { CharacterPreviewPanel } from '@/components/characterCreation/CharacterPreviewPanel'
 import { useCharacterCreationStore } from '@/store/useCharacterCreationStore'
 import { useGameStore } from '@/store/useGameStore'
 
@@ -19,7 +20,7 @@ export const CharacterCreationScreen = () => {
 
 	return (
 		<div className='flex min-h-screen flex-col items-center justify-center border-4 border-slate-800 bg-slate-950 p-8 font-mono text-slate-100'>
-			<div className='mb-6 text-center'>
+			<div className='mb-8 text-center'>
 				<h1 className='text-3xl font-extrabold tracking-wider text-amber-500'>
 					CHARACTER CREATION
 				</h1>
@@ -27,12 +28,17 @@ export const CharacterCreationScreen = () => {
 					Step {currentStep + 1}: Identity
 				</p>
 			</div>
-			{currentStep === 0 && (
-				<CharacterNameStep
-					existingNames={existingNames}
-					onCancel={handleCancel}
-				/>
-			)}
+			<div className='flex w-full max-w-4xl items-start justify-center space-x-8'>
+				<CharacterPreviewPanel />
+				<div className='max-w-md flex-1 pt-2'>
+					{currentStep === 0 && (
+						<CharacterNameStep
+							existingNames={existingNames}
+							onCancel={handleCancel}
+						/>
+					)}
+				</div>
+			</div>
 		</div>
 	)
 }

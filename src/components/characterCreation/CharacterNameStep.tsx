@@ -23,7 +23,7 @@ export const CharacterNameStep = ({
 		if (error) setError(null)
 	}
 
-	const handleSubmit = (e: React.FormEvent) => {
+	const handleSubmit = (e: React.SubmitEvent) => {
 		e.preventDefault()
 		const validation = validateCharacterName(draftName, existingNames)
 
