@@ -2,11 +2,13 @@ import { CharacterAttributesStep } from '@/components/characterCreation/Characte
 import { CharacterGenderStep } from '@/components/characterCreation/CharacterGenderStep'
 import { CharacterNameStep } from '@/components/characterCreation/CharacterNameStep'
 import { CharacterPreviewPanel } from '@/components/characterCreation/CharacterPreviewPanel'
+import { SaveConfirmationModal } from '@/components/characterCreation/SaveConfirmationModal'
 import { useCharacterCreationStore } from '@/store/useCharacterCreationStore'
 import { useGameStore } from '@/store/useGameStore'
 
 export const CharacterCreationScreen = () => {
 	const currentStep = useCharacterCreationStore((state) => state.currentStep)
+	const prevStep = useCharacterCreationStore((state) => state.prevStep)
 	const resetDraft = useCharacterCreationStore((state) => state.resetDraft)
 
 	const createdCharacters = useCharacterCreationStore(
@@ -43,6 +45,7 @@ export const CharacterCreationScreen = () => {
 					{currentStep === 2 && (
 						<CharacterAttributesStep onCancel={handleCancel} />
 					)}
+					{currentStep === 3 && <SaveConfirmationModal onCancel={prevStep} />}
 				</div>
 			</div>
 		</div>

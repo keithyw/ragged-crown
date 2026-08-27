@@ -27,46 +27,72 @@ interface DraftCharacterState {
 	setStep: (step: number) => void
 	nextStep: () => void
 	prevStep: () => void
+	saveDraftCharacter: () => void
 	updateDraft: (updates: Partial<PlayerCharacter>) => void
 	resetDraft: () => void
 }
 
-export const useCharacterCreationStore = create<DraftCharacterState>((set) => ({
-	createdCharacters: [],
-	currentStep: 0,
-	draft: {
-		name: '',
-		gender: 'male',
-		race: 'human',
-		level: 0,
-		hp: { current: 10, max: 10 },
-		sp: { current: 0, max: 0 },
-		attributes: DEFAULT_ATTRIBUTES,
-		debuffs: [],
-	},
+export const useCharacterCreationStore = create<DraftCharacterState>(
+	(set, get) => ({
+		createdCharacters: [],
+		currentStep: 0,
+		draft: {
+			name: '',
+			gender: 'male',
+			race: 'human',
+			level: 0,
+			hp: { current: 10, max: 10 },
+			sp: { current: 0, max: 0 },
+			attributes: DEFAULT_ATTRIBUTES,
+			debuffs: [],
+		},
 
-	setStep: (step) => set({ currentStep: Math.max(0, step) }),
-	nextStep: () => set((state) => ({ currentStep: state.currentStep + 1 })),
-	prevStep: () =>
-		set((state) => ({ currentStep: Math.max(0, state.currentStep - 1) })),
+		setStep: (step) => set({ currentStep: Math.max(0, step) }),
+		nextStep: () => set((state) => ({ currentStep: state.currentStep + 1 })),
+		prevStep: () =>
+			set((state) => ({ currentStep: Math.max(0, state.currentStep - 1) })),
 
-	updateDraft: (updates) =>
-		set((state) => ({
-			draft: { ...state.draft, ...updates },
-		})),
+		saveDraftCharacter: () => {
+			const { draft } = get()
 
-	resetDraft: () =>
-		set({
-			currentStep: 0,
-			draft: {
-				name: '',
-				gender: 'male',
-				race: 'human',
+			const completedCharacter: PlayerCharacter = {
+				id: `pc_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
+				name: draft.name?.trim() || 'Hero',
+				gender: draft.gender || 'male',
+				race: draft.race || 'human',
 				level: 0,
 				hp: { current: 10, max: 10 },
 				sp: { current: 0, max: 0 },
-				attributes: DEFAULT_ATTRIBUTES,
+				attributes: draft.attributes || DEFAULT_ATTRIBUTES,
+				order: 0,
 				debuffs: [],
-			},
-		}),
-}))
+			}
+
+			set((state) => ({
+				createdCharacters: [...state.createdCharacters, completedCharacter],
+			}))
+
+			get().resetDraft()
+		},
+
+		updateDraft: (updates) =>
+			set((state) => ({
+				draft: { ...state.draft, ...updates },
+			})),
+
+		resetDraft: () =>
+			set({
+				currentStep: 0,
+				draft: {
+					name: '',
+					gender: 'male',
+					race: 'human',
+					level: 0,
+					hp: { current: 10, max: 10 },
+					sp: { current: 0, max: 0 },
+					attributes: DEFAULT_ATTRIBUTES,
+					debuffs: [],
+				},
+			}),
+	}),
+)

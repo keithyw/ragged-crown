@@ -60,6 +60,7 @@ export const CharacterAttributesStep = ({
 	const [error, setError] = useState<string | null>(null)
 
 	// Calculate points spent relative to base 10 across all stats
+	// may eventually want to put this into a utility file
 	const pointsSpent = Object.values(draftAttributes).reduce(
 		(acc, val) => acc + (val - DEFAULT_STAT),
 		0,
