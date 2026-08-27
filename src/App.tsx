@@ -5,6 +5,7 @@ import {
 	CharacterCreationScreen,
 	GameLayout,
 	MainMenuScreen,
+	PartyRosterScreen,
 	SplashScreen,
 } from '@/components/layout'
 import { OverheadMap } from '@/components/map/OverheadMap'
@@ -26,6 +27,7 @@ export default function App() {
 			{screen === 'INTRO' && <SplashScreen />}
 			{screen === 'MAIN_MENU' && <MainMenuScreen />}
 			{screen === 'CHARACTER_CREATION' && <CharacterCreationScreen />}
+			{screen === 'PARTY_ROSTER' && <PartyRosterScreen />}
 			{screen === 'WORLD_MAP' && (
 				<GameLayout
 					header={<div>{/* <Header /> */}</div>}

@@ -37,6 +37,9 @@ export const MainMenuScreen = () => {
 				label: 'Party Roster & Formation',
 				screen: 'PARTY_ROSTER',
 				requiresParty: false,
+				action: () => {
+					getGameEngine().enterPartyRosterMode()
+				},
 			},
 			{
 				id: 3,

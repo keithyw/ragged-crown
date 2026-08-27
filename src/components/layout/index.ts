@@ -1,4 +1,5 @@
 export * from './CharacterCreationScreen'
 export * from './GameLayout'
 export * from './MainMenuScreen'
+export * from './PartyRosterScreen'
 export * from './SplashScreen'

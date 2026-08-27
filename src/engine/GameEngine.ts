@@ -63,6 +63,11 @@ export class GameEngine extends BaseGameEngine {
 		useGameStore.getState().setScreen('CHARACTER_CREATION')
 	}
 
+	public enterPartyRosterMode(): void {
+		this.unbindWorldInput?.()
+		useGameStore.getState().setScreen('PARTY_ROSTER')
+	}
+
 	public enterWorldMode(): void {
 		const store = useGameStore.getState()
 		store.setScreen('WORLD_MAP')
