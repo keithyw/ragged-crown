@@ -18,7 +18,6 @@ export interface Attributes {
 	speed: number
 	constitution: number
 }
-
 export interface NpcProfile {
 	isPermanent?: boolean // True for core story characters (cannot be dismissed/deleted)
 	isLocked?: boolean // User toggle to prevent accidental dismissal/deletion of hired NPCs
