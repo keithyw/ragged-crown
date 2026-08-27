@@ -92,7 +92,7 @@ export const MainMenuScreen = () => {
 	)
 
 	useEffect(() => {
-		const unbind = inputManager.registerHandler((key) => {
+		const unbind = inputManager.registerHandler((key, event) => {
 			const k = key.toLowerCase()
 
 			// Arrow Navigation
@@ -110,6 +110,7 @@ export const MainMenuScreen = () => {
 			// Direct Number Keys (1-5)
 			const num = Number(key)
 			if (!isNaN(num) && num >= 1 && num <= menuOptions.length) {
+				event.preventDefault()
 				const option = menuOptions[num - 1]
 				setSelectedIndex(num - 1)
 				handleExecuteOption(option)
