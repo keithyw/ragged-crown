@@ -2,6 +2,7 @@ import { create } from 'zustand'
 import { mapLoaderService } from '@/services'
 import type {
 	ActiveEncounter,
+	CharacterSheetContext,
 	CombatPhase,
 	GameScreen,
 	Monster,
@@ -19,6 +20,8 @@ interface GameState {
 	currentZone: Zone | null
 	currentScreen: GameScreen
 	encounter: ActiveEncounter | null
+	inspectedCharacterId: string | null
+	inspectedContext: CharacterSheetContext
 	isMapLoading: boolean
 	monsters: Monster[]
 	playerPosition: Position
@@ -39,6 +42,10 @@ interface GameState {
 	setActiveCharacter: (id: number) => void
 	setCombatPhase: (phase: CombatPhase) => void
 	setEncounter: (encounter: ActiveEncounter | null) => void
+	setInspectedCharacter: (
+		characterId: string | null,
+		context?: CharacterSheetContext,
+	) => void
 	setMonsters: (monsters: Monster[]) => void
 	setParty: (party: PlayerCharacter[]) => void
 	setSubPhase: (phase: PlanningSubPhase) => void
@@ -54,6 +61,8 @@ export const useGameStore = create<GameState>((set) => ({
 	currentScreen: 'INTRO',
 	currentZone: null,
 	encounter: null,
+	inspectedCharacterId: null,
+	inspectedContext: 'GUILD',
 	isMapLoading: false,
 	logs: [],
 	monsters: [],
@@ -112,6 +121,8 @@ export const useGameStore = create<GameState>((set) => ({
 		set({ actionQueue: [], activeCharacter: 0, combatPhase: 'PLANNING' }),
 
 	setActiveCharacter: (id) => set({ activeCharacter: id }),
+	setInspectedCharacter: (characterId, context = 'GUILD') =>
+		set({ inspectedCharacterId: characterId, inspectedContext: context }),
 	setCombatPhase: (phase) => set({ combatPhase: phase }),
 	setEncounter: (encounter) => set({ encounter }),
 	setMonsters: (monsters) => set({ monsters }),

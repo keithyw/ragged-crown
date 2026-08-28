@@ -3,6 +3,7 @@ import { EncounterViewport } from '@/components/encounter/EncounterViewport'
 import { EventLog } from '@/components/log/EventLog'
 import {
 	CharacterCreationScreen,
+	CharacterSheetScreen,
 	GameLayout,
 	MainMenuScreen,
 	PartyRosterScreen,
@@ -27,6 +28,7 @@ export default function App() {
 			{screen === 'INTRO' && <SplashScreen />}
 			{screen === 'MAIN_MENU' && <MainMenuScreen />}
 			{screen === 'CHARACTER_CREATION' && <CharacterCreationScreen />}
+			{screen === 'CHARACTER_SHEET' && <CharacterSheetScreen />}
 			{screen === 'PARTY_ROSTER' && <PartyRosterScreen />}
 			{screen === 'WORLD_MAP' && (
 				<GameLayout

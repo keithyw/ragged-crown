@@ -4,7 +4,7 @@ import { combatEngine } from '@/engine/CombatEngine'
 import { inputManager } from '@/engine/InputManager'
 import { EncounterService, mapLoaderService, PartyService } from '@/services'
 import { useGameStore } from '@/store/useGameStore'
-import type { TileDef } from '@/types'
+import type { CharacterSheetContext, TileDef } from '@/types'
 import { evaluateMove } from '@/utils'
 
 export class GameEngine extends BaseGameEngine {
@@ -61,6 +61,15 @@ export class GameEngine extends BaseGameEngine {
 	public enterCharacterCreationMode(): void {
 		this.unbindWorldInput?.()
 		useGameStore.getState().setScreen('CHARACTER_CREATION')
+	}
+
+	public enterCharacterSheetMode(
+		id: string,
+		context: CharacterSheetContext,
+	): void {
+		this.unbindWorldInput?.()
+		useGameStore.getState().setInspectedCharacter(id, context)
+		useGameStore.getState().setScreen('CHARACTER_SHEET')
 	}
 
 	public enterPartyRosterMode(): void {

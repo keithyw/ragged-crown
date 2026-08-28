@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { inputManager } from '@/engine'
 import { RosterListPanel } from '@/components/partyRoster/RosterListPanel'
+import { getGameEngine } from '@/engine'
 import { useCharacterCreationStore } from '@/store/useCharacterCreationStore'
 import { useGameStore } from '@/store/useGameStore'
 import type { PlayerCharacter } from '@/types'
@@ -75,6 +76,14 @@ export const PartyRosterScreen = () => {
 				const currentChar = currentList[currentIndex]
 				if (currentChar) {
 					togglePartyMember(currentChar.id)
+				}
+				return true
+			}
+
+			if (k === 'v' || key === 'Enter') {
+				const currentChar = currentList[currentIndex]
+				if (currentChar) {
+					getGameEngine().enterCharacterSheetMode(currentChar.id, 'GUILD')
 				}
 				return true
 			}
