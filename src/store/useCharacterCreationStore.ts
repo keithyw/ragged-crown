@@ -12,6 +12,7 @@ interface DraftCharacterState {
 	nextStep: () => void
 	prevStep: () => void
 	addCreatedCharacter: (character: PlayerCharacter) => void
+	findCharacterById: (id: string) => PlayerCharacter | null
 	removeCreatedCharacter: (character: PlayerCharacter) => void
 	saveDraftCharacter: () => void
 	setCreatedCharacters: (characters: PlayerCharacter[]) => void
@@ -43,6 +44,9 @@ export const useCharacterCreationStore = create<DraftCharacterState>(
 			set((state) => ({
 				createdCharacters: [...state.createdCharacters, character],
 			})),
+
+		findCharacterById: (id) =>
+			get().createdCharacters.find((c) => c.id === id) || null,
 
 		removeCreatedCharacter: (character) =>
 			set((state) => ({

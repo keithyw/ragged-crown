@@ -48,7 +48,7 @@ export const CharacterCard = ({ playerCharacter }: CharacterCardProps) => {
 			<div className='flex items-center gap-2'>
 				{/* Class/Portrait Icon Placeholder */}
 				<div className='flex h-9 w-9 shrink-0 items-center justify-center rounded border border-slate-800 bg-slate-950 font-mono text-xs font-bold text-slate-500 uppercase select-none'>
-					{charClass.slice(0, 3)}
+					{charClass ? charClass.slice(0, 3) : 'N/C'}
 				</div>
 
 				{/* Resource Gauges */}

@@ -35,9 +35,11 @@ export const PartyRosterScreen = () => {
 			const next = new Set(prev)
 			if (next.has(characterId)) {
 				next.delete(characterId)
+				getGameEngine().removeCharacterFromParty(characterId)
 			} else {
 				if (next.size >= 4) return prev // Cap party at 4 for starting scale
 				next.add(characterId)
+				getGameEngine().addCharacterToParty(characterId)
 			}
 			return next
 		})

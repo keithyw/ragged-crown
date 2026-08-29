@@ -117,6 +117,15 @@ export class GameEngine extends BaseGameEngine {
 		})
 	}
 
+	public addCharacterToParty(id: string): void {
+		const character = useCharacterCreationStore.getState().findCharacterById(id)
+		if (!character) return
+		const store = useGameStore.getState()
+		const party = store.party
+		if (party.find((p) => p.id === id)) return
+		store.setParty([...party, character])
+	}
+
 	private movePlayer(dx: number, dy: number): void {
 		const store = useGameStore.getState()
 		if (!store.currentZone) return
@@ -150,6 +159,14 @@ export class GameEngine extends BaseGameEngine {
 			store.setEncounter(encounter)
 			combatEngine.enterCombat(() => this.enterWorldMode())
 		}
+	}
+
+	public removeCharacterFromParty(id: string): void {
+		const store = useGameStore.getState()
+		const party = store.party
+		const character = party.find((p) => p.id === id)
+		if (!character) return
+		store.setParty(party.filter((p) => p.id !== id))
 	}
 
 	protected update(_deltaTime: number): void {
