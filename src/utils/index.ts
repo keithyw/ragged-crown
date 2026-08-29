@@ -1,3 +1,4 @@
+export * from './character'
 export * from './cn'
 export * from './combat'
 export * from './grid'

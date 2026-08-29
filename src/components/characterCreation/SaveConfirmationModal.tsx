@@ -1,5 +1,5 @@
 import { useCallback, useEffect } from 'react'
-import { inputManager } from '@/engine'
+import { getCharacterEngine, inputManager } from '@/engine'
 import { useCharacterCreationStore } from '@/store/useCharacterCreationStore'
 import { useGameStore } from '@/store/useGameStore'
 
@@ -11,19 +11,15 @@ export const SaveConfirmationModal = ({
 	onCancel,
 }: SaveConfirmationModalProps) => {
 	const draft = useCharacterCreationStore((state) => state.draft)
-	const saveDraftCharacter = useCharacterCreationStore(
-		(state) => state.saveDraftCharacter,
-	)
 
 	const handleSaveAndExit = useCallback(() => {
-		saveDraftCharacter()
-		const store = useGameStore.getState()
-		store.setScreen('MAIN_MENU')
-	}, [saveDraftCharacter])
+		getCharacterEngine().saveCharacter()
+		useGameStore.getState().setScreen('MAIN_MENU')
+	}, [])
 
 	const handleSaveAndCreateAnother = useCallback(() => {
-		saveDraftCharacter() // Resets draft back to step 0 automatically
-	}, [saveDraftCharacter])
+		getCharacterEngine().saveCharacter()
+	}, [])
 
 	useEffect(() => {
 		const unbind = inputManager.registerHandler((key) => {

@@ -1,7 +1,11 @@
 import type { Attributes } from '@/types'
 
+export const STORAGE_KEY = 'crpg_created_characters_v1'
+
 export const STARTING_POOL = 10
 export const DEFAULT_STAT = 10
+export const DEFAULT_HP = 6
+export const DEFAULT_SP = 0
 export const MIN_STAT = 1
 export const MAX_STAT = 18
 

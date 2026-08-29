@@ -1,22 +1,6 @@
 import { create } from 'zustand'
-import type { Attributes, PlayerCharacter } from '@/types'
-
-// might want to store these elsewhere eventually
-// also, these might only be for humans. we might
-// want a different set of default attributes for
-// other races
-// and we might want to place this either in a json
-// file or somewhere we can retrieve them as a reference
-// point
-const DEFAULT_ATTRIBUTES: Attributes = {
-	strength: 10,
-	dexterity: 10,
-	intelligence: 10,
-	wisdom: 10,
-	personality: 10,
-	speed: 10,
-	constitution: 10,
-}
+import { DEFAULT_ATTRIBUTES, DEFAULT_HP, DEFAULT_SP } from '@/constants'
+import type { PlayerCharacter } from '@/types'
 
 interface DraftCharacterState {
 	createdCharacters: PlayerCharacter[]
@@ -27,7 +11,10 @@ interface DraftCharacterState {
 	setStep: (step: number) => void
 	nextStep: () => void
 	prevStep: () => void
+	addCreatedCharacter: (character: PlayerCharacter) => void
+	removeCreatedCharacter: (character: PlayerCharacter) => void
 	saveDraftCharacter: () => void
+	setCreatedCharacters: (characters: PlayerCharacter[]) => void
 	updateDraft: (updates: Partial<PlayerCharacter>) => void
 	resetDraft: () => void
 }
@@ -52,9 +39,26 @@ export const useCharacterCreationStore = create<DraftCharacterState>(
 		prevStep: () =>
 			set((state) => ({ currentStep: Math.max(0, state.currentStep - 1) })),
 
+		addCreatedCharacter: (character) =>
+			set((state) => ({
+				createdCharacters: [...state.createdCharacters, character],
+			})),
+
+		removeCreatedCharacter: (character) =>
+			set((state) => ({
+				createdCharacters: state.createdCharacters.filter(
+					(c) => c.id !== character.id,
+				),
+			})),
+
+		// might deprecate this since CharacterEngine has a similar
+		// function
 		saveDraftCharacter: () => {
 			const { draft } = get()
 
+			// perhaps create a draft character function
+			// because i don't like hard coded data in
+			// functions like this
 			const completedCharacter: PlayerCharacter = {
 				id: `pc_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
 				name: draft.name?.trim() || 'Hero',
@@ -75,6 +79,9 @@ export const useCharacterCreationStore = create<DraftCharacterState>(
 			get().resetDraft()
 		},
 
+		setCreatedCharacters: (characters) =>
+			set({ createdCharacters: characters }),
+
 		updateDraft: (updates) =>
 			set((state) => ({
 				draft: { ...state.draft, ...updates },
@@ -88,8 +95,8 @@ export const useCharacterCreationStore = create<DraftCharacterState>(
 					gender: 'male',
 					race: 'human',
 					level: 0,
-					hp: { current: 10, max: 10 },
-					sp: { current: 0, max: 0 },
+					hp: { current: DEFAULT_HP, max: DEFAULT_HP },
+					sp: { current: DEFAULT_SP, max: DEFAULT_SP },
 					attributes: DEFAULT_ATTRIBUTES,
 					debuffs: [],
 				},

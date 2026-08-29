@@ -2,7 +2,12 @@
 import { BaseGameEngine } from '@/engine/BaseGameEngine'
 import { combatEngine } from '@/engine/CombatEngine'
 import { inputManager } from '@/engine/InputManager'
-import { EncounterService, mapLoaderService, PartyService } from '@/services'
+import {
+	CharacterStorageService,
+	EncounterService,
+	mapLoaderService,
+} from '@/services'
+import { useCharacterCreationStore } from '@/store/useCharacterCreationStore'
 import { useGameStore } from '@/store/useGameStore'
 import type { CharacterSheetContext, TileDef } from '@/types'
 import { evaluateMove } from '@/utils'
@@ -24,16 +29,18 @@ export class GameEngine extends BaseGameEngine {
 		useGameStore.setState({ isMapLoading: true })
 
 		try {
-			const [startingZone, monsters, party] = await Promise.all([
+			const characters = CharacterStorageService.getAll()
+			const [startingZone, monsters] = await Promise.all([
 				mapLoaderService.loadZone('a1'),
 				EncounterService.fetchMonsters(),
-				PartyService.fetchParty(),
 			])
+			useCharacterCreationStore.setState({
+				createdCharacters: characters,
+			})
 			useGameStore.setState({
 				currentZone: startingZone,
 				isMapLoading: false,
 				monsters,
-				party,
 			})
 		} catch (e) {
 			console.error(e)

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
-import { inputManager, getGameEngine } from '@/engine'
+import { inputManager, getCharacterEngine, getGameEngine } from '@/engine'
 import { useCharacterCreationStore } from '@/store/useCharacterCreationStore'
 import { useGameStore } from '@/store/useGameStore'
 
@@ -11,9 +11,6 @@ export const CharacterSheetScreen = () => {
 	const createdCharacters = useCharacterCreationStore(
 		(state) => state.createdCharacters,
 	)
-	// const deleteCreatedCharacter = useCharacterCreationStore(
-	// 	(state) => state.deleteCreatedCharacter,
-	// )
 
 	const character = createdCharacters.find((c) => c.id === inspectedId)
 	const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
@@ -29,7 +26,7 @@ export const CharacterSheetScreen = () => {
 
 	const handleDelete = useCallback(() => {
 		if (character) {
-			// deleteCreatedCharacter(character.id)
+			getCharacterEngine().removeCharacter(character)
 			handleBack()
 		}
 	}, [character, handleBack])
