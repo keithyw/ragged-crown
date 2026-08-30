@@ -18,4 +18,4 @@ export type GameScreen =
 	| 'WORLD_MAP'
 	| 'COMBAT'
 	| 'COMBAT_PLANNING'
-	| 'DIALOGUE'
+	| 'CUT_SCENE'

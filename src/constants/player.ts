@@ -1,5 +1,6 @@
 import type { Attributes } from '@/types'
 
+export const SAVED_GAMES_KEY = 'crpg_saved_games_v1'
 export const STORAGE_KEY = 'crpg_created_characters_v1'
 
 export const STARTING_POOL = 10

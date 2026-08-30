@@ -1,4 +1,3 @@
-// src/engine/GameEngine.ts
 import { BaseGameEngine } from '@/engine/BaseGameEngine'
 import { combatEngine } from '@/engine/CombatEngine'
 import { inputManager } from '@/engine/InputManager'
@@ -6,11 +5,12 @@ import {
 	CharacterStorageService,
 	EncounterService,
 	mapLoaderService,
+	SaveGameService,
 } from '@/services'
 import { useCharacterCreationStore } from '@/store/useCharacterCreationStore'
 import { useGameStore } from '@/store/useGameStore'
-import type { CharacterSheetContext, TileDef } from '@/types'
-import { evaluateMove } from '@/utils'
+import type { CharacterSheetContext, SaveGameDocument, TileDef } from '@/types'
+import { evaluateMove, generateSaveGameId } from '@/utils'
 
 export class GameEngine extends BaseGameEngine {
 	private isInitialized = false
@@ -63,6 +63,34 @@ export class GameEngine extends BaseGameEngine {
 	public startGame(): void {
 		const store = useGameStore.getState()
 		store.setScreen('INTRO')
+	}
+
+	public startNewGame(): void {
+		const createdCharacters =
+			useCharacterCreationStore.getState().createdCharacters
+		const activeIds = Array.from(useGameStore.getState().party.map((p) => p.id))
+		const newSave: SaveGameDocument = {
+			metadata: {
+				id: generateSaveGameId(),
+				name: 'New Game',
+				createdAt: Date.now(),
+				updatedAt: Date.now(),
+				playtimeSeconds: 0,
+			},
+			worldState: {
+				currentZoneId: 'a1',
+				playerPosition: { x: 5, y: 5 },
+				flags: {
+					is_new_game: true,
+					intro_complete: true,
+				},
+			},
+			activePartyMemberIds: activeIds,
+			characterPool: [...createdCharacters],
+		}
+		SaveGameService.saveGame(newSave)
+		useGameStore.getState().setSavedGame(newSave)
+		useGameStore.getState().setScreen('CUT_SCENE')
 	}
 
 	public enterCharacterCreationMode(): void {

@@ -8,8 +8,9 @@ import type {
 	Monster,
 	PlanningSubPhase,
 	PlayerCharacter,
-	QueuedAction,
 	Position,
+	QueuedAction,
+	SaveGameDocument,
 	Zone,
 } from '@/types'
 
@@ -26,6 +27,7 @@ interface GameState {
 	monsters: Monster[]
 	playerPosition: Position
 	party: PlayerCharacter[]
+	savedGame: SaveGameDocument | null
 	selectedCharId: string
 	selectedTargetIndex: number
 	subPhase: PlanningSubPhase
@@ -48,6 +50,7 @@ interface GameState {
 	) => void
 	setMonsters: (monsters: Monster[]) => void
 	setParty: (party: PlayerCharacter[]) => void
+	setSavedGame: (game: SaveGameDocument) => void
 	setSubPhase: (phase: PlanningSubPhase) => void
 	setPlayerPosition: (position: Position) => void
 	setScreen: (screen: GameScreen) => void
@@ -68,6 +71,7 @@ export const useGameStore = create<GameState>((set) => ({
 	monsters: [],
 	playerPosition: { x: 10, y: 8 },
 	party: [],
+	savedGame: null,
 	selectedCharId: 'char-1',
 	subPhase: 'ACTION_SELECT',
 	selectedTargetIndex: 0,
@@ -128,6 +132,7 @@ export const useGameStore = create<GameState>((set) => ({
 	setMonsters: (monsters) => set({ monsters }),
 	setParty: (party) => set({ party }),
 	setPlayerPosition: (position: Position) => set({ playerPosition: position }),
+	setSavedGame: (game) => set({ savedGame: game }),
 	setScreen: (screen) => set({ currentScreen: screen }),
 	setSelectedTargetIndex: (index) => set({ selectedTargetIndex: index }),
 	setSubPhase: (phase) => set({ subPhase: phase }),

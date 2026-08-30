@@ -63,11 +63,11 @@ export const MainMenuScreen = () => {
 			},
 			{
 				id: 5,
-				label: 'Enter the World',
+				label: 'Start New Game',
 				action: () => {
 					if (hasPartyMembers) {
-						addLog('> Entering the realm...')
-						getGameEngine().enterWorldMode()
+						addLog('> Start A New Game...')
+						getGameEngine().startNewGame()
 					} else {
 						setNotice('Add at least 1 character to your party to start!')
 					}
