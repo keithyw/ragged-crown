@@ -1,0 +1,31 @@
+{
+	"intro": {
+		"id": "intro_sequence",
+		"onCompleteFlag": "a1_intro_completed",
+		"frames": [
+			{
+				"id": "frame_1",
+				"title": "THE GATES OF OAKHAVEN",
+				"text": "The heavy oak portcullis creaks open, revealing the fog-shrouded expanse of the Aethelgard Valley.\n\nFor generations, the ancient watchtower at Oakhaven stood as a sanctuary for travelers and mercenaries alike. Now, shadows lengthen across the cobblestone roads, and whispers of forgotten catacombs beneath the valley floor draw sellswords from across the realm.\n\nYour party checks their gear and steps through the threshold. The cold wind bites at your face, carrying the distant scent of pine, damp earth, and ozone.",
+				"imagePath": ""
+			},
+			{
+				"id": "frame_2",
+				"title": "THE SENTRIES' CHECKPOINT",
+				"text": "A pair of grizzled guards step into your path, halberds crossed. The elder sentry squints through the mist, eyeing your weapons with practiced caution.\n\n\"Hold there, travelers,\" he mutters, lowering his visor slightly. \"Lord Vane has placed the lower valley under quarantine. Only sworn agents of the Guild or those bearing the ward-cipher may pass beyond the gatehouse.\"",
+				"imagePath": "",
+				"quiz": {
+					"prompt": "Enter the pass-phrase (Hint: 'Oakhaven'):",
+					"answer": "oakhaven",
+					"failureText": "The sentry adjusts his grip on his halberd. \"Wrong answer. Speak the cipher or turn back.\""
+				}
+			},
+			{
+				"id": "frame_3",
+				"title": "INTO THE FOG",
+				"text": "The guards nod slowly and step aside, pulling the heavy iron lever to unbolt the inner barrier.\n\n\"Keep your steel sharp and stay on the main road,\" the elder guard warns. \"The fog gets thick near the sunken ruins, and the things hunting in the dark don't ask for pass-phrases.\"\n\nWith the gate behind you, the path into Region A1 opens up.",
+				"imagePath": ""
+			}
+		]
+	}
+}
