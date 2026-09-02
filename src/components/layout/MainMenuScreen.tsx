@@ -7,7 +7,7 @@ interface MenuOption {
 	id: number
 	label: string
 	screen?: GameScreen
-	action?: () => void
+	action?: () => Promise<void> | void
 	requiresParty: boolean
 }
 
@@ -64,10 +64,11 @@ export const MainMenuScreen = () => {
 			{
 				id: 5,
 				label: 'Start New Game',
-				action: () => {
+				action: async () => {
 					if (hasPartyMembers) {
 						addLog('> Start A New Game...')
-						getGameEngine().startNewGame()
+						// need await but not sure how to do it
+						await getGameEngine().startNewGame()
 					} else {
 						setNotice('Add at least 1 character to your party to start!')
 					}
@@ -79,7 +80,7 @@ export const MainMenuScreen = () => {
 	)
 
 	const handleExecuteOption = useCallback(
-		(option: MenuOption) => {
+		async (option: MenuOption) => {
 			if (option.requiresParty && !hasPartyMembers) {
 				setNotice('Add at least 1 character to your party to start!')
 				return
@@ -88,7 +89,7 @@ export const MainMenuScreen = () => {
 			if (option.screen) {
 				setScreen(option.screen)
 			} else if (option.action) {
-				option.action()
+				await option.action()
 			}
 		},
 		[hasPartyMembers, setScreen],

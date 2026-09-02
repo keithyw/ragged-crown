@@ -4,6 +4,7 @@ import { EventLog } from '@/components/log/EventLog'
 import {
 	CharacterCreationScreen,
 	CharacterSheetScreen,
+	CutSceneScreen,
 	GameLayout,
 	MainMenuScreen,
 	PartyRosterScreen,
@@ -30,6 +31,7 @@ export default function App() {
 			{screen === 'CHARACTER_CREATION' && <CharacterCreationScreen />}
 			{screen === 'CHARACTER_SHEET' && <CharacterSheetScreen />}
 			{screen === 'PARTY_ROSTER' && <PartyRosterScreen />}
+			{screen === 'CUT_SCENE' && <CutSceneScreen />}
 			{screen === 'WORLD_MAP' && (
 				<GameLayout
 					header={<div>{/* <Header /> */}</div>}

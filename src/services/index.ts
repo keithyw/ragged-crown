@@ -1,4 +1,5 @@
 export * from './CharacterStorageService'
+export * from './DialogService'
 export * from './EncounterService'
 export * from './MapLoaderService'
 export * from './PartyService'

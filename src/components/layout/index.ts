@@ -1,5 +1,6 @@
 export * from './CharacterCreationScreen'
 export * from './CharacterSheetScreen'
+export * from './CutSceneScreen'
 export * from './GameLayout'
 export * from './MainMenuScreen'
 export * from './PartyRosterScreen'

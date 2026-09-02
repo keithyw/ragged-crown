@@ -3,11 +3,13 @@ import { combatEngine } from '@/engine/CombatEngine'
 import { inputManager } from '@/engine/InputManager'
 import {
 	CharacterStorageService,
+	dialogService,
 	EncounterService,
 	mapLoaderService,
 	SaveGameService,
 } from '@/services'
 import { useCharacterCreationStore } from '@/store/useCharacterCreationStore'
+import { useDialogStore } from '@/store/useDialogStore'
 import { useGameStore } from '@/store/useGameStore'
 import type { CharacterSheetContext, SaveGameDocument, TileDef } from '@/types'
 import { evaluateMove, generateSaveGameId } from '@/utils'
@@ -65,7 +67,7 @@ export class GameEngine extends BaseGameEngine {
 		store.setScreen('INTRO')
 	}
 
-	public startNewGame(): void {
+	public async startNewGame(): Promise<void> {
 		const createdCharacters =
 			useCharacterCreationStore.getState().createdCharacters
 		const activeIds = Array.from(useGameStore.getState().party.map((p) => p.id))
@@ -90,7 +92,7 @@ export class GameEngine extends BaseGameEngine {
 		}
 		SaveGameService.saveGame(newSave)
 		useGameStore.getState().setSavedGame(newSave)
-		useGameStore.getState().setScreen('CUT_SCENE')
+		await this.triggerCutScene('a1', 'intro')
 	}
 
 	public enterCharacterCreationMode(): void {
@@ -154,6 +156,20 @@ export class GameEngine extends BaseGameEngine {
 		store.setParty([...party, character])
 	}
 
+	public async loadRegion(regionId: string): Promise<void> {
+		try {
+			const [zone, dialogs] = await Promise.all([
+				mapLoaderService.loadZone(regionId),
+				dialogService.getDialogByRegionId(regionId),
+			])
+			useGameStore.setState({ currentZone: zone })
+			useDialogStore.getState().setDialogs(dialogs)
+		} catch (e) {
+			console.error(e)
+			throw e
+		}
+	}
+
 	private movePlayer(dx: number, dy: number): void {
 		const store = useGameStore.getState()
 		if (!store.currentZone) return
@@ -195,6 +211,21 @@ export class GameEngine extends BaseGameEngine {
 		const character = party.find((p) => p.id === id)
 		if (!character) return
 		store.setParty(party.filter((p) => p.id !== id))
+	}
+
+	public async triggerCutScene(regionId: string, key: string): Promise<void> {
+		try {
+			await this.loadRegion(regionId)
+			const seq = useDialogStore.getState().getSequence(key)
+			if (!seq) {
+				console.error(`Dialog key "${key}" not found!`)
+				return
+			}
+			useDialogStore.getState().setActiveSequence(seq)
+			useGameStore.getState().setScreen('CUT_SCENE')
+		} catch (e) {
+			console.error(e)
+		}
 	}
 
 	protected update(_deltaTime: number): void {
