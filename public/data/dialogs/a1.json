@@ -5,25 +5,51 @@
 		"frames": [
 			{
 				"id": "frame_1",
-				"title": "THE GATES OF OAKHAVEN",
-				"text": "The heavy oak portcullis creaks open, revealing the fog-shrouded expanse of the Aethelgard Valley.\n\nFor generations, the ancient watchtower at Oakhaven stood as a sanctuary for travelers and mercenaries alike. Now, shadows lengthen across the cobblestone roads, and whispers of forgotten catacombs beneath the valley floor draw sellswords from across the realm.\n\nYour party checks their gear and steps through the threshold. The cold wind bites at your face, carrying the distant scent of pine, damp earth, and ozone.",
+				"title": "A Crash of Reality",
+				"text": [
+					"For a little over decade and a half, you have lived in a peaceful farming village where your family ",
+					"only responsibilities have been to wake up and tend the crops and herd the sheep. Your family have been good to you, raising ",
+					"you in a humble wooden abode. You grew up alongside several friends, all of whom share similar qualities in life. Yet",
+					"You often have wondered what your true destiny should be, what the outside world is like, if there's more to this world than ",
+					"the plot of land where you grew up. Often times your family have dismissed such notions as foolhardy, idealisms ",
+					"that would only shorten ones life and that the only way to live is through humility."
+				],
 				"imagePath": ""
 			},
 			{
 				"id": "frame_2",
-				"title": "THE SENTRIES' CHECKPOINT",
-				"text": "A pair of grizzled guards step into your path, halberds crossed. The elder sentry squints through the mist, eyeing your weapons with practiced caution.\n\n\"Hold there, travelers,\" he mutters, lowering his visor slightly. \"Lord Vane has placed the lower valley under quarantine. Only sworn agents of the Guild or those bearing the ward-cipher may pass beyond the gatehouse.\"",
-				"imagePath": "",
-				"quiz": {
-					"prompt": "Enter the pass-phrase (Hint: 'Oakhaven'):",
-					"answer": "oakhaven",
-					"failureText": "The sentry adjusts his grip on his halberd. \"Wrong answer. Speak the cipher or turn back.\""
-				}
+				"title": "A Crash of Reality",
+				"text": [
+					"On this morning though, you have woken up later than usual, the chilled air of a late fall encouraging ",
+					"an extra hour or two in the comfort of haystuffed bed. Despite the serenity of the moment, a blood curdling bellow ",
+					"erupts outside. Quickly, you slip a tunic over your head and slip on worn trousers to investigate this ",
+					"sudden disruption."
+				],
+				"imagePath": ""
 			},
 			{
 				"id": "frame_3",
-				"title": "INTO THE FOG",
-				"text": "The guards nod slowly and step aside, pulling the heavy iron lever to unbolt the inner barrier.\n\n\"Keep your steel sharp and stay on the main road,\" the elder guard warns. \"The fog gets thick near the sunken ruins, and the things hunting in the dark don't ask for pass-phrases.\"\n\nWith the gate behind you, the path into Region A1 opens up.",
+				"title": "A Crash of Reality",
+				"text": [
+					"A crowd has gathered in the center of the village, pale faces facing in the same direction. Beyond them ",
+					"stands a silhouette that you cannot discern from your position as the sun blinds you from this angle. ",
+					"The figure speaks in an ominous, booming voice that shakes the foundation of your being. ",
+					"'Peasants of AppleField, you have failed to deliver your annual harvest. For that we must offer a sharp reminder ",
+					"of your purpose.'"
+				],
+				"imagePath": ""
+			},
+			{
+				"id": "frame_4",
+				"title": "A Crash of Reality",
+				"text": [
+					"The glint of metal pierces through the crowd as the villagers step back in horror and scream. ",
+					"The crowd momentarily parts and you see near the shadowy figure a more diminuitive creature bearing a sharp blade ",
+					"whose own features mostly are encompassed by the light of the sun except for a pair of hateful, yellow eyes casting ",
+					"a daring glance at the crowd. Below the feet of the creature lies the crumpled form of your father with a massive slash ",
+					"across his throat. His body shudders for a few seconds before lying still. From there, the shadowy figure ",
+					"and his companion march off."
+				],
 				"imagePath": ""
 			}
 		]

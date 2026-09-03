@@ -7,7 +7,7 @@ export interface DialogQuiz {
 export interface DialogFrame {
 	id: string
 	title?: string
-	text: string // Supports multi-paragraph / long text
+	text: string[]
 	imagePath?: string
 	quiz?: DialogQuiz
 }
