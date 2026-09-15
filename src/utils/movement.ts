@@ -1,4 +1,3 @@
-// src/utils/movement.ts
 import { TILE_KEY_MAP, TILE_REGISTRY } from '@/constants'
 import type { Position, TileDef, Zone } from '@/types'
 
@@ -11,7 +10,7 @@ export interface MoveResult {
 
 /** Determines if a target coordinate falls within the active zone boundaries */
 export const isWithinBounds = (pos: Position, zone: Zone): boolean => {
-	const { width, height } = zone.dimensions
+	const { width, height } = zone.dimensions || { width: 0, height: 0 }
 	return pos.x >= 0 && pos.x < width && pos.y >= 0 && pos.y < height
 }
 

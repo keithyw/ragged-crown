@@ -1,0 +1,29 @@
+{
+	"id": "STARTER_TOWN",
+	"name": "Starter Town",
+	"dangerLevel": 0,
+	"startingPosition": { "x": 3, "y": 3 },
+	"terrain": [
+		["T001", "T001", "T001", "T001", "T001", "T001"],
+		["T001", "C001", "T001", "T001", "T001", "T001"],
+		["T001", "T002", "T002", "T001", "T001", "T001"],
+		["T001", "T001", "T001", "T001", "T001", "T001"],
+		["T001", "T001", "T001", "T001", "T001", "T001"]
+	],
+	"tileEvents": {
+		"1,1": [
+			{
+				"popOnComplete": true,
+				"text": "test dialog",
+				"type": "SHOW_DIALOG",
+				"triggerOn": "BUMP_INTERACT"
+			},
+			{
+				"popOnComplete": true,
+				"text": "test dialog2",
+				"type": "SHOW_DIALOG",
+				"triggerOn": "BUMP_INTERACT"
+			}
+		]
+	}
+}

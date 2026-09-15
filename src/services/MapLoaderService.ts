@@ -16,9 +16,12 @@ class MapLoaderService {
 			if (!response.ok) {
 				throw new Error(`HTTP error! status: ${response.status}`)
 			}
-
 			const rawData = await response.json()
 			const zone = this.parseAndValidateZone(rawData)
+			zone.dimensions = zone.dimensions || {
+				width: zone.terrain[0].length,
+				height: zone.terrain.length,
+			}
 			this.cache.set(zoneId, zone)
 			return zone
 		} catch (error) {
@@ -32,6 +35,8 @@ class MapLoaderService {
 
 	/**
 	 * Preloads adjacent zones in the background without blocking execution
+	 *
+	 * This might not be useful. Old code from game store that got removed
 	 */
 	preloadZones(zoneIds: string[]): void {
 		zoneIds.forEach((id) => {

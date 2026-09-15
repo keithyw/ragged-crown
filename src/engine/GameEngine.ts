@@ -1,20 +1,27 @@
-import { BaseGameEngine } from '@/engine/BaseGameEngine'
-import { combatEngine } from '@/engine/CombatEngine'
-import { inputManager } from '@/engine/InputManager'
+import { DEFAULT_STARTING_POSITION } from '@/constants'
+import {
+	BaseGameEngine,
+	combatEngine,
+	getInteractionEngine,
+	inputManager,
+	InteractionEngine,
+} from '@/engine'
 import {
 	CharacterStorageService,
 	dialogService,
 	EncounterService,
 	mapLoaderService,
 	SaveGameService,
+	tileTypeLoaderService,
 } from '@/services'
 import { useCharacterCreationStore } from '@/store/useCharacterCreationStore'
 import { useDialogStore } from '@/store/useDialogStore'
 import { useGameStore } from '@/store/useGameStore'
 import type { CharacterSheetContext, SaveGameDocument, TileDef } from '@/types'
-import { evaluateMove, generateSaveGameId } from '@/utils'
+import { generateSaveGameId } from '@/utils'
 
 export class GameEngine extends BaseGameEngine {
+	private interactiveEngine: InteractionEngine = getInteractionEngine()
 	private isInitialized = false
 	private unbindWorldInput?: () => void
 	private gameTime: number = 0
@@ -32,9 +39,10 @@ export class GameEngine extends BaseGameEngine {
 
 		try {
 			const characters = CharacterStorageService.getAll()
-			const [startingZone, monsters] = await Promise.all([
-				mapLoaderService.loadZone('a1'),
+			const [startingZone, monsters, tileObjects] = await Promise.all([
+				mapLoaderService.loadZone('starter_town'),
 				EncounterService.fetchMonsters(),
+				tileTypeLoaderService.load(),
 			])
 			useCharacterCreationStore.setState({
 				createdCharacters: characters,
@@ -43,6 +51,7 @@ export class GameEngine extends BaseGameEngine {
 				currentZone: startingZone,
 				isMapLoading: false,
 				monsters,
+				tileObjects,
 			})
 		} catch (e) {
 			console.error(e)
@@ -51,7 +60,10 @@ export class GameEngine extends BaseGameEngine {
 
 	protected setupState(): void {
 		if (this.isInitialized) return
-		useGameStore.setState({ playerPosition: { x: 5, y: 5 } })
+		const playerPosition =
+			useGameStore.getState().currentZone?.startingPosition ||
+			DEFAULT_STARTING_POSITION
+		useGameStore.setState({ playerPosition })
 	}
 
 	protected registerCommandHandlers(): void {
@@ -80,8 +92,8 @@ export class GameEngine extends BaseGameEngine {
 				playtimeSeconds: 0,
 			},
 			worldState: {
-				currentZoneId: 'a1',
-				playerPosition: { x: 5, y: 5 },
+				currentZoneId: 'starter_town',
+				playerPosition: { x: 3, y: 3 },
 				flags: {
 					is_new_game: true,
 					intro_complete: true,
@@ -92,7 +104,7 @@ export class GameEngine extends BaseGameEngine {
 		}
 		SaveGameService.saveGame(newSave)
 		useGameStore.getState().setSavedGame(newSave)
-		await this.triggerCutScene('a1', 'intro')
+		await this.triggerCutScene('starter_town', 'intro')
 	}
 
 	public enterCharacterCreationMode(): void {
@@ -157,6 +169,7 @@ export class GameEngine extends BaseGameEngine {
 	}
 
 	public async loadRegion(regionId: string): Promise<void> {
+		useGameStore.setState({ isMapLoading: true })
 		try {
 			const [zone, dialogs] = await Promise.all([
 				mapLoaderService.loadZone(regionId),
@@ -167,6 +180,8 @@ export class GameEngine extends BaseGameEngine {
 		} catch (e) {
 			console.error(e)
 			throw e
+		} finally {
+			useGameStore.setState({ isMapLoading: false })
 		}
 	}
 
@@ -174,15 +189,36 @@ export class GameEngine extends BaseGameEngine {
 		const store = useGameStore.getState()
 		if (!store.currentZone) return
 
-		const res = evaluateMove(store.playerPosition, dx, dy, store.currentZone)
-		if (!res.canMove) {
-			if (res.blockReason) {
-				store.addLog(`> ${res.blockReason}`)
-			}
+		const nextX = store.playerPosition.x + dx
+		const nextY = store.playerPosition.y + dy
+		console.log(`trying to move to ${nextX}, ${nextY}`)
+
+		const res = this.interactiveEngine.evaluateMove(
+			store.playerPosition,
+			dx,
+			dy,
+			store.tileObjects,
+			store.currentZone,
+		)
+		// check if there is an event
+		if (
+			!res.canMove &&
+			this.interactiveEngine.hasTileEvents(nextX, nextY, store.currentZone)
+		) {
+			this.interactiveEngine.evaluateTile(nextX, nextY, store.currentZone)
 			return
+		} else if (!res.canMove && res.blockReason) {
+			store.addLog(`> ${res.blockReason}`)
+			return
+		} else {
+			if (
+				this.interactiveEngine.hasTileEvents(nextX, nextY, store.currentZone)
+			) {
+				this.interactiveEngine.evaluateTile(nextX, nextY, store.currentZone)
+			}
+			store.setPlayerPosition(res.nextPos)
 		}
 
-		store.setPlayerPosition(res.nextPos)
 		if (res.targetTile) {
 			store.addLog(
 				`> Moved to ${res.targetTile.name} (${res.nextPos.x}, ${res.nextPos.y}).`,

@@ -1,23 +1,22 @@
-export type CommandType =
-	| 'MOVE_PLAYER'
-	| 'INTERACT'
-	| 'OPEN_INVENTORY'
-	| 'EXECUTE_ATTACK'
-	| 'CAST_SPELL'
-	| 'START_GAME'
-	| 'COMBAT_ATTACK'
-	| 'COMBAT_DEFEND'
-	| 'COMBAT_CAST_SPELL'
-	| 'COMBAT_FLEE'
-	| 'COMBAT_START'
-	| 'SELECT_OPTION'
-	| 'CLOSE_DIALOGUE'
-
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export interface Command<T = any> {
-	type: CommandType
-	payload?: T
+export interface CommandResult {
+	success: boolean
+	stopPipeline?: boolean
+	data?: Record<string, unknown> // Passed to next command via lastResult
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export type CommandHandler<T = any> = (command: Command<T>) => void
+export interface PipelineContext {
+	// Read/Write access to current world snapshot
+	currentZoneId: string
+	playerPos: { x: number; y: number }
+	result?: CommandResult
+	// Mutable flags for top-level engine actions
+	flags: {
+		popTopTile?: boolean
+		zoneTransition?: { zoneId: string; pos?: { x: number; y: number } }
+	}
+}
+
+export interface ICommand {
+	execute(): CommandResult
+	setContext(ctx: PipelineContext): void
+}

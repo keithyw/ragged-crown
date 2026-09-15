@@ -14,6 +14,8 @@ export class EncounterService {
 
 	/** Determines if a step triggers an encounter based on tile rate & zone danger */
 	public static shouldTriggerEncounter(tile: TileDef, zone: Zone): boolean {
+		// cities, villages, towns
+		if (zone.dangerLevel === 0) return false
 		const baseRate = tile.encounterRate ?? 0.01 // Default 1%
 		const dangerMultiplier = Math.max(1, zone.dangerLevel)
 		const finalChance = baseRate * dangerMultiplier

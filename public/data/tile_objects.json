@@ -1,0 +1,38 @@
+{
+	"T001": {
+		"type": "GRASS",
+		"symbol": "::",
+		"color": "text-emerald-400",
+		"bg": "bg-emerald-950/60",
+		"name": "Plains",
+		"moveCost": 1,
+		"isWalkable": true,
+		"description": "The wild terrain stretches out in all directions.",
+		"spriteCoords": { "x": 0, "y": 0 },
+		"encounterRate": 0.08
+	},
+	"T002": {
+		"type": "DIRT",
+		"symbol": "·",
+		"color": "text-amber-600/70",
+		"bg": "bg-amber-950/30",
+		"name": "Dirt Path",
+		"moveCost": 1,
+		"isWalkable": true,
+		"description": "A well-traveled cobblestone highway.",
+		"spriteCoords": { "x": 1, "y": 0 },
+		"encounterRate": 0.03
+	},
+	"C001": {
+		"type": "PERSON",
+		"symbol": "🧑",
+		"color": "text-amber-400",
+		"bg": "bg-amber-950/60",
+		"name": "Humanoid",
+		"moveCost": 0,
+		"isWalkable": false,
+		"description": "Ham n egger",
+		"spriteCoords": { "x": 2, "y": 0 },
+		"encounterRate": 0
+	}
+}

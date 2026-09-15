@@ -1,5 +1,4 @@
 import { create } from 'zustand'
-import { mapLoaderService } from '@/services'
 import type {
 	ActiveEncounter,
 	CharacterSheetContext,
@@ -11,6 +10,7 @@ import type {
 	Position,
 	QueuedAction,
 	SaveGameDocument,
+	TileObjectTypes,
 	Zone,
 } from '@/types'
 
@@ -31,12 +31,12 @@ interface GameState {
 	selectedCharId: string
 	selectedTargetIndex: number
 	subPhase: PlanningSubPhase
+	tileObjects: TileObjectTypes
 	logs: string[]
 
 	// Actions
 	selectCharacter: (id: string) => void
 	addLog: (message: string) => void
-	loadMap: (zoneId: string, startingPosition?: Position) => Promise<void>
 	clearActionQueue: () => void
 	damageCharacter: (id: string, damage: number) => void
 	queueAction: (action: QueuedAction) => void
@@ -55,6 +55,7 @@ interface GameState {
 	setPlayerPosition: (position: Position) => void
 	setScreen: (screen: GameScreen) => void
 	setSelectedTargetIndex: (index: number) => void
+	setTileObjects: (tileObjects: TileObjectTypes) => void
 }
 
 export const useGameStore = create<GameState>((set) => ({
@@ -69,39 +70,18 @@ export const useGameStore = create<GameState>((set) => ({
 	isMapLoading: false,
 	logs: [],
 	monsters: [],
-	playerPosition: { x: 10, y: 8 },
+	playerPosition: { x: 3, y: 3 },
 	party: [],
 	savedGame: null,
 	selectedCharId: 'char-1',
 	subPhase: 'ACTION_SELECT',
 	selectedTargetIndex: 0,
+	tileObjects: {},
 
 	selectCharacter: (id: string) => set({ selectedCharId: id }),
 
 	addLog: (message: string) =>
 		set((state) => ({ logs: [message, ...state.logs.slice(0, 9)] })),
-
-	loadMap: async (zoneId: string, startingPosition?: Position) => {
-		set({ isMapLoading: true })
-		try {
-			const zone = await mapLoaderService.loadZone(zoneId)
-			set({
-				currentZone: zone,
-				isMapLoading: false,
-				...(startingPosition && { playerPosition: startingPosition }),
-			})
-
-			if (zone.events) {
-				const targets = Object.values(zone.events)
-					.map((k) => k.targetZone)
-					.filter((id): id is string => Boolean(id))
-				mapLoaderService.preloadZones(targets)
-			}
-		} catch (e) {
-			console.error(e)
-			set({ isMapLoading: false })
-		}
-	},
 
 	clearActionQueue: () => set({ actionQueue: [] }),
 
@@ -136,4 +116,5 @@ export const useGameStore = create<GameState>((set) => ({
 	setScreen: (screen) => set({ currentScreen: screen }),
 	setSelectedTargetIndex: (index) => set({ selectedTargetIndex: index }),
 	setSubPhase: (phase) => set({ subPhase: phase }),
+	setTileObjects: (tileObjects) => set({ tileObjects }),
 }))

@@ -12,10 +12,11 @@ export const OverheadMap = ({ title = 'Overhead View' }: OverheadMapProps) => {
 	const currentZone = useGameStore((state) => state.currentZone)
 	const playerPosition = useGameStore((state) => state.playerPosition)
 	const isMapLoading = useGameStore((state) => state.isMapLoading)
+	const tileObjects = useGameStore((state) => state.tileObjects)
 
 	const grid = useMemo(() => {
-		return currentZone ? parseZoneGrid(currentZone) : []
-	}, [currentZone])
+		return currentZone ? parseZoneGrid(tileObjects, currentZone) : []
+	}, [currentZone, tileObjects])
 
 	if (isMapLoading || !currentZone)
 		return (
@@ -24,7 +25,9 @@ export const OverheadMap = ({ title = 'Overhead View' }: OverheadMapProps) => {
 			</div>
 		)
 
-	const { width, height } = currentZone.dimensions
+	const { width, height } = currentZone?.dimensions || { width: 0, height: 0 }
+
+	console.log(playerPosition)
 
 	return (
 		<div className='flex h-full w-full flex-col'>
