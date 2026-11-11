@@ -8,7 +8,7 @@ import eslintConfigPrettier from "eslint-config-prettier";
 import eslintPluginPrettier from "eslint-plugin-prettier/recommended";
 
 export default defineConfig([
-  globalIgnores(["dist"]),
+  globalIgnores(["dist", "**/.sandbox"]),
   {
     files: ["**/*.{ts,tsx}"],
     extends: [

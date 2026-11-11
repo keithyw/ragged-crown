@@ -25,3 +25,6 @@ dist-ssr
 *.sln
 *.sw?
 *.zip
+
+# Scratch files (Claude and throwaway checks), at any depth
+.sandbox/
