@@ -240,5 +240,5 @@ Found while writing this doc, by reading the code. **Not fixed.** Items marked _
 15. **React StrictMode double effect.** In dev, `App`'s effect runs initialize → shutdown → initialize. `isInitialized` is only set after the async `loadAssets` finishes, so the second call isn't stopped by it, and `shutdown` detaches the input listener and stops the loop during the first. Whether this ends with zero, one or two key listeners and loops needs checking in the browser. _(unverified)_
 16. Main menu options 1 and 2 have a `screen`, so `handleExecuteOption` calls `setScreen` and never runs their `action` (`enterCharacterCreationMode` / `enterPartyRosterMode`). Harmless today (those only unbind world input), but the action is dead.
 17. The party cap of 4 is a literal in `PartyRosterScreen`; `addCharacterToParty` doesn't check it ([Game: Debt 1]).
-18. No safelist for Tailwind classes that arrive only through data (`src/index.css` is `@import 'tailwindcss'` alone). Matters once colours come from the tools.
+18. _Resolved._ The Tailwind safelist for glyph colours from data is in `src/index.css`, copied from the tools' `globals.css`.
 19. Probably dead: `utils/movement.ts` and `TILE_REGISTRY` / `TILE_KEY_MAP` in `constants/tiles.ts`, `PartyService`, `constants/styles2.ts`, the `useSprites` / `spriteCoords` path in `MapSquare`.

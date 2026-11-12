@@ -1,5 +1,20 @@
 @import 'tailwindcss';
 
+/*
+ * Glyph colours stored as Tailwind classes in content data. Copied from
+ * ragged-crown-tools/frontend/src/app/globals.css, which is kept in sync with
+ * its colour picker's palette (lib/types/colorPalette.ts). Change both together.
+ * Each directive stays on one line: Prettier's wrapping breaks Tailwind's parser.
+ */
+/* prettier-ignore */
+@source inline("text-{white,black}");
+/* prettier-ignore */
+@source inline("bg-{white,black}");
+/* prettier-ignore */
+@source inline("text-{zinc,red,orange,amber,yellow,lime,green,emerald,teal,cyan,sky,blue,violet,purple,pink,rose,stone}-{300,400,500,600}{,/70}");
+/* prettier-ignore */
+@source inline("bg-{zinc,red,orange,amber,yellow,lime,green,emerald,teal,cyan,sky,blue,violet,purple,pink,rose,stone}-{700,800,900,950}{,/30,/60}");
+
 @layer utilities {
 	/* Sprite sheet helper class */
 	.tile-sprite {

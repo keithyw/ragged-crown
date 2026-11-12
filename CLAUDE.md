@@ -78,7 +78,7 @@ The content types are hand-copied from `ragged-crown-tools/frontend/src/lib/type
 
 **Formatting** (Prettier, `.prettierrc.cjs`, with the Tailwind plugin): tabs, single quotes, single quotes in JSX, no semicolons, trailing commas, 80 columns. ESLint runs Prettier as a rule, so `pnpm lint` reports formatting too.
 
-**Stack versions that trip people up:** React 19, Tailwind v4 (via `@tailwindcss/vite`), Vite 8, TypeScript 6, Zustand 5. Tile colours are stored as Tailwind class strings in data. Tailwind only emits classes it finds in scanned files, so classes that arrive only through data (from the tools, at runtime) need a `@source inline(...)` safelist like the tools' `globals.css`. `src/index.css` has none yet.
+**Stack versions that trip people up:** React 19, Tailwind v4 (via `@tailwindcss/vite`), Vite 8, TypeScript 6, Zustand 5. Tile colours are stored as Tailwind class strings in data. Tailwind only emits classes it finds in scanned files, so classes that arrive only through data (from the tools, at runtime) need the `@source inline(...)` safelist at the top of `src/index.css`. It is a copy of the tools' `globals.css` lines, which must match the tools' colour palette (`lib/types/colorPalette.ts`); change both repos together. Each directive stays on one line with `/* prettier-ignore */` above it.
 
 ## Gotchas
 
