@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import { MAX_PARTY_SIZE } from '@/constants'
 import { inputManager } from '@/engine'
 import { RosterListPanel } from '@/components/partyRoster/RosterListPanel'
 import { getGameEngine } from '@/engine'
@@ -37,7 +38,7 @@ export const PartyRosterScreen = () => {
 				next.delete(characterId)
 				getGameEngine().removeCharacterFromParty(characterId)
 			} else {
-				if (next.size >= 4) return prev // Cap party at 4 for starting scale
+				if (next.size >= MAX_PARTY_SIZE) return prev
 				next.add(characterId)
 				getGameEngine().addCharacterToParty(characterId)
 			}
