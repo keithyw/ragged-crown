@@ -17,7 +17,7 @@ How the Ragged Crown game fits together **as the code stands today** (2026-11-11
 ```
 
 - **No backend.** Content is static JSON served from `public/data/`. Player data (created characters, saved games) is in localStorage, which avoids sessions and authentication.
-- **The tools author the content.** `ragged-crown-tools` (Go API + MongoDB + Next.js) is where tiles, objects, items, zones and sprites are made. How the game will receive that content (fetch from the API or load an export) is undecided ([Game 1] step 0, DATA-MODEL "Content delivery"). Today the game still reads hand-written JSON in the old model.
+- **The tools author the content.** `ragged-crown-tools` (Go API + MongoDB + Next.js) is where tiles, objects, items, zones and sprites are made. How the game will receive that content is decided but not built ([Game 8]): a two-method content source (`getAll`, `get`) backed by the tools API in development (the real API on the normal dev port, the sandbox API on a second "sandbox" dev port) and by exported files of the same shape, committed in this repo, in a published build. Today the game still reads hand-written JSON in the old model.
 - **Engines own the rules, React owns the view.** Engines are plain TypeScript singletons that read and write Zustand stores with `getState()` / `setState()`. Components subscribe to the stores and render; some also bind keys and call the engines (section 4).
 
 ---
