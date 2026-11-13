@@ -56,8 +56,8 @@ export const OverheadMap = ({ title = 'Overhead View' }: OverheadMapProps) => {
 							return (
 								<MapSquare
 									key={`${cell.position.x}-${cell.position.y}`}
-									glyph={(cell.top ?? cell.terrain)?.glyph}
-									name={(cell.top ?? cell.terrain)?.name}
+									terrain={cell.terrain}
+									top={cell.top}
 									isPlayer={isPlayer}
 								/>
 							)

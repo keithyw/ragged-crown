@@ -120,7 +120,7 @@ The tools have replaced this design (DATA-MODEL sections 1, 3, 4 and 5). In shor
 - **Authored vs runtime:** zone JSON is the initial state; spawns, removals, counts and remaining uses live in a runtime copy and the save. Zone data is never mutated.
 - **Custom values:** a def's action or condition can be a slot that each placement fills in (`customValues`).
 
-The game-side work is already broken into cards: **[Game 1]** (done except the interaction path: types through `@shared/types`, defs resolved by `_id`, `terrain` + `placements` loaded with a runtime copy in `useGameStore.runtimePlacements`, the top of the stack drawn, blocking), **[Game 2]** (the interaction engine: precedence, conditions, limits, and the action types in a fixed order, starting with `SHOW_DIALOG`, then `SET_FLAG` and flag conditions), **[Game 5]** (engine decisions the tools leave open, including what `HAS_ITEM` evaluates to while inventory doesn't exist), [Game 6] (sprites) and [Game 7] (portals).
+The game-side work is already broken into cards: **[Game 1]** (done except the interaction path: types through `@shared/types`, defs resolved by `_id`, `terrain` + `placements` loaded with a runtime copy in `useGameStore.runtimePlacements`, the top of the stack drawn, blocking), **[Game 2]** (the interaction engine: precedence, conditions, limits, and the action types in a fixed order, starting with `SHOW_DIALOG`, then `SET_FLAG` and flag conditions), **[Game 5]** (engine decisions the tools leave open, including what `HAS_ITEM` evaluates to while inventory doesn't exist), [Game 6] (sprites: built for the map; the `sprites` collection loads into `useContentStore`, `MapSquare` draws a def's sprite, else its glyph; portraits aren't included) and [Game 7] (portals).
 
 ### 5.3 What the port touches
 
@@ -132,7 +132,7 @@ The game-side work is already broken into cards: **[Game 1]** (done except the i
 | `InteractionEngine.getTileEvents / hasTileEvents / evaluateTile / handleEvents` | Resolve the top placement, pick one interaction (a pure function, per [Game 2]), run its actions |
 | `CommandFactory` + `ActionPayload` switch | A switch on the `Action` union; unimplemented types warn and skip |
 | `PipelineContext.flags.popTopTile` / `POP_STACK` | `REMOVE_SELF` on the runtime copy |
-| _Done (glyph; sprite is [Game 6])_ `utils/mapParser.ts` (`ResolvedCell.events`), `MapSquare` (flat `symbol`/`color`) | Terrain plus the top placement's glyph or sprite |
+| _Done ([Game 1], [Game 6])_ `utils/mapParser.ts` (`ResolvedCell.events`), `MapSquare` (flat `symbol`/`color`) | Terrain plus the top placement's glyph or sprite |
 | `GameEngine.movePlayer` (bump vs step) | Bump on a solid top placement (no movement), `WALK` on entering a space; the trigger types decide which interactions are eligible |
 | `SaveGameDocument.worldState.flags` | Also holds the runtime deltas (limit counts, removals, spawns), shape undecided |
 
