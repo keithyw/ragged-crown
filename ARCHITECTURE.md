@@ -17,7 +17,7 @@ How the Ragged Crown game fits together **as the code stands today** (2026-11-11
 ```
 
 - **No backend.** Content is static JSON served from `public/data/`. Player data (created characters, saved games) is in localStorage, which avoids sessions and authentication.
-- **The tools author the content.** `ragged-crown-tools` (Go API + MongoDB + Next.js) is where tiles, objects, items, zones and sprites are made. How the game will receive that content is decided but not built ([Game 8]): a two-method content source (`getAll`, `get`) backed by the tools API in development (the real API on the normal dev port, the sandbox API on a second "sandbox" dev port) and by exported files of the same shape, committed in this repo, in a published build. Today the game still reads hand-written JSON in the old model.
+- **The tools author the content.** `ragged-crown-tools` (Go API + MongoDB + Next.js) is where tiles, objects, items, zones and sprites are made. How the game will receive that content is decided but not built ([Game 8]): a two-method content source (`getAll`, `get`) backed by the tools API in development (the real API on the normal dev port, the sandbox API on a second "sandbox" dev port) and by exported files of the same shape, committed in this repo, in a published build. Phase 1 is built ([Game 1]): the game reads defs and zones from the API (`ContentSource`, `useContentStore`, `ZoneLoaderService`); dialogs and monsters are still static JSON, and the export phase isn't built.
 - **Engines own the rules, React owns the view.** Engines are plain TypeScript singletons that read and write Zustand stores with `getState()` / `setState()`. Components subscribe to the stores and render; some also bind keys and call the engines (section 4).
 
 ---
@@ -85,6 +85,8 @@ This is the area furthest from the tools' model and the one most in need of rewo
 
 ### 5.1 Today: `tileEvents` and `ActionPayload`
 
+_Update ([Game 1]): zones and defs now use the new model (5.2), and a cell's blocking and drawing follow it. Interactions are the part not ported: the zone has no `tileEvents`, so `InteractionEngine.getTileEvents` returns `[]` behind a `TODO [Game 2]`, and `ActionPayload` and the commands below are unreachable until [Game 2]. The rest of this section describes the old design._
+
 **Data.** A zone (`Zone` in `src/types/map.ts`) is `terrain: string[][]` of tile keys (`T001`) plus an optional `tileEvents: Record<string, ActionPayload[]>`, keyed by cell. Tile defs are a flat map in `tile_objects.json` (`T001` grass, `T002` dirt, `C001` a non-walkable "Humanoid"); an NPC is a terrain tile. An `ActionPayload` is one flat bag of optional fields (`text`, `dialogKey`, `itemId`, `amount`, `targetZone`, `spawnTileId`, ...) plus `type`, `triggerOn` and `popOnComplete`.
 
 **Flow.** `GameEngine.movePlayer`:
@@ -118,19 +120,19 @@ The tools have replaced this design (DATA-MODEL sections 1, 3, 4 and 5). In shor
 - **Authored vs runtime:** zone JSON is the initial state; spawns, removals, counts and remaining uses live in a runtime copy and the save. Zone data is never mutated.
 - **Custom values:** a def's action or condition can be a slot that each placement fills in (`customValues`).
 
-The game-side work is already broken into cards: **[Game 1]** (copy the types, resolve by `_id`, load `terrain` + `placements` into runtime state, render the top of the stack, blocking), **[Game 2]** (the interaction engine: precedence, conditions, limits, and the action types in a fixed order, starting with `SHOW_DIALOG`, then `SET_FLAG` and flag conditions), **[Game 5]** (engine decisions the tools leave open, including what `HAS_ITEM` evaluates to while inventory doesn't exist), [Game 6] (sprites) and [Game 7] (portals).
+The game-side work is already broken into cards: **[Game 1]** (done except the interaction path: types through `@shared/types`, defs resolved by `_id`, `terrain` + `placements` loaded with a runtime copy in `useGameStore.runtimePlacements`, the top of the stack drawn, blocking), **[Game 2]** (the interaction engine: precedence, conditions, limits, and the action types in a fixed order, starting with `SHOW_DIALOG`, then `SET_FLAG` and flag conditions), **[Game 5]** (engine decisions the tools leave open, including what `HAS_ITEM` evaluates to while inventory doesn't exist), [Game 6] (sprites) and [Game 7] (portals).
 
 ### 5.3 What the port touches
 
 | Today | Becomes |
 | --- | --- |
-| `src/types/map.ts` (one file, old `TileDef`, `ActionPayload`, the `TileType*` unions) | The tools' `core.ts`, `defs.ts`, `interactions.ts`, `map.ts` (listed in their `shared.ts`), imported through the `@shared/types` alias ([Game 10]), not copied |
-| `tile_objects.json` keyed `T001`; `TileTypeLoaderService` | Defs from the tools, keyed by `_id`, per collection |
-| `zone.tileEvents` | `zone.placements` plus a runtime copy |
+| _Done ([Game 1])_ `src/types/map.ts`'s old `TileDef`, `Zone` and `TileType*` unions are gone; only `Position` and the old interaction types (until [Game 2]) remain | The tools' `core.ts`, `defs.ts`, `interactions.ts`, `map.ts` (listed in their `shared.ts`), imported through the `@shared/types` alias ([Game 10]), not copied |
+| _Done_ `tile_objects.json` keyed `T001`; `TileTypeLoaderService` | Defs from the tools, keyed by `_id`, per collection (`useContentStore`); the old files in `public/data` are unused |
+| _Done_ `zone.tileEvents` | `zone.placements` plus a runtime copy |
 | `InteractionEngine.getTileEvents / hasTileEvents / evaluateTile / handleEvents` | Resolve the top placement, pick one interaction (a pure function, per [Game 2]), run its actions |
 | `CommandFactory` + `ActionPayload` switch | A switch on the `Action` union; unimplemented types warn and skip |
 | `PipelineContext.flags.popTopTile` / `POP_STACK` | `REMOVE_SELF` on the runtime copy |
-| `utils/mapParser.ts` (`ResolvedCell.events`), `MapSquare` (flat `symbol`/`color`) | Terrain plus the top placement's glyph or sprite |
+| _Done (glyph; sprite is [Game 6])_ `utils/mapParser.ts` (`ResolvedCell.events`), `MapSquare` (flat `symbol`/`color`) | Terrain plus the top placement's glyph or sprite |
 | `GameEngine.movePlayer` (bump vs step) | Bump on a solid top placement (no movement), `WALK` on entering a space; the trigger types decide which interactions are eligible |
 | `SaveGameDocument.worldState.flags` | Also holds the runtime deltas (limit counts, removals, spawns), shape undecided |
 
@@ -214,14 +216,14 @@ Found while writing this doc, by reading the code. **Not fixed.** Items marked _
 
 **Interactions (section 5; replaced wholesale by [Game 1] / [Game 2])**
 
-1. **Cell key order.** `InteractionEngine.getTileEvents` reads `zone.tileEvents[y + ',' + x]`; `parseZoneGrid` reads `` `${x},${y}` ``. Hidden today because the only event is at `"1,1"`.
+1. _No longer reachable ([Game 1]); goes away with the old path in [Game 2]._ **Cell key order.** `InteractionEngine.getTileEvents` read `zone.tileEvents[y + ',' + x]`; `parseZoneGrid` reads `` `${x},${y}` ``. Hidden today because the only event is at `"1,1"`.
 2. **Re-queue loop and zone mutation.** `handleEvents` pushes every action without `popOnComplete` back onto the array it is iterating, which is the cached zone's own array. A chain of always-succeeding commands never ends, and the zone data changes.
 3. `triggerOn` is never checked; `PipelineContext.flags` (`popTopTile`, `zoneTransition`) is set or declared but never read.
 4. Commands are `console.log` stubs; the player never sees a `SHOW_DIALOG`.
 
 **Movement and world**
 
-5. `evaluateMove` blocks when `isWalkable` is absent (`!targetTile.isWalkable`); the tools treat it as optional. The unused `utils/movement.ts` copy used `=== false`.
+5. `evaluateMove` blocks when `isWalkable` is absent (`!targetTile.isWalkable`); the tools treat it as optional. (The old `utils/movement.ts` copy that used `=== false` is gone.)
 6. `startNewGame` hard-codes `'starter_town'` and `{ x: 3, y: 3 }` instead of using the zone's `startingPosition`, and doesn't set `playerPosition` from the save.
 7. Leaving a zone's edge is always blocked; edge exits (DATA-MODEL 2.2) and portals don't exist yet ([Game 7]).
 
@@ -241,4 +243,4 @@ Found while writing this doc, by reading the code. **Not fixed.** Items marked _
 16. Main menu options 1 and 2 have a `screen`, so `handleExecuteOption` calls `setScreen` and never runs their `action` (`enterCharacterCreationMode` / `enterPartyRosterMode`). Harmless today (those only unbind world input), but the action is dead.
 17. The party cap of 4 is a literal in `PartyRosterScreen`; `addCharacterToParty` doesn't check it ([Game: Debt 1]).
 18. _Resolved._ The Tailwind safelist for glyph colours from data is in `src/index.css`, copied from the tools' `globals.css`.
-19. Probably dead: `utils/movement.ts` and `TILE_REGISTRY` / `TILE_KEY_MAP` in `constants/tiles.ts`, `PartyService`, `constants/styles2.ts`, the `useSprites` / `spriteCoords` path in `MapSquare`.
+19. Probably dead: `PartyService`, `constants/styles2.ts`. _(`utils/movement.ts`, `constants/tiles.ts` and the `spriteCoords` path in `MapSquare` were removed in [Game 1].)_
