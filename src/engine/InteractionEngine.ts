@@ -8,14 +8,7 @@ import type {
 	Placement,
 	Zone,
 } from '@shared/types'
-import type {
-	ActionPayload,
-	CommandResult,
-	FlagValue,
-	PipelineContext,
-	PlayerCharacter,
-	Position,
-} from '@/types'
+import type { FlagValue, PlayerCharacter, Position } from '@/types'
 import { cellKey, lookupPlacementDef, type DefLookup } from '@/utils/content'
 import {
 	addPlacement,
@@ -30,7 +23,6 @@ import {
 	resolveInteraction,
 	runKey,
 } from '@/utils/interactions'
-import { CommandFactory } from '@/engine/commands/CommandFactory'
 
 /** What the interaction engine reads and changes while it runs. */
 export interface InteractionHost {
@@ -285,70 +277,6 @@ export class InteractionEngine {
 		const value = slot ? placement.customValues?.[slot] : undefined
 		return value?.type === 'SHOW_DIALOG' ? value.text : undefined
 	}
-
-	// TODO [Game 2]: the old tileEvents path. The new zone model has no
-	// `tileEvents` (interactions live on defs and placements), so this finds
-	// nothing until the interaction engine replaces it.
-	// eslint-disable-next-line @typescript-eslint/no-unused-vars
-	public getTileEvents(_x: number, _y: number, _zone: Zone): ActionPayload[] {
-		return []
-	}
-
-	public hasTileEvents(x: number, y: number, zone: Zone): boolean {
-		const events = this.getTileEvents(x, y, zone)
-		return events.length > 0
-	}
-
-	public evaluateTile(x: number, y: number, zone: Zone) {
-		if (!this.hasTileEvents(x, y, zone)) return
-		const events = this.getTileEvents(x, y, zone)
-		const ctx = {
-			currentZoneId: zone.id,
-			playerPos: { x, y },
-			flags: {
-				popTopTile: true,
-				// ignore zone transition for now
-			},
-		}
-
-		const result = this.handleEvents(events, ctx)
-		if (result.success) {
-			// TODO: handle result.data
-		}
-	}
-
-	/**
-	 * Executes a chain of command objects in sequence, piping results.
-	 */
-	public handleEvents(
-		actions: ActionPayload[],
-		initialContext: PipelineContext,
-	): CommandResult {
-		const ctx = { ...initialContext }
-
-		for (const action of actions) {
-			const command = CommandFactory.create(action)
-			if (!command) continue
-
-			// Execute command passing the accumulated context
-			command.setContext(ctx)
-			ctx.result = command.execute()
-
-			// Stop chain execution if command signals halt (e.g. zone change)
-			if (!ctx.result.success || ctx.result.stopPipeline) {
-				break
-			}
-
-			// re-run the command
-			if (!action.popOnComplete) {
-				actions.push(action)
-			}
-		}
-
-		return ctx?.result || { success: true }
-	}
-
-	public handleMove() {}
 }
 
 let instance: InteractionEngine | null = null

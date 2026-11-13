@@ -1,5 +1,4 @@
 export * from './combat'
-export * from './commands'
 export * from './dialog'
 export * from './game'
 export * from './map'

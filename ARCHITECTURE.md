@@ -81,62 +81,41 @@ INTRO ──► MAIN_MENU ──┬─► CHARACTER_CREATION ──► (save) �
 
 ## 5. World movement and interactions
 
-This is the area furthest from the tools' model and the one most in need of rework. Section 5.1 is what runs today; 5.2 is what it has to become; 5.3 lists what the port touches.
+The game follows the tools' model (DATA-MODEL sections 1, 3, 4 and 5). Section 5.1 describes what runs; 5.2 lists what is left. The old `tileEvents` / `ActionPayload` / command pipeline was removed in [Game 2].
 
-### 5.1 Today: `tileEvents` and `ActionPayload`
+### 5.1 How it works
 
-_Update ([Game 1]): zones and defs now use the new model (5.2), and a cell's blocking and drawing follow it. Interactions are the part not ported: the zone has no `tileEvents`, so `InteractionEngine.getTileEvents` returns `[]` behind a `TODO [Game 2]`, and `ActionPayload` and the commands below are unreachable until [Game 2]. The rest of this section describes the old design._
+**Content.** `useContentStore` holds the defs (`tiles`, `items`, `entities`, `sprites`) as `Map<_id, def>`, loaded through `ContentSource` (section 1). A zone comes from `ZoneLoaderService`, by `_id` (portals) or by its user-facing `id` (the starting zone, via the region bridge in `GameEngine`).
 
-**Data.** A zone (`Zone` in `src/types/map.ts`) is `terrain: string[][]` of tile keys (`T001`) plus an optional `tileEvents: Record<string, ActionPayload[]>`, keyed by cell. Tile defs are a flat map in `tile_objects.json` (`T001` grass, `T002` dirt, `C001` a non-walkable "Humanoid"); an NPC is a terrain tile. An `ActionPayload` is one flat bag of optional fields (`text`, `dialogKey`, `itemId`, `amount`, `targetZone`, `spawnTileId`, ...) plus `type`, `triggerOn` and `popOnComplete`.
+**Runtime state** (`useGameStore`). `currentZone` is the loaded zone and is never changed. `runtimePlacements` is a `structuredClone` of its `placements`, the copy that spawns and removals change. `zoneRuntimes` keeps the copy of each zone left behind, so changes last the session. `flags` and `interactionRuns` (per placement `uid` and interaction `id`) are runtime only. None of this is in the save, and `resetRuntime()` clears it on Start New Game.
 
-**Flow.** `GameEngine.movePlayer`:
+**Movement** (`GameEngine.movePlayer`):
 
-1. `InteractionEngine.evaluateMove` checks bounds, finds the terrain def and blocks if `isWalkable` isn't true.
-2. If the move is blocked **and** the target cell has events, `evaluateTile` runs them (a "bump") and the player stays put.
-3. If blocked with no events, the block reason goes to the log.
-4. If allowed, the cell's events run (if any) and the player moves.
-5. After a move, `EncounterService.shouldTriggerEncounter` rolls `encounterRate × dangerLevel` (never in `dangerLevel: 0` zones) and, on a hit, starts combat (section 6).
+1. `InteractionEngine.evaluateMove` checks bounds, the terrain def (blocked unless `isWalkable`) and the cell's stack (blocked if any placement is a solid object).
+2. If blocked, `trigger('BUMP_INTERACT', ...)` runs the top placement's interaction. If it had none, the block reason goes to the log.
+3. If allowed, the player moves, then `trigger('WALK', ...)` runs. Stepping onto a portal logs "Press E to enter".
+4. `EncounterService.shouldTriggerEncounter` rolls `encounterRate × dangerLevel` (never in `dangerLevel: 0` zones) and, on a hit, starts combat (section 6).
 
-`evaluateTile` → `handleEvents` loops over the cell's `ActionPayload[]`, turns each into a command with `CommandFactory`, and executes it with a shared `PipelineContext` (`src/types/commands.ts`). A command returns a `CommandResult`; `data` is passed to the next command through `ctx.result`, and `success: false` or `stopPipeline` ends the chain.
+**`E` enters a portal** (`GameEngine.enterPortal`): the top-most portal placement under the player. It loads `destination.zoneId` and places the player at `destination.pos`, else the zone's `startingPosition`. A portal with no destination is unconnected.
 
-**Commands** (`src/engine/commands/`): `GIVE_ITEM`, `SHOW_DIALOG` and `POP_STACK` only. All three are stubs: they `console.log` (the player sees nothing in the game) or set a context flag nobody reads. `SHOW_DIALOG` can substitute `{item}` from a preceding `GIVE_ITEM`'s result. Every other `ActionType` warns and is skipped.
+**Interactions** (`InteractionEngine.trigger`, with the pure parts in `utils/interactions.ts`):
 
-**Why it's rotten** (details in Known gaps):
+- Gather the top placement's interactions for the trigger, then its def's. Skip the ones used up (`limit`). The first whose conditions all pass runs; a run is counted only if the interaction has a `limit`. When none passes, one failing interaction shows its `hint`, several show the def's description, otherwise "Nothing happens.".
+- The engine reads and changes the game only through an `InteractionHost` (log, flags, run counts, placements, party), which `GameEngine` builds from the stores.
+- **Implemented:** conditions `FLAG_SET`, `FLAG_NOT_SET`; actions `SHOW_DIALOG` (static and custom, to the event log), `SET_FLAG`, `MODIFY_ATTRIBUTE` (stats, hp/sp current and max; xp and level are skipped), `SPAWN`, `REMOVE_SELF`. Everything else warns and is skipped. A condition that can't be evaluated fails, so the fallback runs.
+- **Triggers wired:** `BUMP_INTERACT` and `WALK`. `TALK`, `OPEN`, `USE`, `PICKUP`, `DROP` and `CLOSE` have no key or command yet.
 
-- `triggerOn` is ignored: every event on a cell runs on any bump or step.
-- `popOnComplete: false` pushes the action back onto the array being looped over, which is the **zone's own loaded data**. With a command that always succeeds, that loop never ends; and it mutates cached zone data, which DATA-MODEL section 5 forbids.
-- The event lookup uses the key `"y,x"`, the map parser `"x,y"`.
-- There is no notion of conditions, precedence, limits, runtime state, or a stack of things on a cell.
+Decisions made while building this are recorded on [Game 5].
 
-### 5.2 Target: definitions, placements, interactions
+### 5.2 What is left
 
-The tools have replaced this design (DATA-MODEL sections 1, 3, 4 and 5). In short:
+- **Items.** `GIVE_ITEM`, `TAKE_ITEM` and `HAS_ITEM` wait for an inventory, which is out of scope for now. A `HAS_ITEM` condition fails, so those interactions show their hint.
+- `GIVE_CURRENCY`, `TELEPORT` and `PLAY_SOUND` ([Game 2]); `TELEPORT` could reuse `enterPortal`'s travel.
+- Blocking the player when a portal's conditions fail (undesigned in DATA-MODEL), edge exits ([Game 7]).
+- Persisting the runtime state in the save, once the shape is decided (`SaveGameDocument.worldState.flags` exists but holds only the new-game flags).
+- Dialog is only a line in the event log; there is no dialog box in the world view ([Game 11]).
 
-- **Defs** with a `kind` (`terrain`, `object`, `item`, `portal`, `creature`) and a nested `glyph` (plus an optional `spriteId`), resolved by Mongo `_id`, not `T001`.
-- A zone's `terrain` holds terrain `_id`s; things on top live in **`placements: Record<"x,y", Placement[]>`**, a stack ordered bottom to top. Only the **top** placement is interacted with and drawn. A cell is blocked if its terrain isn't walkable or any placement in the stack is solid.
-- **`Interaction`** = `{ id, on, conditions?, hint?, actions, limit? }`, on the def and (per instance) on the placement. `Action` and `Condition` are discriminated unions on `type`, each carrying only its own fields.
-- **Precedence:** gather the placement's interactions, then the def's; the first whose conditions all pass runs, the rest are skipped.
-- **Limits:** counted per (placement `uid`, interaction `id`) in runtime/save state; the count drops only when the interaction runs. The engine never re-queues actions (`popOnComplete` is gone). Only `REMOVE_SELF` removes a thing.
-- **Authored vs runtime:** zone JSON is the initial state; spawns, removals, counts and remaining uses live in a runtime copy and the save. Zone data is never mutated.
-- **Custom values:** a def's action or condition can be a slot that each placement fills in (`customValues`).
-
-The game-side work is already broken into cards: **[Game 1]** (done except the interaction path: types through `@shared/types`, defs resolved by `_id`, `terrain` + `placements` loaded with a runtime copy in `useGameStore.runtimePlacements`, the top of the stack drawn, blocking), **[Game 2]** (the interaction engine: precedence, conditions, limits, and the action types in a fixed order, starting with `SHOW_DIALOG`, then `SET_FLAG` and flag conditions), **[Game 5]** (engine decisions the tools leave open, including what `HAS_ITEM` evaluates to while inventory doesn't exist), [Game 6] (sprites: built for the map; the `sprites` collection loads into `useContentStore`, `MapSquare` draws a def's sprite, else its glyph; portraits aren't included) and [Game 7] (portals).
-
-### 5.3 What the port touches
-
-| Today | Becomes |
-| --- | --- |
-| _Done ([Game 1])_ `src/types/map.ts`'s old `TileDef`, `Zone` and `TileType*` unions are gone; only `Position` and the old interaction types (until [Game 2]) remain | The tools' `core.ts`, `defs.ts`, `interactions.ts`, `map.ts` (listed in their `shared.ts`), imported through the `@shared/types` alias ([Game 10]), not copied |
-| _Done_ `tile_objects.json` keyed `T001`; `TileTypeLoaderService` | Defs from the tools, keyed by `_id`, per collection (`useContentStore`); the old files in `public/data` are unused |
-| _Done_ `zone.tileEvents` | `zone.placements` plus a runtime copy |
-| `InteractionEngine.getTileEvents / hasTileEvents / evaluateTile / handleEvents` | Resolve the top placement, pick one interaction (a pure function, per [Game 2]), run its actions |
-| `CommandFactory` + `ActionPayload` switch | A switch on the `Action` union; unimplemented types warn and skip |
-| `PipelineContext.flags.popTopTile` / `POP_STACK` | `REMOVE_SELF` on the runtime copy |
-| _Done ([Game 1], [Game 6])_ `utils/mapParser.ts` (`ResolvedCell.events`), `MapSquare` (flat `symbol`/`color`) | Terrain plus the top placement's glyph or sprite |
-| `GameEngine.movePlayer` (bump vs step) | Bump on a solid top placement (no movement), `WALK` on entering a space; the trigger types decide which interactions are eligible |
-| `SaveGameDocument.worldState.flags` | Also holds the runtime deltas (limit counts, removals, spawns), shape undecided |
-
-**Open, to settle before or during [Game 1]:** the content delivery decision; whether the command-object pipeline (`Command`, `CommandResult.data` passed between actions) is kept for the new action types or replaced by a plain switch (the `{item}` substitution is its only use of piping today); where the runtime copy of placements lives (a store, or the engine).
+Saving happens on character creation and deletion, on Start New Game, and at the end of a cut scene. There is no Load Game yet, and the player's position and party HP are not written back during play.
 
 ---
 
@@ -214,12 +193,9 @@ Saving happens on character creation and deletion, on Start New Game, and at the
 
 Found while writing this doc, by reading the code. **Not fixed.** Items marked _(unverified)_ come from reading only and need the game running to confirm.
 
-**Interactions (section 5; replaced wholesale by [Game 1] / [Game 2])**
+**Interactions (section 5)**
 
-1. _No longer reachable ([Game 1]); goes away with the old path in [Game 2]._ **Cell key order.** `InteractionEngine.getTileEvents` read `zone.tileEvents[y + ',' + x]`; `parseZoneGrid` reads `` `${x},${y}` ``. Hidden today because the only event is at `"1,1"`.
-2. **Re-queue loop and zone mutation.** `handleEvents` pushes every action without `popOnComplete` back onto the array it is iterating, which is the cached zone's own array. A chain of always-succeeding commands never ends, and the zone data changes.
-3. `triggerOn` is never checked; `PipelineContext.flags` (`popTopTile`, `zoneTransition`) is set or declared but never read.
-4. Commands are `console.log` stubs; the player never sees a `SHOW_DIALOG`.
+1-4. _Resolved ([Game 2])._ The old `tileEvents` pipeline (the `"y,x"` key order, the re-queue loop that mutated the zone, ignored `triggerOn`, the `console.log` command stubs) was removed and replaced by `InteractionEngine.trigger`.
 
 **Movement and world**
 

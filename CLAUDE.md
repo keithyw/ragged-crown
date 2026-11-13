@@ -56,10 +56,9 @@ Verify changes with `tsc -b` and `pnpm lint`. Both pass cleanly today.
 ```
 src/
   engine/       GameEngine (singleton, lifecycle via BaseGameEngine), CombatEngine,
-                InteractionEngine (moves, tile events), InputManager, CharacterEngine,
-                commands/ (command objects built by CommandFactory)
+                InteractionEngine (moves, interactions), InputManager, CharacterEngine
   store/        Zustand stores: useGameStore, useCharacterCreationStore, useDialogStore
-  services/     JSON loaders (maps, tiles, dialogs, monsters) and localStorage services
+  services/     content loaders (ContentSource, zones; dialogs and monsters are still static JSON) and localStorage services
   components/   layout/ (one component per screen), map/, encounter/, cutscene/, ...
   types/        shared and game-only types
   constants/    tiles, player defaults, styles
