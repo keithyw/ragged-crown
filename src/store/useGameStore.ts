@@ -9,15 +9,17 @@ import type {
 	PlayerCharacter,
 	Position,
 	QueuedAction,
+	FlagValue,
 	SaveGameDocument,
 } from '@/types'
 import type { CellKey, Placement, Zone } from '@shared/types'
+import type { StoredDoc } from '@/services/ContentSource'
 
 interface GameState {
 	activeCharacter: number | 0
 	actionQueue: QueuedAction[]
 	combatPhase: CombatPhase | null
-	currentZone: Zone | null
+	currentZone: StoredDoc<Zone> | null
 	currentScreen: GameScreen
 	encounter: ActiveEncounter | null
 	inspectedCharacterId: string | null
@@ -32,11 +34,19 @@ interface GameState {
 	subPhase: PlanningSubPhase
 	/** Mutable copy of `currentZone.placements`; the zone itself is never changed. */
 	runtimePlacements: Partial<Record<CellKey, Placement[]>>
+	/** Runtime placements of the zones left behind, by zone `_id`, so changes last the session. */
+	zoneRuntimes: Record<string, Partial<Record<CellKey, Placement[]>>>
+	/** Game flags set by SET_FLAG (runtime; persisting them is undecided). */
+	flags: Record<string, FlagValue>
+	/** Times each interaction has run, keyed `uid:interactionId` (see `runKey`). */
+	interactionRuns: Record<string, number>
 	logs: string[]
 
 	// Actions
 	selectCharacter: (id: string) => void
 	addLog: (message: string) => void
+	setFlag: (flag: string, value?: FlagValue) => void
+	recordRun: (key: string) => void
 	clearActionQueue: () => void
 	damageCharacter: (id: string, damage: number) => void
 	queueAction: (action: QueuedAction) => void
@@ -55,7 +65,12 @@ interface GameState {
 	setPlayerPosition: (position: Position) => void
 	setScreen: (screen: GameScreen) => void
 	setSelectedTargetIndex: (index: number) => void
-	setCurrentZone: (zone: Zone) => void
+	setCurrentZone: (zone: StoredDoc<Zone>) => void
+	setRuntimePlacements: (
+		placements: Partial<Record<CellKey, Placement[]>>,
+	) => void
+	/** Forgets everything the player changed: flags, run counts, zone changes. */
+	resetRuntime: () => void
 }
 
 export const useGameStore = create<GameState>((set) => ({
@@ -68,6 +83,8 @@ export const useGameStore = create<GameState>((set) => ({
 	inspectedCharacterId: null,
 	inspectedContext: 'GUILD',
 	isMapLoading: false,
+	flags: {},
+	interactionRuns: {},
 	logs: [],
 	monsters: [],
 	playerPosition: { x: 3, y: 3 },
@@ -77,11 +94,23 @@ export const useGameStore = create<GameState>((set) => ({
 	subPhase: 'ACTION_SELECT',
 	selectedTargetIndex: 0,
 	runtimePlacements: {},
+	zoneRuntimes: {},
 
 	selectCharacter: (id: string) => set({ selectedCharId: id }),
 
 	addLog: (message: string) =>
 		set((state) => ({ logs: [message, ...state.logs.slice(0, 9)] })),
+
+	setFlag: (flag, value = true) =>
+		set((state) => ({ flags: { ...state.flags, [flag]: value } })),
+
+	recordRun: (key) =>
+		set((state) => ({
+			interactionRuns: {
+				...state.interactionRuns,
+				[key]: (state.interactionRuns[key] ?? 0) + 1,
+			},
+		})),
 
 	clearActionQueue: () => set({ actionQueue: [] }),
 
@@ -117,8 +146,28 @@ export const useGameStore = create<GameState>((set) => ({
 	setSelectedTargetIndex: (index) => set({ selectedTargetIndex: index }),
 	setSubPhase: (phase) => set({ subPhase: phase }),
 	setCurrentZone: (zone) =>
+		set((state) => {
+			// Keep the zone being left, and bring back this one's if it was visited.
+			const zoneRuntimes = { ...state.zoneRuntimes }
+			if (state.currentZone) {
+				zoneRuntimes[state.currentZone._id] = state.runtimePlacements
+			}
+			return {
+				currentZone: zone,
+				zoneRuntimes,
+				runtimePlacements:
+					zoneRuntimes[zone._id] ?? structuredClone(zone.placements ?? {}),
+			}
+		}),
+
+	setRuntimePlacements: (runtimePlacements) => set({ runtimePlacements }),
+
+	resetRuntime: () =>
 		set({
-			currentZone: zone,
-			runtimePlacements: structuredClone(zone.placements ?? {}),
+			currentZone: null,
+			flags: {},
+			interactionRuns: {},
+			runtimePlacements: {},
+			zoneRuntimes: {},
 		}),
 }))

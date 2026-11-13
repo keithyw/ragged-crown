@@ -5,6 +5,7 @@ import {
 	getInteractionEngine,
 	inputManager,
 	InteractionEngine,
+	type InteractionHost,
 } from '@/engine'
 import {
 	CharacterStorageService,
@@ -107,6 +108,7 @@ export class GameEngine extends BaseGameEngine {
 			activePartyMemberIds: activeIds,
 			characterPool: [...createdCharacters],
 		}
+		useGameStore.getState().resetRuntime()
 		SaveGameService.saveGame(newSave)
 		useGameStore.getState().setSavedGame(newSave)
 		await this.triggerCutScene('starter_town', 'intro')
@@ -190,6 +192,22 @@ export class GameEngine extends BaseGameEngine {
 		}
 	}
 
+	/** The game state the interaction engine reads and changes, read fresh each call. */
+	private interactionHost(): InteractionHost {
+		const get = () => useGameStore.getState()
+		return {
+			log: (message) => get().addLog(message),
+			getFlag: (flag) => get().flags[flag],
+			setFlag: (flag) => get().setFlag(flag),
+			getRuns: (key) => get().interactionRuns[key] ?? 0,
+			recordRun: (key) => get().recordRun(key),
+			getPlacements: () => get().runtimePlacements,
+			setPlacements: (placements) => get().setRuntimePlacements(placements),
+			getParty: () => get().party,
+			setParty: (party) => get().setParty(party),
+		}
+	}
+
 	private movePlayer(dx: number, dy: number): void {
 		const store = useGameStore.getState()
 		if (!store.currentZone) return
@@ -206,30 +224,27 @@ export class GameEngine extends BaseGameEngine {
 			store.runtimePlacements,
 			useContentStore.getState(),
 		)
-		// check if there is an event
-		if (
-			!res.canMove &&
-			this.interactiveEngine.hasTileEvents(nextX, nextY, store.currentZone)
-		) {
-			this.interactiveEngine.evaluateTile(nextX, nextY, store.currentZone)
+		const target = { x: nextX, y: nextY }
+		const defs = useContentStore.getState()
+		if (!res.canMove) {
+			// Bumping a solid thing runs its BUMP_INTERACT; with none, say why.
+			const handled = this.interactiveEngine.trigger(
+				'BUMP_INTERACT',
+				target,
+				defs,
+				this.interactionHost(),
+			)
+			if (!handled && res.blockReason) store.addLog(`> ${res.blockReason}`)
 			return
-		} else if (!res.canMove && res.blockReason) {
-			store.addLog(`> ${res.blockReason}`)
-			return
-		} else {
-			if (
-				this.interactiveEngine.hasTileEvents(nextX, nextY, store.currentZone)
-			) {
-				this.interactiveEngine.evaluateTile(nextX, nextY, store.currentZone)
-			}
-			store.setPlayerPosition(res.nextPos)
 		}
+		store.setPlayerPosition(res.nextPos)
 
 		if (res.targetTile) {
 			store.addLog(
 				`> Moved to ${res.targetTile.name} (${res.nextPos.x}, ${res.nextPos.y}).`,
 			)
 		}
+		this.interactiveEngine.trigger('WALK', target, defs, this.interactionHost())
 
 		if (
 			EncounterService.shouldTriggerEncounter(
