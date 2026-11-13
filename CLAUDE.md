@@ -33,7 +33,8 @@ I'm an experienced developer (25+ years) who still wants to write code and keep 
 pnpm only, never npm.
 
 ```bash
-pnpm dev              # http://localhost:5173
+pnpm dev              # http://localhost:5173, reads the real tools API (:8080)
+pnpm dev:sandbox      # http://localhost:5174, reads the sandbox API (:8081)
 pnpm exec tsc -b      # type check (the project uses references: tsconfig.app.json, tsconfig.node.json)
 pnpm lint
 pnpm format           # prettier --write over ts, tsx, json, css

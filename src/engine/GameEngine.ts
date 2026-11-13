@@ -24,7 +24,7 @@ import { generateSaveGameId } from '@/utils'
 // TODO [Game 7]: regions (dialog files) and zones are keyed differently until
 // portals and saves carry a zone `_id`. Bridge: region id -> the zone's `id`.
 const REGION_ZONE_IDS: Record<string, string> = {
-	starter_town: 'STARTING_ZONE',
+	starter_town: 'STARTING_TOWN',
 }
 const regionToZoneId = (regionId: string): string =>
 	REGION_ZONE_IDS[regionId] ?? regionId
