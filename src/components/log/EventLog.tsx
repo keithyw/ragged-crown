@@ -9,10 +9,10 @@ export const EventLog: React.FC = () => {
 	const eventLog = useGameStore((state) => state.logs)
 	const logContainerRef = useRef<HTMLDivElement>(null)
 
-	// Keep the view pinned to the latest log message
+	// Newest messages come first, so keep the view at the top
 	useEffect(() => {
 		if (logContainerRef.current) {
-			logContainerRef.current.scrollTop = logContainerRef.current.scrollHeight
+			logContainerRef.current.scrollTop = 0
 		}
 		console.log('logs', eventLog)
 	}, [eventLog])

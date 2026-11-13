@@ -15,6 +15,9 @@ import type {
 import type { CellKey, Placement, Zone } from '@shared/types'
 import type { StoredDoc } from '@/services/ContentSource'
 
+/** How many event log messages are kept (newest first). */
+const MAX_LOG_MESSAGES = 20
+
 interface GameState {
 	activeCharacter: number | 0
 	actionQueue: QueuedAction[]
@@ -99,7 +102,9 @@ export const useGameStore = create<GameState>((set) => ({
 	selectCharacter: (id: string) => set({ selectedCharId: id }),
 
 	addLog: (message: string) =>
-		set((state) => ({ logs: [message, ...state.logs.slice(0, 9)] })),
+		set((state) => ({
+			logs: [message, ...state.logs.slice(0, MAX_LOG_MESSAGES - 1)],
+		})),
 
 	setFlag: (flag, value = true) =>
 		set((state) => ({ flags: { ...state.flags, [flag]: value } })),

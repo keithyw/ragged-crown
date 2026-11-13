@@ -4,12 +4,16 @@ import { cn } from '@/utils'
 
 interface CharacterCardProps {
 	playerCharacter: PlayerCharacter
+	/** Place in the party, from 1. */
+	position: number
 }
 
-export const CharacterCard = ({ playerCharacter }: CharacterCardProps) => {
+export const CharacterCard = ({
+	playerCharacter,
+	position,
+}: CharacterCardProps) => {
 	const {
 		name,
-		order,
 		race,
 		class: charClass,
 		level,
@@ -33,7 +37,7 @@ export const CharacterCard = ({ playerCharacter }: CharacterCardProps) => {
 							'rounded bg-slate-800 px-1 py-0.5 text-amber-400',
 						)}
 					>
-						#{order}
+						#{position}
 					</span>
 					<span className='truncate text-xs font-semibold text-slate-100'>
 						{name}
