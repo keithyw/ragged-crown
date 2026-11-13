@@ -1,4 +1,5 @@
-import type { Monster, TileDef, Zone } from '@/types'
+import type { TileDef, Zone } from '@shared/types'
+import type { Monster } from '@/types'
 
 export class EncounterService {
 	// this may change in the future to load up

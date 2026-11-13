@@ -10,9 +10,8 @@ import type {
 	Position,
 	QueuedAction,
 	SaveGameDocument,
-	TileObjectTypes,
-	Zone,
 } from '@/types'
+import type { CellKey, Placement, Zone } from '@shared/types'
 
 interface GameState {
 	activeCharacter: number | 0
@@ -31,7 +30,8 @@ interface GameState {
 	selectedCharId: string
 	selectedTargetIndex: number
 	subPhase: PlanningSubPhase
-	tileObjects: TileObjectTypes
+	/** Mutable copy of `currentZone.placements`; the zone itself is never changed. */
+	runtimePlacements: Partial<Record<CellKey, Placement[]>>
 	logs: string[]
 
 	// Actions
@@ -55,7 +55,7 @@ interface GameState {
 	setPlayerPosition: (position: Position) => void
 	setScreen: (screen: GameScreen) => void
 	setSelectedTargetIndex: (index: number) => void
-	setTileObjects: (tileObjects: TileObjectTypes) => void
+	setCurrentZone: (zone: Zone) => void
 }
 
 export const useGameStore = create<GameState>((set) => ({
@@ -76,7 +76,7 @@ export const useGameStore = create<GameState>((set) => ({
 	selectedCharId: 'char-1',
 	subPhase: 'ACTION_SELECT',
 	selectedTargetIndex: 0,
-	tileObjects: {},
+	runtimePlacements: {},
 
 	selectCharacter: (id: string) => set({ selectedCharId: id }),
 
@@ -116,5 +116,9 @@ export const useGameStore = create<GameState>((set) => ({
 	setScreen: (screen) => set({ currentScreen: screen }),
 	setSelectedTargetIndex: (index) => set({ selectedTargetIndex: index }),
 	setSubPhase: (phase) => set({ subPhase: phase }),
-	setTileObjects: (tileObjects) => set({ tileObjects }),
+	setCurrentZone: (zone) =>
+		set({
+			currentZone: zone,
+			runtimePlacements: structuredClone(zone.placements ?? {}),
+		}),
 }))

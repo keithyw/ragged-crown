@@ -1,6 +1,7 @@
 import { useMemo } from 'react'
 import { MapSquare } from '@/components/map/MapSquare'
 import { PanelHeader } from '@/components/ui/PanelHeader'
+import { useContentStore } from '@/store/useContentStore'
 import { useGameStore } from '@/store/useGameStore'
 import { isSamePosition, parseZoneGrid } from '@/utils'
 
@@ -12,11 +13,20 @@ export const OverheadMap = ({ title = 'Overhead View' }: OverheadMapProps) => {
 	const currentZone = useGameStore((state) => state.currentZone)
 	const playerPosition = useGameStore((state) => state.playerPosition)
 	const isMapLoading = useGameStore((state) => state.isMapLoading)
-	const tileObjects = useGameStore((state) => state.tileObjects)
+	const runtimePlacements = useGameStore((state) => state.runtimePlacements)
+	const tiles = useContentStore((state) => state.tiles)
+	const items = useContentStore((state) => state.items)
+	const entities = useContentStore((state) => state.entities)
 
 	const grid = useMemo(() => {
-		return currentZone ? parseZoneGrid(tileObjects, currentZone) : []
-	}, [currentZone, tileObjects])
+		return currentZone
+			? parseZoneGrid(
+					{ tiles, items, entities },
+					currentZone,
+					runtimePlacements,
+				)
+			: []
+	}, [currentZone, runtimePlacements, tiles, items, entities])
 
 	if (isMapLoading || !currentZone)
 		return (
@@ -46,7 +56,8 @@ export const OverheadMap = ({ title = 'Overhead View' }: OverheadMapProps) => {
 							return (
 								<MapSquare
 									key={`${cell.position.x}-${cell.position.y}`}
-									tile={cell.tile}
+									glyph={(cell.top ?? cell.terrain)?.glyph}
+									name={(cell.top ?? cell.terrain)?.name}
 									isPlayer={isPlayer}
 								/>
 							)

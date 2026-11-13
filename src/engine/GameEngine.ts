@@ -10,15 +10,24 @@ import {
 	CharacterStorageService,
 	dialogService,
 	EncounterService,
-	mapLoaderService,
 	SaveGameService,
-	tileTypeLoaderService,
+	zoneLoaderService,
 } from '@/services'
 import { useCharacterCreationStore } from '@/store/useCharacterCreationStore'
 import { useDialogStore } from '@/store/useDialogStore'
+import { useContentStore } from '@/store/useContentStore'
 import { useGameStore } from '@/store/useGameStore'
-import type { CharacterSheetContext, SaveGameDocument, TileDef } from '@/types'
+import type { CharacterSheetContext, SaveGameDocument } from '@/types'
+import type { TileDef } from '@shared/types'
 import { generateSaveGameId } from '@/utils'
+
+// TODO [Game 7]: regions (dialog files) and zones are keyed differently until
+// portals and saves carry a zone `_id`. Bridge: region id -> the zone's `id`.
+const REGION_ZONE_IDS: Record<string, string> = {
+	starter_town: 'STARTING_ZONE',
+}
+const regionToZoneId = (regionId: string): string =>
+	REGION_ZONE_IDS[regionId] ?? regionId
 
 export class GameEngine extends BaseGameEngine {
 	private interactiveEngine: InteractionEngine = getInteractionEngine()
@@ -39,20 +48,16 @@ export class GameEngine extends BaseGameEngine {
 
 		try {
 			const characters = CharacterStorageService.getAll()
-			const [startingZone, monsters, tileObjects] = await Promise.all([
-				mapLoaderService.loadZone('starter_town'),
+			const [, startingZone, monsters] = await Promise.all([
+				useContentStore.getState().loadDefs(),
+				zoneLoaderService.loadByDisplayId(regionToZoneId('starter_town')),
 				EncounterService.fetchMonsters(),
-				tileTypeLoaderService.load(),
 			])
 			useCharacterCreationStore.setState({
 				createdCharacters: characters,
 			})
-			useGameStore.setState({
-				currentZone: startingZone,
-				isMapLoading: false,
-				monsters,
-				tileObjects,
-			})
+			useGameStore.getState().setCurrentZone(startingZone)
+			useGameStore.setState({ isMapLoading: false, monsters })
 		} catch (e) {
 			console.error(e)
 		}
@@ -172,10 +177,10 @@ export class GameEngine extends BaseGameEngine {
 		useGameStore.setState({ isMapLoading: true })
 		try {
 			const [zone, dialogs] = await Promise.all([
-				mapLoaderService.loadZone(regionId),
+				zoneLoaderService.loadByDisplayId(regionToZoneId(regionId)),
 				dialogService.getDialogByRegionId(regionId),
 			])
-			useGameStore.setState({ currentZone: zone })
+			useGameStore.getState().setCurrentZone(zone)
 			useDialogStore.getState().setDialogs(dialogs)
 		} catch (e) {
 			console.error(e)
@@ -197,8 +202,9 @@ export class GameEngine extends BaseGameEngine {
 			store.playerPosition,
 			dx,
 			dy,
-			store.tileObjects,
 			store.currentZone,
+			store.runtimePlacements,
+			useContentStore.getState(),
 		)
 		// check if there is an event
 		if (

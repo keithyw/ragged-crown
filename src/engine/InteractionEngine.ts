@@ -1,40 +1,30 @@
+import type { CellKey, MoveResult, Placement, Zone } from '@shared/types'
 import type {
 	ActionPayload,
 	CommandResult,
-	MoveResult,
 	PipelineContext,
 	Position,
-	TileDef,
-	TileObjectTypes,
-	Zone,
 } from '@/types'
+import { cellKey, lookupPlacementDef, type DefLookup } from '@/utils/content'
 import { CommandFactory } from '@/engine/commands/CommandFactory'
 
 export class InteractionEngine {
-	private getTileAt(
-		pos: Position,
-		tileObject: TileObjectTypes,
-		zone: Zone,
-	): TileDef | null {
-		if (!this.isWithinBounds(pos, zone)) return null
-
-		const row = zone.terrain[pos.y]
-		if (!row) return null
-		return tileObject[row[pos.x]] || null
-	}
-
 	private isWithinBounds(pos: Position, zone: Zone): boolean {
 		const { width, height } = zone.dimensions || { width: 0, height: 0 }
 		return pos.x >= 0 && pos.x < width && pos.y >= 0 && pos.y < height
 	}
 
-	// moving functionality from utils
+	/**
+	 * A cell is blocked if its terrain is not walkable or any placement in its
+	 * stack is solid (DATA-MODEL.md 1.4).
+	 */
 	public evaluateMove(
 		currentPos: Position,
 		dx: number,
 		dy: number,
-		tileObjects: TileObjectTypes,
 		zone: Zone,
+		placements: Partial<Record<CellKey, Placement[]>>,
+		defs: DefLookup,
 	): MoveResult {
 		const nextPos = { x: currentPos.x + dx, y: currentPos.y + dy }
 		if (!this.isWithinBounds(nextPos, zone)) {
@@ -45,7 +35,7 @@ export class InteractionEngine {
 			}
 		}
 
-		const targetTile = this.getTileAt(nextPos, tileObjects, zone)
+		const targetTile = defs.tiles.get(zone.terrain[nextPos.y]?.[nextPos.x])
 		if (!targetTile) {
 			return {
 				canMove: false,
@@ -54,15 +44,25 @@ export class InteractionEngine {
 			}
 		}
 
-		// how to handle interactive tile (events)
-		// might have to cross examine position
-		// with an event spot
+		// Unchanged from before: an unset isWalkable counts as blocked.
 		if (!targetTile.isWalkable) {
 			return {
 				canMove: false,
 				nextPos: currentPos,
 				targetTile,
 				blockReason: `${targetTile.name} blocks your path!`,
+			}
+		}
+
+		for (const placement of placements[cellKey(nextPos.x, nextPos.y)] ?? []) {
+			const def = lookupPlacementDef(defs, placement)
+			if (def?.kind === 'object' && def.isSolid) {
+				return {
+					canMove: false,
+					nextPos: currentPos,
+					targetTile,
+					blockReason: `${def.name} blocks your path!`,
+				}
 			}
 		}
 
@@ -73,8 +73,12 @@ export class InteractionEngine {
 		}
 	}
 
-	public getTileEvents(x: number, y: number, zone: Zone): ActionPayload[] {
-		return zone.tileEvents?.[y + ',' + x] || []
+	// TODO [Game 2]: the old tileEvents path. The new zone model has no
+	// `tileEvents` (interactions live on defs and placements), so this finds
+	// nothing until the interaction engine replaces it.
+	// eslint-disable-next-line @typescript-eslint/no-unused-vars
+	public getTileEvents(_x: number, _y: number, _zone: Zone): ActionPayload[] {
+		return []
 	}
 
 	public hasTileEvents(x: number, y: number, zone: Zone): boolean {

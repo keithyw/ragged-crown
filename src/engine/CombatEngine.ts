@@ -8,9 +8,8 @@ import {
 	type Monster,
 	type MonsterGroup,
 	type QueuedAction,
-	type TileDef,
-	type Zone,
 } from '@/types'
+import type { TileDef, Zone } from '@shared/types'
 
 export class CombatEngine {
 	private unbindInput?: () => void
