@@ -29,3 +29,12 @@ export const removePlacement = (
 	else delete next[key]
 	return next
 }
+
+/** The portal the player is standing on: the top-most one in the stack. */
+export const findPortalAt = (
+	placements: PlacementMap,
+	pos: { x: number; y: number },
+): Placement | undefined =>
+	[...(placements[cellKey(pos.x, pos.y)] ?? [])]
+		.reverse()
+		.find((p) => p.defKind === 'portal')

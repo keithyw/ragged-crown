@@ -75,7 +75,7 @@ INTRO ──► MAIN_MENU ──┬─► CHARACTER_CREATION ──► (save) �
 - There is no explicit mode object. **A mode is whichever handlers are currently registered.** Two places register them:
   - **Screens**, in a `useEffect` (splash, main menu, roster, character sheet, creation steps, cut scene). They unbind on unmount or when their dependencies change.
   - **Engines**, which keep the unbind function in a field and swap handlers as the mode changes: `GameEngine.unbindWorldInput` (movement on `WORLD_MAP`) and `CombatEngine.unbindInput` (one handler per combat phase).
-- World movement: arrows or WASD call `movePlayer(dx, dy)`. The handler also checks that the screen is `WORLD_MAP` before acting.
+- World movement: arrows or WASD call `movePlayer(dx, dy)`; `E` calls `enterPortal()`. The handler also checks that the screen is `WORLD_MAP` before acting.
 
 ---
 
@@ -225,7 +225,7 @@ Found while writing this doc, by reading the code. **Not fixed.** Items marked _
 
 5. `evaluateMove` blocks when `isWalkable` is absent (`!targetTile.isWalkable`); the tools treat it as optional. (The old `utils/movement.ts` copy that used `=== false` is gone.)
 6. `startNewGame` hard-codes `'starter_town'` and `{ x: 3, y: 3 }` instead of using the zone's `startingPosition`, and doesn't set `playerPosition` from the save.
-7. Leaving a zone's edge is always blocked; edge exits (DATA-MODEL 2.2) and portals don't exist yet ([Game 7]).
+7. Leaving a zone's edge is always blocked; edge exits (DATA-MODEL 2.2) don't exist yet. Portals work ([Game 7]): stand on one and press `E`; `GameEngine.enterPortal` loads the destination zone by `_id` and puts the player at the destination's `pos` or the zone's `startingPosition`.
 
 **Combat**
 

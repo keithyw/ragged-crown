@@ -20,7 +20,7 @@ import { useContentStore } from '@/store/useContentStore'
 import { useGameStore } from '@/store/useGameStore'
 import type { CharacterSheetContext, SaveGameDocument } from '@/types'
 import type { TileDef } from '@shared/types'
-import { generateSaveGameId } from '@/utils'
+import { findPortalAt, generateSaveGameId, lookupPlacementDef } from '@/utils'
 
 // TODO [Game 7]: regions (dialog files) and zones are keyed differently until
 // portals and saves carry a zone `_id`. Bridge: region id -> the zone's `id`.
@@ -160,6 +160,10 @@ export class GameEngine extends BaseGameEngine {
 				case 'd':
 					this.movePlayer(1, 0)
 					return true
+				case 'e':
+				case 'E':
+					void this.enterPortal()
+					return true
 				default:
 					return false
 			}
@@ -208,9 +212,46 @@ export class GameEngine extends BaseGameEngine {
 		}
 	}
 
+	/**
+	 * Takes the portal under the player to its destination (DATA-MODEL 1.3):
+	 * entering is an explicit key press, not a step. A portal with no
+	 * destination is simply unconnected.
+	 */
+	private async enterPortal(): Promise<void> {
+		const store = useGameStore.getState()
+		if (!store.currentZone || store.isMapLoading) return
+
+		const portal = findPortalAt(store.runtimePlacements, store.playerPosition)
+		if (!portal) {
+			store.addLog('> There is nothing to enter here.')
+			return
+		}
+		const { destination } = portal
+		if (!destination) {
+			store.addLog('> This leads nowhere yet.')
+			return
+		}
+
+		useGameStore.setState({ isMapLoading: true })
+		try {
+			const zone = await zoneLoaderService.loadById(destination.zoneId)
+			const game = useGameStore.getState()
+			game.setCurrentZone(zone)
+			game.setPlayerPosition(
+				destination.pos ?? zone.startingPosition ?? DEFAULT_STARTING_POSITION,
+			)
+			game.addLog(`> You enter ${zone.name}.`)
+		} catch (e) {
+			console.error(e)
+			useGameStore.getState().addLog('> The way is blocked.')
+		} finally {
+			useGameStore.setState({ isMapLoading: false })
+		}
+	}
+
 	private movePlayer(dx: number, dy: number): void {
 		const store = useGameStore.getState()
-		if (!store.currentZone) return
+		if (!store.currentZone || store.isMapLoading) return
 
 		const nextX = store.playerPosition.x + dx
 		const nextY = store.playerPosition.y + dy
@@ -245,6 +286,15 @@ export class GameEngine extends BaseGameEngine {
 			)
 		}
 		this.interactiveEngine.trigger('WALK', target, defs, this.interactionHost())
+
+		const portal = findPortalAt(
+			useGameStore.getState().runtimePlacements,
+			target,
+		)
+		if (portal) {
+			const name = lookupPlacementDef(defs, portal)?.name ?? 'portal'
+			store.addLog(`> Press E to enter the ${name}.`)
+		}
 
 		if (
 			EncounterService.shouldTriggerEncounter(
