@@ -18,7 +18,7 @@ import { useCharacterCreationStore } from '@/store/useCharacterCreationStore'
 import { useDialogStore } from '@/store/useDialogStore'
 import { useContentStore } from '@/store/useContentStore'
 import { useGameStore } from '@/store/useGameStore'
-import type { CharacterSheetContext, SaveGameDocument } from '@/types'
+import type { CharacterSheetContext, Position, SaveGameDocument } from '@/types'
 import type { TileDef } from '@shared/types'
 import { findPortalAt, generateSaveGameId, lookupPlacementDef } from '@/utils'
 
@@ -232,15 +232,35 @@ export class GameEngine extends BaseGameEngine {
 			return
 		}
 
+		// `{ back: true }` returns to where the last portal was entered from.
+		let target: { zoneId: string; pos?: Position }
+		const isBack = 'back' in destination
+		if (isBack) {
+			const entry = store.entryStack.at(-1)
+			if (!entry) {
+				store.addLog('> This leads nowhere yet.')
+				return
+			}
+			target = entry
+		} else {
+			target = destination
+		}
+		const leftFrom = {
+			zoneId: store.currentZone._id,
+			pos: store.playerPosition,
+		}
+
 		useGameStore.setState({ isMapLoading: true })
 		try {
-			const zone = await zoneLoaderService.loadById(destination.zoneId)
+			const zone = await zoneLoaderService.loadById(target.zoneId)
 			const game = useGameStore.getState()
+			if (isBack) game.popEntry()
+			else game.pushEntry(leftFrom)
 			game.setCurrentZone(zone)
 			game.setPlayerPosition(
-				destination.pos ?? zone.startingPosition ?? DEFAULT_STARTING_POSITION,
+				target.pos ?? zone.startingPosition ?? DEFAULT_STARTING_POSITION,
 			)
-			game.addLog(`> You enter ${zone.name}.`)
+			game.addLog(`> You ${isBack ? 'return to' : 'enter'} ${zone.name}.`)
 		} catch (e) {
 			console.error(e)
 			useGameStore.getState().addLog('> The way is blocked.')

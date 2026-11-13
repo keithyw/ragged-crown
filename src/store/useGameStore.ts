@@ -39,6 +39,8 @@ interface GameState {
 	runtimePlacements: Partial<Record<CellKey, Placement[]>>
 	/** Runtime placements of the zones left behind, by zone `_id`, so changes last the session. */
 	zoneRuntimes: Record<string, Partial<Record<CellKey, Placement[]>>>
+	/** Where each portal was entered from, newest last; a `{ back: true }` destination pops it. */
+	entryStack: { zoneId: string; pos: Position }[]
 	/** Game flags set by SET_FLAG (runtime; persisting them is undecided). */
 	flags: Record<string, FlagValue>
 	/** Times each interaction has run, keyed `uid:interactionId` (see `runKey`). */
@@ -72,6 +74,8 @@ interface GameState {
 	setRuntimePlacements: (
 		placements: Partial<Record<CellKey, Placement[]>>,
 	) => void
+	pushEntry: (entry: { zoneId: string; pos: Position }) => void
+	popEntry: () => void
 	/** Forgets everything the player changed: flags, run counts, zone changes. */
 	resetRuntime: () => void
 }
@@ -98,6 +102,7 @@ export const useGameStore = create<GameState>((set) => ({
 	selectedTargetIndex: 0,
 	runtimePlacements: {},
 	zoneRuntimes: {},
+	entryStack: [],
 
 	selectCharacter: (id: string) => set({ selectedCharId: id }),
 
@@ -167,6 +172,10 @@ export const useGameStore = create<GameState>((set) => ({
 
 	setRuntimePlacements: (runtimePlacements) => set({ runtimePlacements }),
 
+	pushEntry: (entry) =>
+		set((state) => ({ entryStack: [...state.entryStack, entry] })),
+	popEntry: () =>
+		set((state) => ({ entryStack: state.entryStack.slice(0, -1) })),
 	resetRuntime: () =>
 		set({
 			currentZone: null,
@@ -174,5 +183,6 @@ export const useGameStore = create<GameState>((set) => ({
 			interactionRuns: {},
 			runtimePlacements: {},
 			zoneRuntimes: {},
+			entryStack: [],
 		}),
 }))
