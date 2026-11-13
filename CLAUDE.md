@@ -72,7 +72,7 @@ src/
 
 ## Shared types
 
-The content types are hand-copied from `ragged-crown-tools/frontend/src/lib/types/` (`core.ts`, `defs.ts`, `interactions.ts`, `map.ts`, listed in its `shared.ts`). There is no shared package, on purpose. **This repo has not been migrated yet**: `src/types/map.ts` is still the old model (flat `TileDef` with `symbol`/`color`/`bg`, `T001` keys, `tileEvents` / `ActionPayload`). Porting it to the tools' model is planned work. When you change a shared type here, say so, because the tools' copy may need the same change.
+The content types are not copied: import them from the tools repo with `import type { ... } from '@shared/types'` (a `paths` alias in `tsconfig.app.json` to `../ragged-crown-tools/frontend/src/lib/types/shared.ts`, which re-exports `core.ts`, `defs.ts`, `interactions.ts`, `map.ts`). There is no shared package, on purpose ([Game 10]). Rules: always `import type` (Vite never resolves the alias, so a value import would break the build); the shared files stay types-only, so runtime helpers such as `cellKey()` and the colour palette are copied into this repo; after a type changes in the tools, run `pnpm exec tsc -b` here too. This needs the two repos side by side (`~/code/`). **Not migrated yet**: `src/types/map.ts` is still the old model (flat `TileDef` with `symbol`/`color`/`bg`, `T001` keys, `tileEvents` / `ActionPayload`). Porting it to the tools' model is planned work ([Game 1]); old types are replaced as the code using them is ported. Shared types are edited in the tools repo, never here.
 
 ## Conventions
 

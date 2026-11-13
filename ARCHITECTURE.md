@@ -124,7 +124,7 @@ The game-side work is already broken into cards: **[Game 1]** (copy the types, r
 
 | Today | Becomes |
 | --- | --- |
-| `src/types/map.ts` (one file, old `TileDef`, `ActionPayload`, the `TileType*` unions) | The tools' `core.ts`, `defs.ts`, `interactions.ts`, `map.ts` (listed in their `shared.ts`), hand-copied |
+| `src/types/map.ts` (one file, old `TileDef`, `ActionPayload`, the `TileType*` unions) | The tools' `core.ts`, `defs.ts`, `interactions.ts`, `map.ts` (listed in their `shared.ts`), imported through the `@shared/types` alias ([Game 10]), not copied |
 | `tile_objects.json` keyed `T001`; `TileTypeLoaderService` | Defs from the tools, keyed by `_id`, per collection |
 | `zone.tileEvents` | `zone.placements` plus a runtime copy |
 | `InteractionEngine.getTileEvents / hasTileEvents / evaluateTile / handleEvents` | Resolve the top placement, pick one interaction (a pure function, per [Game 2]), run its actions |
