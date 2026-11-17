@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
+import { InventoryPanel } from '@/components/inventory/InventoryPanel'
 import { inputManager, getCharacterEngine, getGameEngine } from '@/engine'
 import { useCharacterCreationStore } from '@/store/useCharacterCreationStore'
 import { useGameStore } from '@/store/useGameStore'
@@ -12,7 +13,13 @@ export const CharacterSheetScreen = () => {
 		(state) => state.createdCharacters,
 	)
 
-	const character = createdCharacters.find((c) => c.id === inspectedId)
+	const party = useGameStore((state) => state.party)
+
+	// The guild shows the pool of created characters; in the game the sheet
+	// shows the live party, which is the saved game's copy.
+	const character = (context === 'WORLD' ? party : createdCharacters).find(
+		(c) => c.id === inspectedId,
+	)
 	const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
 
 	const handleBack = useCallback(() => {
@@ -20,7 +27,8 @@ export const CharacterSheetScreen = () => {
 			// this might be wrong because of key bindings
 			getGameEngine().enterPartyRosterMode()
 		} else {
-			setScreen('MAIN_MENU') // Fallback return route
+			if (context === 'WORLD') getGameEngine().enterWorldMode()
+			else setScreen('MAIN_MENU') // Fallback return route
 		}
 	}, [context, setScreen])
 
@@ -55,6 +63,25 @@ export const CharacterSheetScreen = () => {
 			if (context === 'GUILD' && (key === 'Delete' || k === 'x')) {
 				setShowDeleteConfirm(true)
 				return true
+			}
+
+			if (context === 'WORLD') {
+				// X or M leaves for the map (X is delete in the guild, so only here).
+				if (k === 'x' || k === 'm') {
+					handleBack()
+					return true
+				}
+				// 1-4: the party member in that position. Alternative for larger
+				// parties is a separate card ([Game 15]).
+				if (/^[1-4]$/.test(key)) {
+					const member = [...useGameStore.getState().party].sort(
+						(a, b) => a.order - b.order,
+					)[Number(key) - 1]
+					if (member) {
+						useGameStore.getState().setInspectedCharacter(member.id, 'WORLD')
+					}
+					return true
+				}
 			}
 
 			return false
@@ -135,18 +162,8 @@ export const CharacterSheetScreen = () => {
 					</div>
 				</div>
 
-				{/* Right Column: Reserved for Inventory, Equipment & Spells */}
-				<div className='col-span-8 flex items-center justify-center rounded border border-dashed border-slate-800 bg-slate-900/20 p-8 text-center'>
-					<div className='space-y-2 text-slate-600'>
-						<p className='text-sm font-bold tracking-widest text-slate-500 uppercase'>
-							[ EQUIPMENT & INVENTORY MODULE ]
-						</p>
-						<p className='text-xs'>
-							Future space for gear paperdoll, bag slots, encumbrance, and
-							spellbooks.
-						</p>
-					</div>
-				</div>
+				{/* Right Column: Inventory (equipment & spells come later) */}
+				<InventoryPanel />
 			</div>
 
 			{/* Footer / Action Bar */}
@@ -163,7 +180,11 @@ export const CharacterSheetScreen = () => {
 					<div />
 				)}
 
-				<div className='text-xs text-slate-500'>[ESC] Return to Roster</div>
+				<div className='text-xs text-slate-500'>
+					{context === 'WORLD'
+						? '[1-4] Character • [X / M / ESC] Return to Map'
+						: '[ESC] Return to Roster'}
+				</div>
 			</div>
 
 			{/* Confirmation Dialog Overlay */}

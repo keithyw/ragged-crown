@@ -164,6 +164,16 @@ export class GameEngine extends BaseGameEngine {
 				case 'E':
 					void this.enterPortal()
 					return true
+				case 'c':
+				case 'C': {
+					// First party member by order; cycling members comes later.
+					const [first] = [...useGameStore.getState().party].sort(
+						(a, b) => a.order - b.order,
+					)
+					if (!first) return false
+					this.enterCharacterSheetMode(first.id, 'WORLD')
+					return true
+				}
 				default:
 					return false
 			}
