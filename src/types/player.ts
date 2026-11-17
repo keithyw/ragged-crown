@@ -25,6 +25,29 @@ export interface NpcProfile {
 
 export const SpellCaster: string[] = ['Mage', 'Cleric', 'Paladin']
 
+/**
+ * One cell of a character's inventory: an instance of an item, weapon or armor
+ * def (tools DATA-MODEL.md section 7). `quantity` only when the def has a
+ * `maxQuantity`. Game-only for now; whether it is shared is open ([Inventory 19]).
+ */
+export interface InventoryEntry {
+	uid: string
+	itemId: string // the def's _id
+	quantity?: number
+}
+
+/** An item waiting to be handed out by a GIVE_ITEM interaction ([Game 17]). */
+export interface PoolItem {
+	itemId: string
+	quantity: number
+}
+
+/** The pool being distributed, and the cell leftovers go back to. */
+export interface GivePool {
+	pos: { x: number; y: number }
+	items: PoolItem[]
+}
+
 export interface PlayerCharacter {
 	id: string
 	name: string
@@ -39,4 +62,5 @@ export interface PlayerCharacter {
 	debuffs: Debuff[]
 	portrait?: string
 	npcDetails?: NpcProfile
+	inventory?: InventoryEntry[]
 }

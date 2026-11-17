@@ -20,7 +20,14 @@ import { useContentStore } from '@/store/useContentStore'
 import { useGameStore } from '@/store/useGameStore'
 import type { CharacterSheetContext, Position, SaveGameDocument } from '@/types'
 import type { TileDef } from '@shared/types'
-import { findPortalAt, generateSaveGameId, lookupPlacementDef } from '@/utils'
+import {
+	addPlacement,
+	addToInventory,
+	findPortalAt,
+	fitsInInventory,
+	generateSaveGameId,
+	lookupPlacementDef,
+} from '@/utils'
 
 // TODO [Game 7]: regions (dialog files) and zones are keyed differently until
 // portals and saves carry a zone `_id`. Bridge: region id -> the zone's `id`.
@@ -164,6 +171,12 @@ export class GameEngine extends BaseGameEngine {
 				case 'E':
 					void this.enterPortal()
 					return true
+				case 'o':
+				case 'O':
+					// Open: asks for a direction ([Game 18]).
+					if (!useGameStore.getState().currentZone) return false
+					useGameStore.getState().setOpenPrompt({ step: 'direction' })
+					return true
 				case 'c':
 				case 'C': {
 					// First party member by order; cycling members comes later.
@@ -219,7 +232,120 @@ export class GameEngine extends BaseGameEngine {
 			setPlacements: (placements) => get().setRuntimePlacements(placements),
 			getParty: () => get().party,
 			setParty: (party) => get().setParty(party),
+			openGivePool: (pos, items) => get().setGivePool({ pos, items }),
 		}
+	}
+
+	/**
+	 * The open command, step two ([Game 18]): looks at the cell one step in a
+	 * direction. Nothing that opens is a message; something that needs a
+	 * HAS_ITEM check asks for a character first; anything else just runs.
+	 */
+	public openToward(dx: number, dy: number): void {
+		const store = useGameStore.getState()
+		const target = {
+			x: store.playerPosition.x + dx,
+			y: store.playerPosition.y + dy,
+		}
+		const defs = useContentStore.getState()
+		const host = this.interactionHost()
+		const need = this.interactiveEngine.requirementFor(
+			'OPEN',
+			target,
+			defs,
+			host,
+		)
+		if (need === 'character') {
+			store.setOpenPrompt({ step: 'character', pos: target })
+			return
+		}
+		store.setOpenPrompt(null)
+		if (need === 'none') {
+			store.addLog('> There is nothing to open there.')
+			return
+		}
+		this.interactiveEngine.trigger('OPEN', target, defs, host)
+	}
+
+	/** The open command, step three: the chosen party member (1-based, by order) opens the cell. */
+	public openWith(pos: Position, partyNumber: number): void {
+		const store = useGameStore.getState()
+		const member = [...store.party].sort((a, b) => a.order - b.order)[
+			partyNumber - 1
+		]
+		if (!member) return
+		store.setOpenPrompt(null)
+		this.interactiveEngine.trigger(
+			'OPEN',
+			pos,
+			useContentStore.getState(),
+			this.interactionHost(),
+			member,
+		)
+	}
+
+	/**
+	 * Gives the whole pile on line `index` of the give pool to the party member
+	 * in position `partyNumber` (1-based, by order), after the weight check
+	 * ([Game 17]). The pool closes by itself when it is empty.
+	 */
+	public giveFromPool(
+		index: number,
+		partyNumber: number,
+	): 'given' | 'too_heavy' | 'invalid' {
+		const store = useGameStore.getState()
+		const pool = store.givePool
+		const line = pool?.items[index]
+		const member = [...store.party].sort((a, b) => a.order - b.order)[
+			partyNumber - 1
+		]
+		const items = useContentStore.getState().items
+		const def = line ? items.get(line.itemId) : undefined
+		if (!pool || !line || !member || !def) return 'invalid'
+
+		if (!fitsInInventory(member, def, line.quantity, items)) return 'too_heavy'
+
+		store.setParty(
+			store.party.map((c) =>
+				c.id === member.id
+					? addToInventory(c, line.itemId, def, line.quantity)
+					: c,
+			),
+		)
+		store.addLog(
+			`> ${member.name} takes ${def.name}${line.quantity > 1 ? ` x${line.quantity}` : ''}.`,
+		)
+		const rest = pool.items.filter((_, i) => i !== index)
+		store.setGivePool(rest.length > 0 ? { ...pool, items: rest } : null)
+		return 'given'
+	}
+
+	/**
+	 * Leaves the give menu. What was not handed out goes on top of the cell's
+	 * stack, in the order it was listed ([Game 17]).
+	 */
+	public closeGivePool(): void {
+		const store = useGameStore.getState()
+		const pool = store.givePool
+		if (!pool) return
+		const items = useContentStore.getState().items
+		let placements = store.runtimePlacements
+		for (const line of pool.items) {
+			const def = items.get(line.itemId)
+			if (!def) continue
+			// Only a def that stacks keeps a quantity; the rest is one each.
+			const piles = def.maxQuantity === undefined ? line.quantity : 1
+			for (let i = 0; i < piles; i++) {
+				placements = addPlacement(placements, pool.pos, {
+					uid: crypto.randomUUID(),
+					defKind: def.kind,
+					defId: line.itemId,
+					...(def.maxQuantity !== undefined && { quantity: line.quantity }),
+				})
+			}
+		}
+		store.setRuntimePlacements(placements)
+		store.setGivePool(null)
 	}
 
 	/**

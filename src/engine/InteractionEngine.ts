@@ -8,13 +8,14 @@ import type {
 	Placement,
 	Zone,
 } from '@shared/types'
-import type { FlagValue, PlayerCharacter, Position } from '@/types'
+import type { FlagValue, PlayerCharacter, Position, PoolItem } from '@/types'
 import { cellKey, lookupPlacementDef, type DefLookup } from '@/utils/content'
 import {
 	addPlacement,
 	removePlacement,
 	type PlacementMap,
 } from '@/utils/placements'
+import { buildPool, countCarried } from '@/utils/inventory'
 import { applyStatChange, type ModifyAttribute } from '@/utils/stats'
 import {
 	failureMessage,
@@ -35,6 +36,8 @@ export interface InteractionHost {
 	setPlacements: (placements: PlacementMap) => void
 	getParty: () => PlayerCharacter[]
 	setParty: (party: PlayerCharacter[]) => void
+	/** Opens the menu that hands out the items of a GIVE_ITEM interaction. */
+	openGivePool: (pos: Position, items: PoolItem[]) => void
 }
 
 export class InteractionEngine {
@@ -102,6 +105,44 @@ export class InteractionEngine {
 		}
 	}
 
+	/** The top placement of a cell and its interactions for a trigger, minus used-up ones. */
+	private activeInteractions(
+		on: InteractionType,
+		pos: Position,
+		defs: DefLookup,
+		host: InteractionHost,
+	) {
+		const stack = host.getPlacements()[cellKey(pos.x, pos.y)]
+		const top = stack?.[stack.length - 1]
+		if (!top) return undefined
+		const def = lookupPlacementDef(defs, top)
+		// A used-up interaction is skipped from then on (DATA-MODEL 4.2).
+		const candidates = gatherInteractions(top, def, on).filter(
+			(i) => !isExhausted(i, host.getRuns(runKey(top, i))),
+		)
+		return candidates.length > 0 ? { top, def, candidates } : undefined
+	}
+
+	/**
+	 * What a trigger on this cell needs before it can run: `none` (nothing
+	 * there reacts to it), `free` (it can just run) or `character` (a HAS_ITEM
+	 * condition, so a character must be chosen to be checked). [Game 18]
+	 */
+	public requirementFor(
+		on: InteractionType,
+		pos: Position,
+		defs: DefLookup,
+		host: InteractionHost,
+	): 'none' | 'free' | 'character' {
+		const found = this.activeInteractions(on, pos, defs, host)
+		if (!found) return 'none'
+		return found.candidates.some((i) =>
+			i.conditions?.some((c) => c.type === 'HAS_ITEM'),
+		)
+			? 'character'
+			: 'free'
+	}
+
 	/**
 	 * Runs what a trigger does on the top placement of a cell (DATA-MODEL 4.1).
 	 * Returns true when the cell had an interaction for this trigger, whether
@@ -112,27 +153,25 @@ export class InteractionEngine {
 		pos: Position,
 		defs: DefLookup,
 		host: InteractionHost,
+		actor?: PlayerCharacter,
 	): boolean {
-		const stack = host.getPlacements()[cellKey(pos.x, pos.y)]
-		const top = stack?.[stack.length - 1]
-		if (!top) return false
-		const def = lookupPlacementDef(defs, top)
-
-		// A used-up interaction is skipped from then on (DATA-MODEL 4.2).
-		const candidates = gatherInteractions(top, def, on).filter(
-			(i) => !isExhausted(i, host.getRuns(runKey(top, i))),
-		)
-		if (candidates.length === 0) return false
+		const found = this.activeInteractions(on, pos, defs, host)
+		if (!found) return false
+		const { top, def, candidates } = found
 
 		const { run, failed } = resolveInteraction(candidates, (c) =>
-			this.conditionPasses(c, host),
+			this.conditionPasses(c, host, top, actor),
 		)
 		if (run) {
 			// Counted when it runs; failed conditions use nothing up.
 			if (run.limit !== undefined) host.recordRun(runKey(top, run))
+			// GIVE_ITEMs are pooled and handed out together afterwards.
+			const gives: PoolItem[] = []
 			for (const action of run.actions) {
-				this.runAction(action, top, pos, host)
+				this.runAction(action, top, pos, host, gives)
 			}
+			const pool = buildPool(gives, defs.items)
+			if (pool.length > 0) host.openGivePool(pos, pool)
 		} else {
 			host.log(`> ${failureMessage(failed, def) ?? 'Nothing happens.'}`)
 		}
@@ -145,23 +184,34 @@ export class InteractionEngine {
 		return value !== undefined && value !== false
 	}
 
-	// TODO [Game 2]: HAS_ITEM waits for inventory ([Game 3], and the decision
-	// in [Game 5]). Until then a condition that can't be evaluated fails, so
-	// the fallback interaction is tried.
+	// HAS_ITEM checks the chosen character's own inventory, so it needs an
+	// actor ([Game 18]). A condition that can't be evaluated fails, so the
+	// fallback interaction is tried.
 	private conditionPasses(
 		condition: Condition,
 		host: InteractionHost,
+		placement: Placement,
+		actor?: PlayerCharacter,
 	): boolean {
 		switch (condition.type) {
 			case 'FLAG_SET':
 				return this.isFlagSet(host, condition.flag)
 			case 'FLAG_NOT_SET':
 				return !this.isFlagSet(host, condition.flag)
-			default:
-				console.warn(
-					`[Interaction] condition ${condition.type} is not implemented`,
-				)
-				return false
+			case 'HAS_ITEM': {
+				if (!actor) return false
+				let wanted: { itemId?: string; amount?: number }
+				if (condition.custom) {
+					const value = condition.slot
+						? placement.customValues?.[condition.slot]
+						: undefined
+					wanted = value?.type === 'HAS_ITEM' ? value : {}
+				} else {
+					wanted = condition
+				}
+				if (!wanted.itemId) return false
+				return countCarried(actor, wanted.itemId) >= (wanted.amount ?? 1)
+			}
 		}
 	}
 
@@ -170,6 +220,7 @@ export class InteractionEngine {
 		placement: Placement,
 		pos: Position,
 		host: InteractionHost,
+		gives: PoolItem[],
 	): void {
 		switch (action.type) {
 			case 'SHOW_DIALOG': {
@@ -178,6 +229,23 @@ export class InteractionEngine {
 					: action.text
 				if (text) host.log(`> ${text}`)
 				else console.warn('[Interaction] SHOW_DIALOG has no text to show')
+				return
+			}
+			case 'GIVE_ITEM': {
+				let given: { itemId?: string; amount?: number }
+				if (action.custom) {
+					const value = action.slot
+						? placement.customValues?.[action.slot]
+						: undefined
+					given = value?.type === 'GIVE_ITEM' ? value : {}
+				} else {
+					given = action
+				}
+				if (!given.itemId) {
+					console.warn('[Interaction] GIVE_ITEM has no item to give')
+					return
+				}
+				gives.push({ itemId: given.itemId, quantity: given.amount ?? 1 })
 				return
 			}
 			case 'SET_FLAG':

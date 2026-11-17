@@ -28,6 +28,9 @@ export const lookupPlacementDef = (
 	defs: DefLookup,
 	placement: Placement,
 ): StoredDoc<PlacedDef> | undefined =>
-	placement.defKind === 'item'
+	// Weapons and armor are stored in `items` too.
+	placement.defKind === 'item' ||
+	placement.defKind === 'weapon' ||
+	placement.defKind === 'armor'
 		? defs.items.get(placement.defId)
 		: defs.entities.get(placement.defId)

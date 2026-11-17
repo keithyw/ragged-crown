@@ -1,6 +1,8 @@
 import { useEffect } from 'react'
 import { CommandList } from '@/components/commands/CommandList'
 import { EncounterViewport } from '@/components/encounter/EncounterViewport'
+import { GiveItemMenu } from '@/components/inventory/GiveItemMenu'
+import { OpenPrompt } from '@/components/commands/OpenPrompt'
 import { EventLog } from '@/components/log/EventLog'
 import {
 	CharacterCreationScreen,
@@ -26,6 +28,8 @@ export default function App() {
 
 	const screen = useGameStore((state) => state.currentScreen)
 	const inCombat = useGameStore((state) => state.encounter !== null)
+	const isGiving = useGameStore((state) => state.givePool !== null)
+	const isOpening = useGameStore((state) => state.openPrompt !== null)
 
 	return (
 		<>
@@ -47,6 +51,8 @@ export default function App() {
 					footer={<div>{/* <HotkeyFooter /> */}</div>}
 				/>
 			)}
+			{screen === 'WORLD_MAP' && isGiving && <GiveItemMenu />}
+			{screen === 'WORLD_MAP' && isOpening && <OpenPrompt />}
 		</>
 	)
 }

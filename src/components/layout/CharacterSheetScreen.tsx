@@ -163,7 +163,7 @@ export const CharacterSheetScreen = () => {
 				</div>
 
 				{/* Right Column: Inventory (equipment & spells come later) */}
-				<InventoryPanel />
+				<InventoryPanel entries={character.inventory ?? []} />
 			</div>
 
 			{/* Footer / Action Bar */}

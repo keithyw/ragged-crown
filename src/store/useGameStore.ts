@@ -4,6 +4,8 @@ import type {
 	CharacterSheetContext,
 	CombatPhase,
 	GameScreen,
+	GivePool,
+	OpenPrompt,
 	Monster,
 	PlanningSubPhase,
 	PlayerCharacter,
@@ -25,6 +27,10 @@ interface GameState {
 	currentZone: StoredDoc<Zone> | null
 	currentScreen: GameScreen
 	encounter: ActiveEncounter | null
+	/** Items a GIVE_ITEM interaction is handing out; the menu is open while set. */
+	givePool: GivePool | null
+	/** The open command is waiting for a direction or a character. */
+	openPrompt: OpenPrompt | null
 	inspectedCharacterId: string | null
 	inspectedContext: CharacterSheetContext
 	isMapLoading: boolean
@@ -59,6 +65,8 @@ interface GameState {
 	setActiveCharacter: (id: number) => void
 	setCombatPhase: (phase: CombatPhase) => void
 	setEncounter: (encounter: ActiveEncounter | null) => void
+	setGivePool: (pool: GivePool | null) => void
+	setOpenPrompt: (prompt: OpenPrompt | null) => void
 	setInspectedCharacter: (
 		characterId: string | null,
 		context?: CharacterSheetContext,
@@ -87,6 +95,8 @@ export const useGameStore = create<GameState>((set) => ({
 	currentScreen: 'INTRO',
 	currentZone: null,
 	encounter: null,
+	givePool: null,
+	openPrompt: null,
 	inspectedCharacterId: null,
 	inspectedContext: 'GUILD',
 	isMapLoading: false,
@@ -148,6 +158,8 @@ export const useGameStore = create<GameState>((set) => ({
 		set({ inspectedCharacterId: characterId, inspectedContext: context }),
 	setCombatPhase: (phase) => set({ combatPhase: phase }),
 	setEncounter: (encounter) => set({ encounter }),
+	setGivePool: (givePool) => set({ givePool }),
+	setOpenPrompt: (openPrompt) => set({ openPrompt }),
 	setMonsters: (monsters) => set({ monsters }),
 	setParty: (party) => set({ party }),
 	setPlayerPosition: (position: Position) => set({ playerPosition: position }),
@@ -179,6 +191,8 @@ export const useGameStore = create<GameState>((set) => ({
 	resetRuntime: () =>
 		set({
 			currentZone: null,
+			givePool: null,
+			openPrompt: null,
 			flags: {},
 			interactionRuns: {},
 			runtimePlacements: {},
