@@ -11,8 +11,13 @@ import { ItemPreview } from './ItemPreview'
 export const InventoryPanel = ({
 	entries,
 	selecting,
+	onTrade,
+	onDrop,
 }: {
 	entries: InventoryEntry[]
+	/** The preview offers Trade and Drop only when these are given. */
+	onTrade?: (entry: InventoryEntry) => void
+	onDrop?: (entry: InventoryEntry) => void
 	/** While set, a click picks an entry instead of opening its preview. */
 	selecting?: { cursor: number; onPick: (entry: InventoryEntry) => void }
 }) => {
@@ -77,7 +82,24 @@ export const InventoryPanel = ({
 			</div>
 
 			{selected && (
-				<ItemPreview entry={selected} onClose={() => setSelectedUid(null)} />
+				<ItemPreview
+					entry={selected}
+					onClose={() => setSelectedUid(null)}
+					onTrade={
+						onTrade &&
+						(() => {
+							setSelectedUid(null)
+							onTrade(selected)
+						})
+					}
+					onDrop={
+						onDrop &&
+						(() => {
+							setSelectedUid(null)
+							onDrop(selected)
+						})
+					}
+				/>
 			)}
 		</div>
 	)

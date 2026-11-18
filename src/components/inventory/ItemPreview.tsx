@@ -20,9 +20,14 @@ const round = (n: number) => Math.round(n * 100) / 100
 export const ItemPreview = ({
 	entry,
 	onClose,
+	onTrade,
+	onDrop,
 }: {
 	entry: InventoryEntry
 	onClose: () => void
+	/** Trade and Drop are offered only when these are given. */
+	onTrade?: () => void
+	onDrop?: () => void
 }) => {
 	// The store types every stored item as ItemDef, but weapons and armor live
 	// in the same collection, told apart by `kind`.
@@ -32,14 +37,20 @@ export const ItemPreview = ({
 		state.sprites.get(def?.spriteId ?? ''),
 	)
 
+	// A quest item can't be dropped ([Inventory 22]).
+	const canDrop = onDrop && !def?.isQuestItem
+
 	useEffect(() => {
 		// The latest handler runs first, so the sheet's keys don't fire.
 		const unbind = inputManager.registerHandler((key) => {
+			const k = key.toLowerCase()
 			if (key === 'Escape') onClose()
+			else if (k === 't') onTrade?.()
+			else if (k === 'd' && canDrop) onDrop?.()
 			return true
 		})
 		return () => unbind()
-	}, [onClose])
+	}, [onClose, onTrade, onDrop, canDrop])
 
 	const quantity = entry.quantity ?? 1
 	const weapon = def?.kind === 'weapon' ? def : undefined
@@ -115,6 +126,31 @@ export const ItemPreview = ({
 							</>
 						)}
 					</dl>
+				)}
+
+				{(onTrade || onDrop) && (
+					<div className='flex gap-2'>
+						{onTrade && (
+							<button
+								type='button'
+								onClick={onTrade}
+								className='rounded border border-slate-700 bg-slate-800 px-3 py-1 text-xs font-bold text-slate-200 hover:border-amber-500'
+							>
+								[ T ] Trade
+							</button>
+						)}
+						{onDrop && (
+							<button
+								type='button'
+								onClick={onDrop}
+								disabled={!canDrop}
+								title={canDrop ? undefined : "A quest item can't be dropped"}
+								className='rounded border border-rose-900 bg-rose-950/40 px-3 py-1 text-xs font-bold text-rose-400 hover:bg-rose-900 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-rose-950/40'
+							>
+								[ D ] Drop
+							</button>
+						)}
+					</div>
 				)}
 
 				<p className='text-xs text-slate-600'>[ESC] Close</p>

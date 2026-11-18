@@ -8,7 +8,7 @@ import { useGameStore } from '@/store/useGameStore'
 // Trading ([Inventory 21]): first the receiver (a party number), then the item.
 type TradeState =
 	| null
-	| { step: 'recipient' }
+	| { step: 'recipient'; uid?: string } // uid: chosen already, from the preview
 	| { step: 'item'; toNumber: number; toName: string }
 
 // Dropping ([Inventory 22]): pick an item, then confirm.
@@ -44,9 +44,10 @@ export const CharacterSheetScreen = () => {
 	const items = useContentStore((state) => state.items)
 
 	// The quest-item check comes before the confirmation.
-	const pickDropItem = useCallback(
-		(uid: string | undefined) => {
-			if (drop?.step !== 'item' || !character || !uid) return
+	// Shared by the D key and the preview's Drop button.
+	const startDrop = useCallback(
+		(uid: string) => {
+			if (!character) return
 			const check = getGameEngine().canDrop(character.id, uid)
 			if (check === 'quest_item') setNotice("A quest item can't be dropped.")
 			else if (check === 'ok') {
@@ -54,8 +55,26 @@ export const CharacterSheetScreen = () => {
 				setNotice('')
 			}
 		},
-		[drop, character],
+		[character],
 	)
+
+	const pickDropItem = useCallback(
+		(uid: string | undefined) => {
+			if (drop?.step === 'item' && uid) startDrop(uid)
+		},
+		[drop, startDrop],
+	)
+
+	// The preview's Trade button: the item is chosen, so only the receiver is
+	// left to pick.
+	const startTrade = useCallback((uid: string) => {
+		if (useGameStore.getState().party.length < 2) {
+			setNotice('There is no one to trade with.')
+		} else {
+			setTrade({ step: 'recipient', uid })
+			setNotice('')
+		}
+	}, [])
 
 	const confirmDrop = useCallback(
 		(uid: string) => {
@@ -126,6 +145,15 @@ export const CharacterSheetScreen = () => {
 					const to = /^[1-9]$/.test(key) ? sorted[Number(key) - 1] : undefined
 					if (to?.id === character?.id) {
 						setNotice('Choose another character.')
+					} else if (to && trade.uid && character) {
+						// Chosen from the preview: trade straight away.
+						const result = getGameEngine().tradeItem(
+							character.id,
+							trade.uid,
+							Number(key),
+						)
+						if (result === 'too_heavy') setNotice('Too heavy!')
+						else endTrade()
 					} else if (to) {
 						setTrade({ step: 'item', toNumber: Number(key), toName: to.name })
 						setItemCursor(0)
@@ -303,6 +331,8 @@ export const CharacterSheetScreen = () => {
 				{/* Right Column: Inventory (equipment & spells come later) */}
 				<InventoryPanel
 					entries={character.inventory ?? []}
+					onTrade={context === 'WORLD' ? (e) => startTrade(e.uid) : undefined}
+					onDrop={context === 'WORLD' ? (e) => startDrop(e.uid) : undefined}
 					selecting={
 						trade?.step === 'item'
 							? {
