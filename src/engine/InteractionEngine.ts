@@ -15,7 +15,7 @@ import {
 	removePlacement,
 	type PlacementMap,
 } from '@/utils/placements'
-import { buildPool, countCarried } from '@/utils/inventory'
+import { buildPool, countCarried, takeFromInventory } from '@/utils/inventory'
 import { applyStatChange, type ModifyAttribute } from '@/utils/stats'
 import {
 	failureMessage,
@@ -168,7 +168,11 @@ export class InteractionEngine {
 			// GIVE_ITEMs are pooled and handed out together afterwards.
 			const gives: PoolItem[] = []
 			for (const action of run.actions) {
-				this.runAction(action, top, pos, host, gives)
+				this.runAction(action, top, pos, host, gives, {
+					defs,
+					source: def?.name ?? 'Something',
+					actor,
+				})
 			}
 			const pool = buildPool(gives, defs.items)
 			if (pool.length > 0) host.openGivePool(pos, pool)
@@ -221,6 +225,7 @@ export class InteractionEngine {
 		pos: Position,
 		host: InteractionHost,
 		gives: PoolItem[],
+		ctx: { defs: DefLookup; source: string; actor?: PlayerCharacter },
 	): void {
 		switch (action.type) {
 			case 'SHOW_DIALOG': {
@@ -248,6 +253,23 @@ export class InteractionEngine {
 				gives.push({ itemId: given.itemId, quantity: given.amount ?? 1 })
 				return
 			}
+			case 'TAKE_ITEM': {
+				let taken: { itemId?: string; amount?: number }
+				if (action.custom) {
+					const value = action.slot
+						? placement.customValues?.[action.slot]
+						: undefined
+					taken = value?.type === 'TAKE_ITEM' ? value : {}
+				} else {
+					taken = action
+				}
+				if (!taken.itemId) {
+					console.warn('[Interaction] TAKE_ITEM has no item to take')
+					return
+				}
+				this.takeItem(taken.itemId, taken.amount ?? 1, host, ctx)
+				return
+			}
 			case 'SET_FLAG':
 				host.setFlag(action.flag)
 				return
@@ -265,6 +287,52 @@ export class InteractionEngine {
 			default:
 				console.warn(`[Interaction] action ${action.type} is not implemented`)
 		}
+	}
+
+	/**
+	 * Takes `amount` of an item from the party ([Inventory 26]): the character
+	 * who triggered the interaction first, then the rest in party order, across
+	 * as many piles as it takes. All or nothing: if the party doesn't have
+	 * enough, nothing is taken. Each removal is logged with what took it.
+	 */
+	private takeItem(
+		itemId: string,
+		amount: number,
+		host: InteractionHost,
+		ctx: { defs: DefLookup; source: string; actor?: PlayerCharacter },
+	): void {
+		const item = ctx.defs.items.get(itemId)
+		if (!item) {
+			console.warn(`[Interaction] TAKE_ITEM: no item with _id ${itemId}`)
+			return
+		}
+		const party = host.getParty()
+		const ordered = [...party].sort((a, b) => a.order - b.order)
+		const actor = ordered.find((c) => c.id === ctx.actor?.id)
+		const scan = actor
+			? [actor, ...ordered.filter((c) => c !== actor)]
+			: ordered
+
+		if (scan.reduce((sum, c) => sum + countCarried(c, itemId), 0) < amount) {
+			console.warn(
+				`[Interaction] TAKE_ITEM: the party lacks ${amount} ${item.name}`,
+			)
+			return
+		}
+
+		let remaining = amount
+		const changed = new Map<string, PlayerCharacter>()
+		for (const member of scan) {
+			if (remaining === 0) break
+			const result = takeFromInventory(member, itemId, remaining)
+			if (result.taken === 0) continue
+			remaining -= result.taken
+			changed.set(member.id, result.character)
+			host.log(
+				`> ${ctx.source} takes ${item.name}${result.taken > 1 ? ` x${result.taken}` : ''} from ${member.name}.`,
+			)
+		}
+		host.setParty(party.map((c) => changed.get(c.id) ?? c))
 	}
 
 	/** Adds a def to the top of this cell's stack at runtime. */

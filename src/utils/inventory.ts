@@ -92,6 +92,34 @@ export const removeFromInventory = (
 })
 
 /**
+ * Takes up to `quantity` of a def out of a character's piles, in order, and
+ * says how many it found (a TAKE_ITEM, [Inventory 26]). A pile that runs out
+ * is removed; one that doesn't keeps the rest.
+ */
+export const takeFromInventory = (
+	character: PlayerCharacter,
+	itemId: string,
+	quantity: number,
+): { character: PlayerCharacter; taken: number } => {
+	let remaining = quantity
+	const inventory: InventoryEntry[] = []
+	for (const entry of character.inventory ?? []) {
+		if (entry.itemId !== itemId || remaining === 0) {
+			inventory.push(entry)
+			continue
+		}
+		const have = entry.quantity ?? 1
+		const take = Math.min(have, remaining)
+		remaining -= take
+		if (take < have) inventory.push({ ...entry, quantity: have - take })
+	}
+	return {
+		character: { ...character, inventory },
+		taken: quantity - remaining,
+	}
+}
+
+/**
  * The items a set of GIVE_ITEM actions hands out, one line per def with the
  * quantities added up, in the order first listed. A def that isn't loaded is
  * left out.
