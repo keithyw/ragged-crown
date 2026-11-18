@@ -359,6 +359,49 @@ export class GameEngine extends BaseGameEngine {
 	}
 
 	/**
+	 * Can this entry be dropped? A quest item never can ([Inventory 22]); the
+	 * check reads the def's flag, as [Inventory 18] leans.
+	 */
+	public canDrop(
+		characterId: string,
+		uid: string,
+	): 'ok' | 'quest_item' | 'invalid' {
+		const entry = useGameStore
+			.getState()
+			.party.find((c) => c.id === characterId)
+			?.inventory?.find((e) => e.uid === uid)
+		const def = entry
+			? useContentStore.getState().items.get(entry.itemId)
+			: undefined
+		if (!entry || !def) return 'invalid'
+		return def.isQuestItem ? 'quest_item' : 'ok'
+	}
+
+	/** Removes a whole entry from the game (it does not land on the map). */
+	public dropItem(
+		characterId: string,
+		uid: string,
+	): 'dropped' | 'quest_item' | 'invalid' {
+		const check = this.canDrop(characterId, uid)
+		if (check !== 'ok') return check
+		const store = useGameStore.getState()
+		const character = store.party.find((c) => c.id === characterId)
+		const entry = character?.inventory?.find((e) => e.uid === uid)
+		if (!character || !entry) return 'invalid'
+		const def = useContentStore.getState().items.get(entry.itemId)
+
+		store.setParty(
+			store.party.map((c) =>
+				c.id === characterId ? removeFromInventory(c, uid) : c,
+			),
+		)
+		store.addLog(
+			`> ${character.name} drops ${def?.name ?? 'an item'}${entry.quantity && entry.quantity > 1 ? ` x${entry.quantity}` : ''}.`,
+		)
+		return 'dropped'
+	}
+
+	/**
 	 * Leaves the give menu. What was not handed out goes on top of the cell's
 	 * stack, in the order it was listed ([Game 17]).
 	 */

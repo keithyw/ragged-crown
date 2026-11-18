@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { InventoryPanel } from '@/components/inventory/InventoryPanel'
 import { inputManager, getCharacterEngine, getGameEngine } from '@/engine'
 import { useCharacterCreationStore } from '@/store/useCharacterCreationStore'
+import { useContentStore } from '@/store/useContentStore'
 import { useGameStore } from '@/store/useGameStore'
 
 // Trading ([Inventory 21]): first the receiver (a party number), then the item.
@@ -9,6 +10,9 @@ type TradeState =
 	| null
 	| { step: 'recipient' }
 	| { step: 'item'; toNumber: number; toName: string }
+
+// Dropping ([Inventory 22]): pick an item, then confirm.
+type DropState = null | { step: 'item' } | { step: 'confirm'; uid: string }
 
 export const CharacterSheetScreen = () => {
 	const setScreen = useGameStore((state) => state.setScreen)
@@ -28,13 +32,39 @@ export const CharacterSheetScreen = () => {
 	)
 	const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
 	const [trade, setTrade] = useState<TradeState>(null)
-	const [tradeCursor, setTradeCursor] = useState(0)
-	const [tradeMessage, setTradeMessage] = useState('')
+	const [itemCursor, setItemCursor] = useState(0)
+	const [notice, setNotice] = useState('')
 
 	const endTrade = () => {
 		setTrade(null)
-		setTradeMessage('')
+		setNotice('')
 	}
+
+	const [drop, setDrop] = useState<DropState>(null)
+	const items = useContentStore((state) => state.items)
+
+	// The quest-item check comes before the confirmation.
+	const pickDropItem = useCallback(
+		(uid: string | undefined) => {
+			if (drop?.step !== 'item' || !character || !uid) return
+			const check = getGameEngine().canDrop(character.id, uid)
+			if (check === 'quest_item') setNotice("A quest item can't be dropped.")
+			else if (check === 'ok') {
+				setDrop({ step: 'confirm', uid })
+				setNotice('')
+			}
+		},
+		[drop, character],
+	)
+
+	const confirmDrop = useCallback(
+		(uid: string) => {
+			if (character) getGameEngine().dropItem(character.id, uid)
+			setDrop(null)
+			setNotice('')
+		},
+		[character],
+	)
 
 	const pickTradeItem = useCallback(
 		(uid: string | undefined) => {
@@ -44,10 +74,10 @@ export const CharacterSheetScreen = () => {
 				uid,
 				trade.toNumber,
 			)
-			if (result === 'too_heavy') setTradeMessage('Too heavy!')
+			if (result === 'too_heavy') setNotice('Too heavy!')
 			else {
 				setTrade(null)
-				setTradeMessage('')
+				setNotice('')
 			}
 		},
 		[trade, character],
@@ -95,21 +125,39 @@ export const CharacterSheetScreen = () => {
 				} else if (trade.step === 'recipient') {
 					const to = /^[1-9]$/.test(key) ? sorted[Number(key) - 1] : undefined
 					if (to?.id === character?.id) {
-						setTradeMessage('Choose another character.')
+						setNotice('Choose another character.')
 					} else if (to) {
 						setTrade({ step: 'item', toNumber: Number(key), toName: to.name })
-						setTradeCursor(0)
-						setTradeMessage('')
+						setItemCursor(0)
+						setNotice('')
 					}
 				} else {
 					const entries = character?.inventory ?? []
 					if (key === 'ArrowLeft' || key === 'ArrowUp') {
-						setTradeCursor((c) => Math.max(0, c - 1))
+						setItemCursor((c) => Math.max(0, c - 1))
 					} else if (key === 'ArrowRight' || key === 'ArrowDown') {
-						setTradeCursor((c) => Math.min(entries.length - 1, c + 1))
+						setItemCursor((c) => Math.min(entries.length - 1, c + 1))
 					} else if (key === 'Enter') {
-						pickTradeItem(entries[tradeCursor]?.uid)
+						pickTradeItem(entries[itemCursor]?.uid)
 					}
+				}
+				return true
+			}
+
+			if (drop) {
+				const entries = character?.inventory ?? []
+				if (key === 'Escape') {
+					setDrop(null)
+					setNotice('')
+				} else if (drop.step === 'confirm') {
+					if (k === 'y' || key === 'Enter') confirmDrop(drop.uid)
+					else if (k === 'n') setDrop(null)
+				} else if (key === 'ArrowLeft' || key === 'ArrowUp') {
+					setItemCursor((c) => Math.max(0, c - 1))
+				} else if (key === 'ArrowRight' || key === 'ArrowDown') {
+					setItemCursor((c) => Math.min(entries.length - 1, c + 1))
+				} else if (key === 'Enter') {
+					pickDropItem(entries[itemCursor]?.uid)
 				}
 				return true
 			}
@@ -130,12 +178,22 @@ export const CharacterSheetScreen = () => {
 					handleBack()
 					return true
 				}
+				if (k === 'd') {
+					if ((character?.inventory ?? []).length === 0) {
+						setNotice('There is nothing to drop.')
+					} else {
+						setDrop({ step: 'item' })
+						setItemCursor(0)
+						setNotice('')
+					}
+					return true
+				}
 				if (k === 't') {
 					if (useGameStore.getState().party.length < 2) {
-						setTradeMessage('There is no one to trade with.')
+						setNotice('There is no one to trade with.')
 					} else {
 						setTrade({ step: 'recipient' })
-						setTradeMessage('')
+						setNotice('')
 					}
 					return true
 				}
@@ -163,8 +221,11 @@ export const CharacterSheetScreen = () => {
 		context,
 		showDeleteConfirm,
 		trade,
-		tradeCursor,
+		drop,
+		itemCursor,
 		pickTradeItem,
+		pickDropItem,
+		confirmDrop,
 	])
 
 	if (!character) {
@@ -245,10 +306,15 @@ export const CharacterSheetScreen = () => {
 					selecting={
 						trade?.step === 'item'
 							? {
-									cursor: tradeCursor,
+									cursor: itemCursor,
 									onPick: (entry) => pickTradeItem(entry.uid),
 								}
-							: undefined
+							: drop?.step === 'item'
+								? {
+										cursor: itemCursor,
+										onPick: (entry) => pickDropItem(entry.uid),
+									}
+								: undefined
 					}
 				/>
 			</div>
@@ -268,18 +334,40 @@ export const CharacterSheetScreen = () => {
 				)}
 
 				<div className='text-xs text-slate-500'>
-					{tradeMessage && (
-						<span className='mr-3 font-bold text-rose-400'>{tradeMessage}</span>
+					{notice && (
+						<span className='mr-3 font-bold text-rose-400'>{notice}</span>
 					)}
 					{trade?.step === 'recipient'
 						? 'Trade to (1-9) • [ESC] Cancel'
 						: trade?.step === 'item'
 							? `Give to ${trade.toName}: [←/→] Select • [ENTER] Give • [ESC] Cancel`
-							: context === 'WORLD'
-								? '[1-4] Character • [T] Trade • [X / M / ESC] Return to Map'
-								: '[ESC] Return to Roster'}
+							: drop?.step === 'item'
+								? 'Drop which item? [←/→] Select • [ENTER] Drop • [ESC] Cancel'
+								: context === 'WORLD'
+									? '[1-4] Character • [T] Trade • [D] Drop • [X / M / ESC] Return to Map'
+									: '[ESC] Return to Roster'}
 				</div>
 			</div>
+
+			{drop?.step === 'confirm' && (
+				<div className='fixed inset-0 z-50 flex items-center justify-center bg-slate-950/90 p-6 font-mono'>
+					<div className='w-full max-w-md space-y-4 rounded border border-amber-500 bg-slate-900 p-6 text-center shadow-2xl'>
+						<h4 className='text-sm font-bold tracking-wider text-amber-500 uppercase'>
+							Drop this item?
+						</h4>
+						<p className='text-xs text-slate-300'>
+							{items.get(
+								character.inventory?.find((e) => e.uid === drop.uid)?.itemId ??
+									'',
+							)?.name ?? 'This item'}{' '}
+							will be removed from the game.
+						</p>
+						<p className='text-xs text-slate-500'>
+							[ Y / ENTER ] Drop • [ N / ESC ] Cancel
+						</p>
+					</div>
+				</div>
+			)}
 
 			{/* Confirmation Dialog Overlay */}
 			{showDeleteConfirm && (
