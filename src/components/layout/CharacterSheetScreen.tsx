@@ -34,6 +34,18 @@ export const CharacterSheetScreen = () => {
 	const [trade, setTrade] = useState<TradeState>(null)
 	const [itemCursor, setItemCursor] = useState(0)
 	const [notice, setNotice] = useState('')
+	const [toast, setToast] = useState('')
+
+	// Confirms a move after the fact. It reuses the line the engine just wrote
+	// to the event log, so the two can't disagree.
+	const showToast = () =>
+		setToast(useGameStore.getState().logs[0]?.replace(/^> /, '') ?? '')
+
+	useEffect(() => {
+		if (!toast) return
+		const timer = setTimeout(() => setToast(''), 3000)
+		return () => clearTimeout(timer)
+	}, [toast])
 
 	const endTrade = () => {
 		setTrade(null)
@@ -78,7 +90,11 @@ export const CharacterSheetScreen = () => {
 
 	const confirmDrop = useCallback(
 		(uid: string) => {
-			if (character) getGameEngine().dropItem(character.id, uid)
+			if (
+				character &&
+				getGameEngine().dropItem(character.id, uid) === 'dropped'
+			)
+				showToast()
 			setDrop(null)
 			setNotice('')
 		},
@@ -95,6 +111,7 @@ export const CharacterSheetScreen = () => {
 			)
 			if (result === 'too_heavy') setNotice('Too heavy!')
 			else {
+				if (result === 'traded') showToast()
 				setTrade(null)
 				setNotice('')
 			}
@@ -153,7 +170,10 @@ export const CharacterSheetScreen = () => {
 							Number(key),
 						)
 						if (result === 'too_heavy') setNotice('Too heavy!')
-						else endTrade()
+						else {
+							if (result === 'traded') showToast()
+							endTrade()
+						}
 					} else if (to) {
 						setTrade({ step: 'item', toNumber: Number(key), toName: to.name })
 						setItemCursor(0)
@@ -271,6 +291,36 @@ export const CharacterSheetScreen = () => {
 		)
 	}
 
+	// What the Commands panel shows for the current mode.
+	const modeLabel =
+		trade?.step === 'recipient'
+			? 'Trade: choose who receives it'
+			: trade?.step === 'item'
+				? `Trade to ${trade.toName}: choose an item`
+				: drop?.step === 'item'
+					? 'Drop: choose an item'
+					: ''
+	const commands: [string, string][] =
+		trade?.step === 'recipient'
+			? [
+					['1-9', 'Choose character'],
+					['ESC', 'Cancel'],
+				]
+			: trade?.step === 'item' || drop?.step === 'item'
+				? [
+						['←/→', 'Select'],
+						['ENTER', trade ? 'Give' : 'Drop'],
+						['ESC', 'Cancel'],
+					]
+				: context === 'WORLD'
+					? [
+							['1-4', 'Character'],
+							['T', 'Trade'],
+							['D', 'Drop'],
+							['X / M / ESC', 'Return to Map'],
+						]
+					: [['ESC', 'Return to Roster']]
+
 	return (
 		<div className='flex min-h-screen flex-col justify-between border-4 border-slate-800 bg-slate-950 p-8 font-mono text-slate-100'>
 			{/* Top Bar / Navigation Header */}
@@ -329,53 +379,64 @@ export const CharacterSheetScreen = () => {
 				</div>
 
 				{/* Right Column: Inventory (equipment & spells come later) */}
-				<InventoryPanel
-					entries={character.inventory ?? []}
-					onTrade={context === 'WORLD' ? (e) => startTrade(e.uid) : undefined}
-					onDrop={context === 'WORLD' ? (e) => startDrop(e.uid) : undefined}
-					selecting={
-						trade?.step === 'item'
-							? {
-									cursor: itemCursor,
-									onPick: (entry) => pickTradeItem(entry.uid),
-								}
-							: drop?.step === 'item'
+				<div className='col-span-8 flex flex-col gap-1'>
+					<InventoryPanel
+						entries={character.inventory ?? []}
+						onTrade={context === 'WORLD' ? (e) => startTrade(e.uid) : undefined}
+						onDrop={context === 'WORLD' ? (e) => startDrop(e.uid) : undefined}
+						selecting={
+							trade?.step === 'item'
 								? {
 										cursor: itemCursor,
-										onPick: (entry) => pickDropItem(entry.uid),
+										onPick: (entry) => pickTradeItem(entry.uid),
 									}
-								: undefined
-					}
-				/>
-			</div>
+								: drop?.step === 'item'
+									? {
+											cursor: itemCursor,
+											onPick: (entry) => pickDropItem(entry.uid),
+										}
+									: undefined
+						}
+					/>
+					{/* Messages: reserved height so the layout doesn't jump */}
+					<div className='h-5 text-center text-sm leading-5 font-bold'>
+						{notice ? (
+							<span className='text-rose-400'>{notice}</span>
+						) : (
+							toast && <span className='text-emerald-400'>{toast}</span>
+						)}
+					</div>
 
-			{/* Footer / Action Bar */}
-			<div className='flex items-center justify-between border-t border-slate-800 pt-4'>
-				{context === 'GUILD' ? (
-					<button
-						type='button'
-						onClick={() => setShowDeleteConfirm(true)}
-						className='rounded border border-rose-900 bg-rose-950/40 px-4 py-2 text-xs font-bold text-rose-400 hover:bg-rose-900 hover:text-slate-100'
-					>
-						[ DEL / X ] Delete Character
-					</button>
-				) : (
-					<div />
-				)}
-
-				<div className='text-xs text-slate-500'>
-					{notice && (
-						<span className='mr-3 font-bold text-rose-400'>{notice}</span>
-					)}
-					{trade?.step === 'recipient'
-						? 'Trade to (1-9) • [ESC] Cancel'
-						: trade?.step === 'item'
-							? `Give to ${trade.toName}: [←/→] Select • [ENTER] Give • [ESC] Cancel`
-							: drop?.step === 'item'
-								? 'Drop which item? [←/→] Select • [ENTER] Drop • [ESC] Cancel'
-								: context === 'WORLD'
-									? '[1-4] Character • [T] Trade • [D] Drop • [X / M / ESC] Return to Map'
-									: '[ESC] Return to Roster'}
+					{/* Commands: what the keys do right now */}
+					<div className='rounded border border-slate-800 bg-slate-900/40 p-4'>
+						<h3 className='border-b border-slate-800 pb-2 text-xs font-bold tracking-widest text-amber-500 uppercase'>
+							Commands
+							{modeLabel && (
+								<span className='ml-3 text-sky-400 normal-case'>
+									{modeLabel}
+								</span>
+							)}
+						</h3>
+						<div className='flex flex-wrap items-center gap-x-6 gap-y-2 pt-3 text-sm'>
+							{commands.map(([key, label]) => (
+								<span key={key} className='text-slate-300'>
+									<span className='mr-1.5 font-bold text-amber-400'>
+										[{key}]
+									</span>
+									{label}
+								</span>
+							))}
+							{context === 'GUILD' && (
+								<button
+									type='button'
+									onClick={() => setShowDeleteConfirm(true)}
+									className='ml-auto rounded border border-rose-900 bg-rose-950/40 px-4 py-2 text-xs font-bold text-rose-400 hover:bg-rose-900 hover:text-slate-100'
+								>
+									[ DEL / X ] Delete Character
+								</button>
+							)}
+						</div>
+					</div>
 				</div>
 			</div>
 

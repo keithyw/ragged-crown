@@ -27,7 +27,7 @@ export const InventoryPanel = ({
 	const selected = entries.find((e) => e.uid === selectedUid)
 
 	return (
-		<div className='col-span-8 flex min-h-0 flex-col rounded border border-slate-800 bg-slate-900/40 p-5'>
+		<div className='flex h-0 min-h-96 flex-1 flex-col rounded border border-slate-800 bg-slate-900/40 p-5'>
 			<div className='flex items-center justify-between border-b border-slate-800 pb-2'>
 				<h3 className='text-xs font-bold tracking-widest text-amber-500 uppercase'>
 					Inventory
