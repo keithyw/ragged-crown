@@ -4,6 +4,7 @@ import type {
 	CharacterSheetContext,
 	CombatPhase,
 	GameScreen,
+	GetPrompt,
 	GivePool,
 	OpenPrompt,
 	Monster,
@@ -31,6 +32,7 @@ interface GameState {
 	givePool: GivePool | null
 	/** The open command is waiting for a direction or a character. */
 	openPrompt: OpenPrompt | null
+	getPrompt: GetPrompt | null
 	inspectedCharacterId: string | null
 	inspectedContext: CharacterSheetContext
 	isMapLoading: boolean
@@ -72,6 +74,7 @@ interface GameState {
 	setEncounter: (encounter: ActiveEncounter | null) => void
 	setGivePool: (pool: GivePool | null) => void
 	setOpenPrompt: (prompt: OpenPrompt | null) => void
+	setGetPrompt: (prompt: GetPrompt | null) => void
 	setInspectedCharacter: (
 		characterId: string | null,
 		context?: CharacterSheetContext,
@@ -102,6 +105,7 @@ export const useGameStore = create<GameState>((set) => ({
 	encounter: null,
 	givePool: null,
 	openPrompt: null,
+	getPrompt: null,
 	inspectedCharacterId: null,
 	inspectedContext: 'GUILD',
 	isMapLoading: false,
@@ -172,6 +176,7 @@ export const useGameStore = create<GameState>((set) => ({
 	setEncounter: (encounter) => set({ encounter }),
 	setGivePool: (givePool) => set({ givePool }),
 	setOpenPrompt: (openPrompt) => set({ openPrompt }),
+	setGetPrompt: (getPrompt) => set({ getPrompt }),
 	setMonsters: (monsters) => set({ monsters }),
 	setParty: (party) => set({ party }),
 	setPlayerPosition: (position: Position) => set({ playerPosition: position }),
@@ -205,6 +210,7 @@ export const useGameStore = create<GameState>((set) => ({
 			currentZone: null,
 			givePool: null,
 			openPrompt: null,
+			getPrompt: null,
 			flags: {},
 			interactionRuns: {},
 			runtimePlacements: {},

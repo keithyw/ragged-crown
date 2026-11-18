@@ -23,11 +23,13 @@ import type { TileDef } from '@shared/types'
 import {
 	addPlacement,
 	addToInventory,
+	cellKey,
 	findPortalAt,
 	fitsInInventory,
 	generateSaveGameId,
 	lookupPlacementDef,
 	removeFromInventory,
+	removePlacement,
 } from '@/utils'
 
 // TODO [Game 7]: regions (dialog files) and zones are keyed differently until
@@ -178,6 +180,12 @@ export class GameEngine extends BaseGameEngine {
 					if (!useGameStore.getState().currentZone) return false
 					useGameStore.getState().setOpenPrompt({ step: 'direction' })
 					return true
+				case 'g':
+				case 'G':
+					// Get: asks for a direction, Space for the player's own cell.
+					if (!useGameStore.getState().currentZone) return false
+					useGameStore.getState().setGetPrompt({ step: 'direction' })
+					return true
 				case 'c':
 				case 'C': {
 					// First party member by order; cycling members comes later.
@@ -282,6 +290,84 @@ export class GameEngine extends BaseGameEngine {
 			useContentStore.getState(),
 			this.interactionHost(),
 			member,
+		)
+	}
+
+	/**
+	 * The item the get command would take from a cell: the top placement, if it
+	 * is an item, weapon or armor. Anything buried under an object stays put.
+	 */
+	private itemOnTop(pos: Position) {
+		const stack =
+			useGameStore.getState().runtimePlacements[cellKey(pos.x, pos.y)]
+		const top = stack?.[stack.length - 1]
+		if (!top || !['item', 'weapon', 'armor'].includes(top.defKind)) return
+		const def = useContentStore.getState().items.get(top.defId)
+		return def ? { placement: top, def } : undefined
+	}
+
+	/**
+	 * The get command, step two ([Game ?]): looks at the cell one step in a
+	 * direction (`0, 0` is the player's own cell). An item on top asks for a
+	 * character; anything else is "Nothing there!".
+	 */
+	public getToward(dx: number, dy: number): void {
+		const store = useGameStore.getState()
+		const target = {
+			x: store.playerPosition.x + dx,
+			y: store.playerPosition.y + dy,
+		}
+		const found = this.itemOnTop(target)
+		if (!found) {
+			store.setGetPrompt(null)
+			store.addLog('> Nothing there!')
+			return
+		}
+		// An inventory entry can't hold contents yet, so a loaded container
+		// would lose them. Taking one is its own feature.
+		if (found.placement.contents?.length) {
+			store.setGetPrompt(null)
+			store.addLog(`> ${found.def.name} is too full to pick up yet.`)
+			return
+		}
+		store.setGetPrompt({ step: 'character', pos: target })
+	}
+
+	/**
+	 * The get command, step three: the chosen party member (1-based, by order)
+	 * takes the whole pile if it fits. Too heavy keeps the prompt open so
+	 * another character can try; anything else closes it.
+	 */
+	public getWith(pos: Position, partyNumber: number): void {
+		const store = useGameStore.getState()
+		const member = [...store.party].sort((a, b) => a.order - b.order)[
+			partyNumber - 1
+		]
+		const found = this.itemOnTop(pos)
+		if (!member || !found) {
+			store.setGetPrompt(null)
+			return
+		}
+		const { placement, def } = found
+		const quantity = placement.quantity ?? 1
+		const items = useContentStore.getState().items
+		if (!fitsInInventory(member, def, quantity, items)) {
+			store.addLog('> Too heavy!')
+			return
+		}
+		store.setParty(
+			store.party.map((c) =>
+				c.id === member.id
+					? addToInventory(c, placement.defId, def, quantity)
+					: c,
+			),
+		)
+		store.setRuntimePlacements(
+			removePlacement(store.runtimePlacements, pos, placement.uid),
+		)
+		store.setGetPrompt(null)
+		store.addLog(
+			`> ${member.name} takes ${def.name}${quantity > 1 ? ` x${quantity}` : ''}.`,
 		)
 	}
 
