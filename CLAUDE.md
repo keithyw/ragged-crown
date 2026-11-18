@@ -48,7 +48,7 @@ Verify changes with `tsc -b` and `pnpm lint`. Both pass cleanly today.
 - **The party is capped at 4** (hard-coded in `PartyRosterScreen` for now).
 - **Story start:** young teens in a peaceful village; a strange figure and his minion kill the village elder (one character's father). The intro is the `intro` sequence in `public/data/dialogs/starter_town.json`.
 - **Modes:** the game waits for keyboard input and behaves differently per screen or mode (world map, combat, cut scene, character screens). `currentScreen` in `useGameStore` selects what `App.tsx` renders.
-- **Combat** works to a limited degree: set damage, a few random encounters from the tile's `encounterRate` times the zone's `dangerLevel`, hard-coded monsters (`public/data/monster.json`). No inventory yet.
+- **Combat** works to a limited degree: set damage, a few random encounters from the tile's `encounterRate` times the zone's `difficultyLevel`, hard-coded monsters (`public/data/monster.json`). No inventory yet.
 - `public/data/maps/a1.json` is the old prototype map and is deliberately unreferenced. `starter_town.json` is a small test grid.
 
 ## Code structure

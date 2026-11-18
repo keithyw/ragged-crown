@@ -1,7 +1,7 @@
 {
 	"id": "STARTER_TOWN",
 	"name": "Starter Town",
-	"dangerLevel": 0,
+	"difficultyLevel": 0,
 	"startingPosition": { "x": 3, "y": 3 },
 	"terrain": [
 		["T001", "T001", "T001", "T001", "T001", "T001"],

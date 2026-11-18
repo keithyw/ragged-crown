@@ -27,7 +27,7 @@ export interface MonsterGroup {
 export interface ActiveEncounter {
 	id: string
 	zoneId: string
-	dangerLevel: number
+	difficultyLevel: number
 	groups: MonsterGroup[]
 	phase: 'INIT' | 'PLANNING' | 'EXECUTION' | 'FLED'
 }

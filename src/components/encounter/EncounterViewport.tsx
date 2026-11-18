@@ -51,7 +51,7 @@ export const EncounterViewport = () => {
 		<div className={cn(SHAPES.panel, SURFACES.panelDark)}>
 			<PanelHeader
 				title='Combat Encounter'
-				subtitle={`Danger Level ${activeEncounter.dangerLevel}`}
+				subtitle={`Difficulty Level ${activeEncounter.difficultyLevel}`}
 			/>
 
 			<div className='flex flex-1 flex-col justify-between gap-3 overflow-hidden p-3'>

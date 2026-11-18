@@ -94,7 +94,7 @@ The game follows the tools' model (DATA-MODEL sections 1, 3, 4 and 5). Section 5
 1. `InteractionEngine.evaluateMove` checks bounds, the terrain def (blocked unless `isWalkable`) and the cell's stack (blocked if any placement is a solid object).
 2. If blocked, `trigger('BUMP_INTERACT', ...)` runs the top placement's interaction. If it had none, the block reason goes to the log.
 3. If allowed, the player moves, then `trigger('WALK', ...)` runs. Stepping onto a portal logs "Press E to enter".
-4. `EncounterService.shouldTriggerEncounter` rolls `encounterRate × dangerLevel` (never in `dangerLevel: 0` zones) and, on a hit, starts combat (section 6).
+4. `EncounterService.shouldTriggerEncounter` rolls `encounterRate × difficultyLevel` (never in `difficultyLevel: 0` zones) and, on a hit, starts combat (section 6).
 
 **`E` enters a portal** (`GameEngine.enterPortal`): the top-most portal placement under the player. It loads `destination.zoneId` and places the player at `destination.pos`, else the zone's `startingPosition`. A portal with no destination is unconnected.
 
@@ -125,7 +125,7 @@ Saving happens on character creation and deletion, on Start New Game, and at the
 
 **Starting.** `GameEngine.movePlayer` builds an encounter with `generateEncounter(zone, tile)`, unbinds world input, stores it, and calls `enterCombat(onExit)` with a callback back to `enterWorldMode()`.
 
-**Encounter generation.** Monster templates come from `monster.json` (four, hard-coded). A tile whose name contains "road" gives 1-3 bandits, anything else 1-4 goblins, both in melee range; 30% of the time 1-2 giant spiders are added as a second, out-of-range group. HP is the template's `maxHp`. `zone.dangerLevel` is copied in but not used to choose monsters.
+**Encounter generation.** Monster templates come from `monster.json` (four, hard-coded). A tile whose name contains "road" gives 1-3 bandits, anything else 1-4 goblins, both in melee range; 30% of the time 1-2 giant spiders are added as a second, out-of-range group. HP is the template's `maxHp`. `zone.difficultyLevel` is copied in but not used to choose monsters.
 
 **Phases** (`CombatPhase`) and their keys:
 

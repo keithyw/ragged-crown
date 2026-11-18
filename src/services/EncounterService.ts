@@ -13,13 +13,13 @@ export class EncounterService {
 		return monsters
 	}
 
-	/** Determines if a step triggers an encounter based on tile rate & zone danger */
+	/** Determines if a step triggers an encounter based on tile rate & zone difficulty */
 	public static shouldTriggerEncounter(tile: TileDef, zone: Zone): boolean {
 		// cities, villages, towns
-		if (zone.dangerLevel === 0) return false
+		if (zone.difficultyLevel === 0) return false
 		const baseRate = tile.encounterRate ?? 0.01 // Default 1%
-		const dangerMultiplier = Math.max(1, zone.dangerLevel)
-		const finalChance = baseRate * dangerMultiplier
+		const difficultyMultiplier = Math.max(1, zone.difficultyLevel)
+		const finalChance = baseRate * difficultyMultiplier
 		return Math.random() < finalChance
 	}
 }

@@ -2,7 +2,7 @@
 	"id": "ZONE_A1_VALLEY",
 	"name": "Crag Valley",
 	"dimensions": { "width": 16, "height": 16 },
-	"dangerLevel": 1,
+	"difficultyLevel": 1,
 	"terrain": [
 		"MMMMMMMMRRMMMMMM",
 		"MGGGGGGGRRGGGGGM",

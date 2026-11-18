@@ -246,7 +246,7 @@ export class CombatEngine {
 		return {
 			id: `enc-${Date.now()}`,
 			zoneId: zone.id,
-			dangerLevel: zone.dangerLevel,
+			difficultyLevel: zone.difficultyLevel,
 			groups,
 			phase: 'INIT',
 		}
