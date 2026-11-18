@@ -1,3 +1,5 @@
+import { useGameStore } from '@/store/useGameStore'
+
 export type KeyHandler = (key: string, event: KeyboardEvent) => boolean | void
 
 export class InputManager {
@@ -20,6 +22,9 @@ export class InputManager {
 
 	private handleKeyDown = (event: KeyboardEvent): void => {
 		if (event.repeat) return
+
+		// Whatever this key logs is one command, highlighted in the event log.
+		useGameStore.getState().startCommand()
 
 		// Run backwards through registered handlers (top of stack/latest first)
 		const handlers = Array.from(this.activeHandlers).reverse()

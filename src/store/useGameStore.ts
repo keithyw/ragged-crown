@@ -52,10 +52,15 @@ interface GameState {
 	/** Times each interaction has run, keyed `uid:interactionId` (see `runKey`). */
 	interactionRuns: Record<string, number>
 	logs: string[]
+	/** How many of the newest logs came from the last command (highlighted). */
+	latestLogCount: number
+	/** Set on each key press; the next log line then starts a new command. */
+	newCommand: boolean
 
 	// Actions
 	selectCharacter: (id: string) => void
 	addLog: (message: string) => void
+	startCommand: () => void
 	setFlag: (flag: string, value?: FlagValue) => void
 	recordRun: (key: string) => void
 	clearActionQueue: () => void
@@ -103,6 +108,8 @@ export const useGameStore = create<GameState>((set) => ({
 	flags: {},
 	interactionRuns: {},
 	logs: [],
+	latestLogCount: 0,
+	newCommand: true,
 	monsters: [],
 	playerPosition: { x: 3, y: 3 },
 	party: [],
@@ -116,10 +123,15 @@ export const useGameStore = create<GameState>((set) => ({
 
 	selectCharacter: (id: string) => set({ selectedCharId: id }),
 
+	// Lines logged by one key press count as one command ([Game 19]).
 	addLog: (message: string) =>
 		set((state) => ({
 			logs: [message, ...state.logs.slice(0, MAX_LOG_MESSAGES - 1)],
+			latestLogCount: state.newCommand ? 1 : state.latestLogCount + 1,
+			newCommand: false,
 		})),
+
+	startCommand: () => set({ newCommand: true }),
 
 	setFlag: (flag, value = true) =>
 		set((state) => ({ flags: { ...state.flags, [flag]: value } })),

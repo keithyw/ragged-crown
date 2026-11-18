@@ -6,16 +6,19 @@ import { useGameStore } from '@/store/useGameStore'
 import { cn } from '@/utils'
 
 export const EventLog: React.FC = () => {
-	const eventLog = useGameStore((state) => state.logs)
+	// The store keeps the newest first; the log reads top to bottom, so the
+	// last action is at the bottom ([Game 19]).
+	const newestFirst = useGameStore((state) => state.logs)
+	const latestCount = useGameStore((state) => state.latestLogCount)
+	const eventLog = [...newestFirst].reverse()
 	const logContainerRef = useRef<HTMLDivElement>(null)
 
-	// Newest messages come first, so keep the view at the top
+	// Newest messages are at the bottom, so keep the view there
 	useEffect(() => {
 		if (logContainerRef.current) {
-			logContainerRef.current.scrollTop = 0
+			logContainerRef.current.scrollTop = logContainerRef.current.scrollHeight
 		}
-		console.log('logs', eventLog)
-	}, [eventLog])
+	}, [newestFirst])
 
 	return (
 		<div className={cn(SHAPES.panel, SURFACES.panelDark)}>
@@ -36,6 +39,9 @@ export const EventLog: React.FC = () => {
 								entry.startsWith('>')
 									? 'font-semibold text-amber-400'
 									: 'text-slate-300',
+								// The last command stays highlighted until the next one logs.
+								index >= eventLog.length - latestCount &&
+									'rounded-sm border-l-2 border-amber-300 bg-amber-400/20 pl-2 text-white',
 							)}
 						>
 							{entry}
