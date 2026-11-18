@@ -10,11 +10,14 @@ import { ItemPreview } from './ItemPreview'
 // grid scrolls.
 export const InventoryPanel = ({
 	entries,
+	weight,
 	selecting,
 	onTrade,
 	onDrop,
 }: {
 	entries: InventoryEntry[]
+	/** Total carried and the most that can be carried; shown below the grid. */
+	weight?: { carried: number; limit: number }
 	/** The preview offers Trade and Drop only when these are given. */
 	onTrade?: (entry: InventoryEntry) => void
 	onDrop?: (entry: InventoryEntry) => void
@@ -80,6 +83,22 @@ export const InventoryPanel = ({
 					</p>
 				)}
 			</div>
+
+			{weight && (
+				<div className='mt-3 flex items-center justify-between border-t border-slate-800 pt-3 text-sm'>
+					<span className='text-slate-500 uppercase'>Carrying Capacity</span>
+					<span
+						className={cn(
+							'font-bold',
+							weight.carried >= weight.limit
+								? 'text-rose-400'
+								: 'text-slate-200',
+						)}
+					>
+						{Math.round(weight.carried * 100) / 100} / {weight.limit}
+					</span>
+				</div>
+			)}
 
 			{selected && (
 				<ItemPreview

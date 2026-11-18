@@ -4,6 +4,7 @@ import { inputManager, getCharacterEngine, getGameEngine } from '@/engine'
 import { useCharacterCreationStore } from '@/store/useCharacterCreationStore'
 import { useContentStore } from '@/store/useContentStore'
 import { useGameStore } from '@/store/useGameStore'
+import { carryLimit, encumbrance } from '@/utils'
 
 // Trading ([Inventory 21]): first the receiver (a party number), then the item.
 type TradeState =
@@ -382,6 +383,10 @@ export const CharacterSheetScreen = () => {
 				<div className='col-span-8 flex flex-col gap-1'>
 					<InventoryPanel
 						entries={character.inventory ?? []}
+						weight={{
+							carried: encumbrance(character, items),
+							limit: carryLimit(character),
+						}}
 						onTrade={context === 'WORLD' ? (e) => startTrade(e.uid) : undefined}
 						onDrop={context === 'WORLD' ? (e) => startDrop(e.uid) : undefined}
 						selecting={
