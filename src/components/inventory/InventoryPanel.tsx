@@ -1,12 +1,17 @@
+import { useState } from 'react'
 import { SpriteCanvas } from '@/components/map/SpriteCanvas'
 import { useContentStore } from '@/store/useContentStore'
 import type { InventoryEntry } from '@/types'
+import { ItemPreview } from './ItemPreview'
 
 // A character's inventory ([Inventory 9]): one cell per entry with its sprite
-// (or glyph symbol) and a quantity badge. Display only; the grid scrolls.
+// (or glyph symbol) and a quantity badge. Click a cell for its details; the
+// grid scrolls.
 export const InventoryPanel = ({ entries }: { entries: InventoryEntry[] }) => {
 	const items = useContentStore((state) => state.items)
 	const sprites = useContentStore((state) => state.sprites)
+	const [selectedUid, setSelectedUid] = useState<string | null>(null)
+	const selected = entries.find((e) => e.uid === selectedUid)
 
 	return (
 		<div className='col-span-8 flex min-h-0 flex-col rounded border border-slate-800 bg-slate-900/40 p-5'>
@@ -24,10 +29,12 @@ export const InventoryPanel = ({ entries }: { entries: InventoryEntry[] }) => {
 						const def = items.get(entry.itemId)
 						const sprite = sprites.get(def?.spriteId ?? '')
 						return (
-							<div
+							<button
+								type='button'
 								key={entry.uid}
 								title={def?.name ?? '(unknown)'}
-								className='relative flex aspect-square items-center justify-center rounded border border-slate-700 bg-slate-950'
+								onClick={() => setSelectedUid(entry.uid)}
+								className='relative flex aspect-square cursor-pointer items-center justify-center rounded border border-slate-700 bg-slate-950 hover:border-amber-500'
 							>
 								{sprite ? (
 									<SpriteCanvas sprite={sprite} className='h-10 w-10' />
@@ -41,7 +48,7 @@ export const InventoryPanel = ({ entries }: { entries: InventoryEntry[] }) => {
 										{entry.quantity}
 									</span>
 								)}
-							</div>
+							</button>
 						)
 					})}
 				</div>
@@ -51,6 +58,10 @@ export const InventoryPanel = ({ entries }: { entries: InventoryEntry[] }) => {
 					</p>
 				)}
 			</div>
+
+			{selected && (
+				<ItemPreview entry={selected} onClose={() => setSelectedUid(null)} />
+			)}
 		</div>
 	)
 }
