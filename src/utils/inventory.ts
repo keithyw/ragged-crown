@@ -82,6 +82,15 @@ export const addToInventory = (
 	return { ...character, inventory }
 }
 
+/** The character without one inventory entry (a trade or a drop). */
+export const removeFromInventory = (
+	character: PlayerCharacter,
+	uid: string,
+): PlayerCharacter => ({
+	...character,
+	inventory: (character.inventory ?? []).filter((e) => e.uid !== uid),
+})
+
 /**
  * The items a set of GIVE_ITEM actions hands out, one line per def with the
  * quantities added up, in the order first listed. A def that isn't loaded is

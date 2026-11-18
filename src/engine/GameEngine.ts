@@ -27,6 +27,7 @@ import {
 	fitsInInventory,
 	generateSaveGameId,
 	lookupPlacementDef,
+	removeFromInventory,
 } from '@/utils'
 
 // TODO [Game 7]: regions (dialog files) and zones are keyed differently until
@@ -318,6 +319,43 @@ export class GameEngine extends BaseGameEngine {
 		const rest = pool.items.filter((_, i) => i !== index)
 		store.setGivePool(rest.length > 0 ? { ...pool, items: rest } : null)
 		return 'given'
+	}
+
+	/**
+	 * Moves a whole inventory entry from one party member to the one in
+	 * position `partyNumber` (1-based, by order), after the weight check on the
+	 * receiver. Stackables merge into the receiver's piles ([Inventory 21]).
+	 */
+	public tradeItem(
+		fromId: string,
+		uid: string,
+		partyNumber: number,
+	): 'traded' | 'too_heavy' | 'invalid' {
+		const store = useGameStore.getState()
+		const to = [...store.party].sort((a, b) => a.order - b.order)[
+			partyNumber - 1
+		]
+		const from = store.party.find((c) => c.id === fromId)
+		const entry = from?.inventory?.find((e) => e.uid === uid)
+		const items = useContentStore.getState().items
+		const def = entry ? items.get(entry.itemId) : undefined
+		if (!from || !to || !entry || !def || from.id === to.id) return 'invalid'
+
+		const quantity = entry.quantity ?? 1
+		if (!fitsInInventory(to, def, quantity, items)) return 'too_heavy'
+
+		store.setParty(
+			store.party.map((c) => {
+				if (c.id === from.id) return removeFromInventory(c, uid)
+				if (c.id === to.id)
+					return addToInventory(c, entry.itemId, def, quantity)
+				return c
+			}),
+		)
+		store.addLog(
+			`> ${from.name} gives ${def.name}${quantity > 1 ? ` x${quantity}` : ''} to ${to.name}.`,
+		)
+		return 'traded'
 	}
 
 	/**

@@ -4,6 +4,12 @@ import { inputManager, getCharacterEngine, getGameEngine } from '@/engine'
 import { useCharacterCreationStore } from '@/store/useCharacterCreationStore'
 import { useGameStore } from '@/store/useGameStore'
 
+// Trading ([Inventory 21]): first the receiver (a party number), then the item.
+type TradeState =
+	| null
+	| { step: 'recipient' }
+	| { step: 'item'; toNumber: number; toName: string }
+
 export const CharacterSheetScreen = () => {
 	const setScreen = useGameStore((state) => state.setScreen)
 	const inspectedId = useGameStore((state) => state.inspectedCharacterId)
@@ -21,6 +27,31 @@ export const CharacterSheetScreen = () => {
 		(c) => c.id === inspectedId,
 	)
 	const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+	const [trade, setTrade] = useState<TradeState>(null)
+	const [tradeCursor, setTradeCursor] = useState(0)
+	const [tradeMessage, setTradeMessage] = useState('')
+
+	const endTrade = () => {
+		setTrade(null)
+		setTradeMessage('')
+	}
+
+	const pickTradeItem = useCallback(
+		(uid: string | undefined) => {
+			if (trade?.step !== 'item' || !character || !uid) return
+			const result = getGameEngine().tradeItem(
+				character.id,
+				uid,
+				trade.toNumber,
+			)
+			if (result === 'too_heavy') setTradeMessage('Too heavy!')
+			else {
+				setTrade(null)
+				setTradeMessage('')
+			}
+		},
+		[trade, character],
+	)
 
 	const handleBack = useCallback(() => {
 		if (context === 'GUILD') {
@@ -55,6 +86,34 @@ export const CharacterSheetScreen = () => {
 				return false
 			}
 
+			if (trade) {
+				const sorted = [...useGameStore.getState().party].sort(
+					(a, b) => a.order - b.order,
+				)
+				if (key === 'Escape') {
+					endTrade()
+				} else if (trade.step === 'recipient') {
+					const to = /^[1-9]$/.test(key) ? sorted[Number(key) - 1] : undefined
+					if (to?.id === character?.id) {
+						setTradeMessage('Choose another character.')
+					} else if (to) {
+						setTrade({ step: 'item', toNumber: Number(key), toName: to.name })
+						setTradeCursor(0)
+						setTradeMessage('')
+					}
+				} else {
+					const entries = character?.inventory ?? []
+					if (key === 'ArrowLeft' || key === 'ArrowUp') {
+						setTradeCursor((c) => Math.max(0, c - 1))
+					} else if (key === 'ArrowRight' || key === 'ArrowDown') {
+						setTradeCursor((c) => Math.min(entries.length - 1, c + 1))
+					} else if (key === 'Enter') {
+						pickTradeItem(entries[tradeCursor]?.uid)
+					}
+				}
+				return true
+			}
+
 			if (key === 'Escape') {
 				handleBack()
 				return true
@@ -69,6 +128,15 @@ export const CharacterSheetScreen = () => {
 				// X or M leaves for the map (X is delete in the guild, so only here).
 				if (k === 'x' || k === 'm') {
 					handleBack()
+					return true
+				}
+				if (k === 't') {
+					if (useGameStore.getState().party.length < 2) {
+						setTradeMessage('There is no one to trade with.')
+					} else {
+						setTrade({ step: 'recipient' })
+						setTradeMessage('')
+					}
 					return true
 				}
 				// 1-4: the party member in that position. Alternative for larger
@@ -88,7 +156,16 @@ export const CharacterSheetScreen = () => {
 		})
 
 		return () => unbind()
-	}, [handleBack, handleDelete, character, context, showDeleteConfirm])
+	}, [
+		handleBack,
+		handleDelete,
+		character,
+		context,
+		showDeleteConfirm,
+		trade,
+		tradeCursor,
+		pickTradeItem,
+	])
 
 	if (!character) {
 		return (
@@ -163,7 +240,17 @@ export const CharacterSheetScreen = () => {
 				</div>
 
 				{/* Right Column: Inventory (equipment & spells come later) */}
-				<InventoryPanel entries={character.inventory ?? []} />
+				<InventoryPanel
+					entries={character.inventory ?? []}
+					selecting={
+						trade?.step === 'item'
+							? {
+									cursor: tradeCursor,
+									onPick: (entry) => pickTradeItem(entry.uid),
+								}
+							: undefined
+					}
+				/>
 			</div>
 
 			{/* Footer / Action Bar */}
@@ -181,9 +268,16 @@ export const CharacterSheetScreen = () => {
 				)}
 
 				<div className='text-xs text-slate-500'>
-					{context === 'WORLD'
-						? '[1-4] Character • [X / M / ESC] Return to Map'
-						: '[ESC] Return to Roster'}
+					{tradeMessage && (
+						<span className='mr-3 font-bold text-rose-400'>{tradeMessage}</span>
+					)}
+					{trade?.step === 'recipient'
+						? 'Trade to (1-9) • [ESC] Cancel'
+						: trade?.step === 'item'
+							? `Give to ${trade.toName}: [←/→] Select • [ENTER] Give • [ESC] Cancel`
+							: context === 'WORLD'
+								? '[1-4] Character • [T] Trade • [X / M / ESC] Return to Map'
+								: '[ESC] Return to Roster'}
 				</div>
 			</div>
 
