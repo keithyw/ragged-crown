@@ -94,7 +94,7 @@ The game follows the tools' model (DATA-MODEL sections 1, 3, 4 and 5). Section 5
 1. `InteractionEngine.evaluateMove` checks bounds, the terrain def (blocked unless `isWalkable`) and the cell's stack (blocked if any placement is a solid object).
 2. If blocked, `trigger('BUMP_INTERACT', ...)` runs the top placement's interaction. If it had none, the block reason goes to the log.
 3. If allowed, the player moves, then `trigger('WALK', ...)` runs. Stepping onto a portal logs "Press E to enter".
-4. `EncounterService.shouldTriggerEncounter` rolls `encounterRate × difficultyLevel` (never in `difficultyLevel: 0` zones) and, on a hit, starts combat (section 6).
+4. `EncounterService.shouldTriggerEncounter` rolls `encounterRate × level` (never in level-0 zones; the level comes from the zone's difficulty configuration, `difficultyId`, loaded with the zone by `ZoneLoaderService`) and, on a hit, starts combat (section 6).
 
 **`E` enters a portal** (`GameEngine.enterPortal`): the top-most portal placement under the player. It loads `destination.zoneId` and places the player at `destination.pos`, else the zone's `startingPosition`. A portal with no destination is unconnected.
 

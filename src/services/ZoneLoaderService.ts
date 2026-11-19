@@ -1,4 +1,4 @@
-import type { Zone } from '@shared/types'
+import type { DifficultyConfig, Zone } from '@shared/types'
 import { contentSource, type StoredDoc } from '@/services/ContentSource'
 
 /**
@@ -9,6 +9,20 @@ import { contentSource, type StoredDoc } from '@/services/ContentSource'
 class ZoneLoaderService {
 	private byId = new Map<string, StoredDoc<Zone>>()
 	private byDisplayId = new Map<string, StoredDoc<Zone>>()
+	// Difficulty configuration `_id` -> its level ([Tools 26]). Filled when a
+	// zone loads, so the level can be read without waiting.
+	private levels = new Map<string, number>()
+
+	/** The level the player sees for a zone that has been loaded. */
+	difficultyLevel(zone: Zone): number {
+		const level = this.levels.get(zone.difficultyId)
+		if (level === undefined) {
+			throw new Error(
+				`Zone "${zone.id}" has no loaded difficulty configuration`,
+			)
+		}
+		return level
+	}
 
 	async loadById(_id: string): Promise<StoredDoc<Zone>> {
 		const cached = this.byId.get(_id)
@@ -29,7 +43,14 @@ class ZoneLoaderService {
 		return this.remember(matches[0])
 	}
 
-	private remember(zone: StoredDoc<Zone>): StoredDoc<Zone> {
+	private async remember(zone: StoredDoc<Zone>): Promise<StoredDoc<Zone>> {
+		if (!this.levels.has(zone.difficultyId)) {
+			const config = await contentSource.get<DifficultyConfig>(
+				'difficulty_configs',
+				zone.difficultyId,
+			)
+			this.levels.set(zone.difficultyId, config.level)
+		}
 		zone.dimensions = zone.dimensions ?? {
 			width: zone.terrain[0].length,
 			height: zone.terrain.length,
@@ -43,6 +64,7 @@ class ZoneLoaderService {
 	clearCache(): void {
 		this.byId.clear()
 		this.byDisplayId.clear()
+		this.levels.clear()
 	}
 }
 

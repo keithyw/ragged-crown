@@ -1,5 +1,6 @@
 import { inputManager } from '@/engine'
 import { useGameStore } from '@/store/useGameStore'
+import { zoneLoaderService } from '@/services/ZoneLoaderService'
 import {
 	SpellCaster,
 	type ActiveEncounter,
@@ -246,7 +247,7 @@ export class CombatEngine {
 		return {
 			id: `enc-${Date.now()}`,
 			zoneId: zone.id,
-			difficultyLevel: zone.difficultyLevel,
+			difficultyLevel: zoneLoaderService.difficultyLevel(zone),
 			groups,
 			phase: 'INIT',
 		}
