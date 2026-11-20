@@ -1,3 +1,5 @@
+import type { Qualifiers } from '@shared/types'
+
 export type Debuff =
 	'poisoned' | 'paralyzed' | 'silenced' | 'blinded' | 'cursed' | 'dead'
 export type ClassType = 'Fighter' | 'Mage' | 'Cleric' | 'Rogue' | 'Paladin'
@@ -34,6 +36,8 @@ export interface InventoryEntry {
 	uid: string
 	itemId: string // the def's _id
 	quantity?: number
+	/** Weapons and armor only: rolled once on pickup, then carried ([Game 24]). */
+	qualifiers?: Qualifiers
 }
 
 /**
@@ -69,6 +73,7 @@ export type Equipment = Partial<Record<EquipmentSlot, string>>
 export interface PoolItem {
 	itemId: string
 	quantity: number
+	qualifiers?: Qualifiers
 }
 
 /** The pool being distributed, and the cell leftovers go back to. */

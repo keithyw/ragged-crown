@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { SpriteCanvas } from '@/components/map/SpriteCanvas'
 import { useContentStore } from '@/store/useContentStore'
 import type { Equipment, InventoryEntry } from '@/types'
-import { cn } from '@/utils'
+import { cn, qualifiedName } from '@/utils'
 import { ItemPreview } from './ItemPreview'
 
 // A character's inventory ([Inventory 9]): one cell per entry with its sprite
@@ -61,7 +61,9 @@ export const InventoryPanel = ({
 							<button
 								type='button'
 								key={entry.uid}
-								title={def?.name ?? '(unknown)'}
+								title={
+									def ? qualifiedName(def.name, entry.qualifiers) : '(unknown)'
+								}
 								onClick={() =>
 									selecting
 										? selecting.onPick(entry)

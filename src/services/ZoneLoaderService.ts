@@ -9,19 +9,30 @@ import { contentSource, type StoredDoc } from '@/services/ContentSource'
 class ZoneLoaderService {
 	private byId = new Map<string, StoredDoc<Zone>>()
 	private byDisplayId = new Map<string, StoredDoc<Zone>>()
-	// Difficulty configuration `_id` -> its level ([Tools 26]). Filled when a
-	// zone loads, so the level can be read without waiting.
-	private levels = new Map<string, number>()
+	// Difficulty configuration `_id` -> the configuration ([Tools 26]). Filled
+	// when a zone loads, so its level and material tables can be read without
+	// waiting.
+	private configs = new Map<string, DifficultyConfig>()
 
-	/** The level the player sees for a zone that has been loaded. */
-	difficultyLevel(zone: Zone): number {
-		const level = this.levels.get(zone.difficultyId)
-		if (level === undefined) {
+	/** The difficulty configuration of a zone that has been loaded. */
+	difficultyConfig(zone: Zone): DifficultyConfig {
+		const config = this.configs.get(zone.difficultyId)
+		if (!config) {
 			throw new Error(
 				`Zone "${zone.id}" has no loaded difficulty configuration`,
 			)
 		}
-		return level
+		return config
+	}
+
+	/** Like `difficultyConfig`, but undefined when there is none to read. */
+	configFor(zone: Zone | null): DifficultyConfig | undefined {
+		return zone ? this.configs.get(zone.difficultyId) : undefined
+	}
+
+	/** The level the player sees for a zone that has been loaded. */
+	difficultyLevel(zone: Zone): number {
+		return this.difficultyConfig(zone).level
 	}
 
 	async loadById(_id: string): Promise<StoredDoc<Zone>> {
@@ -44,12 +55,12 @@ class ZoneLoaderService {
 	}
 
 	private async remember(zone: StoredDoc<Zone>): Promise<StoredDoc<Zone>> {
-		if (!this.levels.has(zone.difficultyId)) {
+		if (!this.configs.has(zone.difficultyId)) {
 			const config = await contentSource.get<DifficultyConfig>(
 				'difficulty_configs',
 				zone.difficultyId,
 			)
-			this.levels.set(zone.difficultyId, config.level)
+			this.configs.set(zone.difficultyId, config)
 		}
 		zone.dimensions = zone.dimensions ?? {
 			width: zone.terrain[0].length,
@@ -64,7 +75,7 @@ class ZoneLoaderService {
 	clearCache(): void {
 		this.byId.clear()
 		this.byDisplayId.clear()
-		this.levels.clear()
+		this.configs.clear()
 	}
 }
 

@@ -4,6 +4,7 @@ import { SpriteCanvas } from '@/components/map/SpriteCanvas'
 import { inputManager } from '@/engine'
 import { useContentStore } from '@/store/useContentStore'
 import type { InventoryEntry } from '@/types'
+import { qualifiedName } from '@/utils'
 
 const WEAPON_FLAGS: [keyof WeaponDef, string][] = [
 	['isTwoHanded', 'two-handed'],
@@ -89,7 +90,9 @@ export const ItemPreview = ({
 					</div>
 					<div>
 						<h4 className='text-lg font-bold text-amber-400'>
-							{def?.name ?? '(unknown item)'}
+							{def
+								? qualifiedName(def.name, entry.qualifiers)
+								: '(unknown item)'}
 						</h4>
 						{def?.isQuestItem && (
 							<span className='text-xs font-bold tracking-widest text-sky-400 uppercase'>
@@ -116,6 +119,12 @@ export const ItemPreview = ({
 									: String(round(def.weight))
 							}
 						/>
+						{entry.qualifiers?.quality && (
+							<Row label='Quality' value={entry.qualifiers.quality} />
+						)}
+						{entry.qualifiers?.material && (
+							<Row label='Material' value={entry.qualifiers.material} />
+						)}
 						{weapon && (
 							<>
 								<Row label='Type' value={weapon.type} />

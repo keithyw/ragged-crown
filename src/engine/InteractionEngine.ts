@@ -2,10 +2,12 @@ import type {
 	Action,
 	CellKey,
 	Condition,
+	DifficultyConfig,
 	InteractionType,
 	Kind,
 	MoveResult,
 	Placement,
+	Qualifiers,
 	Zone,
 } from '@shared/types'
 import type { FlagValue, PlayerCharacter, Position, PoolItem } from '@/types'
@@ -16,6 +18,7 @@ import {
 	type PlacementMap,
 } from '@/utils/placements'
 import { buildPool, countCarried, takeFromInventory } from '@/utils/inventory'
+import { completeQualifiers } from '@/utils/qualifiers'
 import { applyStatChange, type ModifyAttribute } from '@/utils/stats'
 import {
 	failureMessage,
@@ -38,6 +41,8 @@ export interface InteractionHost {
 	setParty: (party: PlayerCharacter[]) => void
 	/** Opens the menu that hands out the items of a GIVE_ITEM interaction. */
 	openGivePool: (pos: Position, items: PoolItem[]) => void
+	/** The current zone's difficulty configuration, for rolling qualifiers. */
+	getDifficulty: () => DifficultyConfig | undefined
 }
 
 export class InteractionEngine {
@@ -237,7 +242,7 @@ export class InteractionEngine {
 				return
 			}
 			case 'GIVE_ITEM': {
-				let given: { itemId?: string; amount?: number }
+				let given: { itemId?: string; amount?: number; qualifiers?: Qualifiers }
 				if (action.custom) {
 					const value = action.slot
 						? placement.customValues?.[action.slot]
@@ -250,7 +255,18 @@ export class InteractionEngine {
 					console.warn('[Interaction] GIVE_ITEM has no item to give')
 					return
 				}
-				gives.push({ itemId: given.itemId, quantity: given.amount ?? 1 })
+				// A set qualifier is kept; a missing one is rolled here, once, so
+				// the pool and anything left on the cell agree ([Game 24]).
+				const qualifiers = completeQualifiers(
+					ctx.defs.items.get(given.itemId),
+					given.qualifiers,
+					host.getDifficulty(),
+				)
+				gives.push({
+					itemId: given.itemId,
+					quantity: given.amount ?? 1,
+					...(qualifiers && { qualifiers }),
+				})
 				return
 			}
 			case 'TAKE_ITEM': {
@@ -342,7 +358,12 @@ export class InteractionEngine {
 		pos: Position,
 		host: InteractionHost,
 	): void {
-		let spawned: { defKind?: Kind; defId?: string; quantity?: number }
+		let spawned: {
+			defKind?: Kind
+			defId?: string
+			quantity?: number
+			qualifiers?: Qualifiers
+		}
 		if (action.custom) {
 			const value = action.slot
 				? placement.customValues?.[action.slot]
@@ -361,6 +382,8 @@ export class InteractionEngine {
 				defKind: spawned.defKind,
 				defId: spawned.defId,
 				...(spawned.quantity !== undefined && { quantity: spawned.quantity }),
+				// Kept as authored; a missing value is rolled when it is picked up.
+				...(spawned.qualifiers && { qualifiers: spawned.qualifiers }),
 			}),
 		)
 	}

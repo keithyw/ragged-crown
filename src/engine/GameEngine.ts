@@ -19,16 +19,18 @@ import { useDialogStore } from '@/store/useDialogStore'
 import { useContentStore } from '@/store/useContentStore'
 import { useGameStore } from '@/store/useGameStore'
 import type { CharacterSheetContext, Position, SaveGameDocument } from '@/types'
-import type { TileDef } from '@shared/types'
+import type { Qualifiers, TileDef } from '@shared/types'
 import {
 	addPlacement,
 	addToInventory,
 	cellKey,
+	completeQualifiers,
 	equip,
 	findPortalAt,
 	fitsInInventory,
 	generateSaveGameId,
 	lookupPlacementDef,
+	qualifiedName,
 	removeFromInventory,
 	removePlacement,
 	slotOf,
@@ -40,6 +42,12 @@ import {
 const REGION_ZONE_IDS: Record<string, string> = {
 	starter_town: 'STARTING_TOWN',
 }
+/** An entry's full name for the log, or "an item" when its def is missing. */
+const entryName = (
+	name: string | undefined,
+	qualifiers?: Qualifiers,
+): string => (name ? qualifiedName(name, qualifiers) : 'an item')
+
 const regionToZoneId = (regionId: string): string =>
 	REGION_ZONE_IDS[regionId] ?? regionId
 
@@ -245,6 +253,7 @@ export class GameEngine extends BaseGameEngine {
 			getParty: () => get().party,
 			setParty: (party) => get().setParty(party),
 			openGivePool: (pos, items) => get().setGivePool({ pos, items }),
+			getDifficulty: () => zoneLoaderService.configFor(get().currentZone),
 		}
 	}
 
@@ -354,6 +363,12 @@ export class GameEngine extends BaseGameEngine {
 		const { placement, def } = found
 		const quantity = placement.quantity ?? 1
 		const items = useContentStore.getState().items
+		// A set qualifier is kept; a missing one is rolled now, once ([Game 24]).
+		const qualifiers = completeQualifiers(
+			def,
+			placement.qualifiers,
+			zoneLoaderService.configFor(store.currentZone),
+		)
 		if (!fitsInInventory(member, def, quantity, items)) {
 			store.addLog('> Too heavy!')
 			return
@@ -361,7 +376,7 @@ export class GameEngine extends BaseGameEngine {
 		store.setParty(
 			store.party.map((c) =>
 				c.id === member.id
-					? addToInventory(c, placement.defId, def, quantity)
+					? addToInventory(c, placement.defId, def, quantity, qualifiers)
 					: c,
 			),
 		)
@@ -370,7 +385,7 @@ export class GameEngine extends BaseGameEngine {
 		)
 		store.setGetPrompt(null)
 		store.addLog(
-			`> ${member.name} takes ${def.name}${quantity > 1 ? ` x${quantity}` : ''}.`,
+			`> ${member.name} takes ${qualifiedName(def.name, qualifiers)}${quantity > 1 ? ` x${quantity}` : ''}.`,
 		)
 	}
 
@@ -398,12 +413,12 @@ export class GameEngine extends BaseGameEngine {
 		store.setParty(
 			store.party.map((c) =>
 				c.id === member.id
-					? addToInventory(c, line.itemId, def, line.quantity)
+					? addToInventory(c, line.itemId, def, line.quantity, line.qualifiers)
 					: c,
 			),
 		)
 		store.addLog(
-			`> ${member.name} takes ${def.name}${line.quantity > 1 ? ` x${line.quantity}` : ''}.`,
+			`> ${member.name} takes ${qualifiedName(def.name, line.qualifiers)}${line.quantity > 1 ? ` x${line.quantity}` : ''}.`,
 		)
 		const rest = pool.items.filter((_, i) => i !== index)
 		store.setGivePool(rest.length > 0 ? { ...pool, items: rest } : null)
@@ -437,12 +452,18 @@ export class GameEngine extends BaseGameEngine {
 			store.party.map((c) => {
 				if (c.id === from.id) return removeFromInventory(c, uid)
 				if (c.id === to.id)
-					return addToInventory(c, entry.itemId, def, quantity)
+					return addToInventory(
+						c,
+						entry.itemId,
+						def,
+						quantity,
+						entry.qualifiers,
+					)
 				return c
 			}),
 		)
 		store.addLog(
-			`> ${from.name} gives ${def.name}${quantity > 1 ? ` x${quantity}` : ''} to ${to.name}.`,
+			`> ${from.name} gives ${qualifiedName(def.name, entry.qualifiers)}${quantity > 1 ? ` x${quantity}` : ''} to ${to.name}.`,
 		)
 		return 'traded'
 	}
@@ -485,7 +506,7 @@ export class GameEngine extends BaseGameEngine {
 			),
 		)
 		store.addLog(
-			`> ${character.name} drops ${def?.name ?? 'an item'}${entry.quantity && entry.quantity > 1 ? ` x${entry.quantity}` : ''}.`,
+			`> ${character.name} drops ${def ? qualifiedName(def.name, entry.qualifiers) : 'an item'}${entry.quantity && entry.quantity > 1 ? ` x${entry.quantity}` : ''}.`,
 		)
 		return 'dropped'
 	}
@@ -506,7 +527,7 @@ export class GameEngine extends BaseGameEngine {
 		)
 		const entry = character.inventory?.find((e) => e.uid === uid)
 		store.addLog(
-			`> ${character.name} equips ${items.get(entry?.itemId ?? '')?.name ?? 'an item'}.`,
+			`> ${character.name} equips ${entryName(items.get(entry?.itemId ?? '')?.name, entry?.qualifiers)}.`,
 		)
 		return null
 	}
@@ -521,7 +542,7 @@ export class GameEngine extends BaseGameEngine {
 			store.party.map((c) => (c.id === characterId ? unequip(c, uid) : c)),
 		)
 		store.addLog(
-			`> ${character.name} takes off ${useContentStore.getState().items.get(entry?.itemId ?? '')?.name ?? 'an item'}.`,
+			`> ${character.name} takes off ${entryName(useContentStore.getState().items.get(entry?.itemId ?? '')?.name, entry?.qualifiers)}.`,
 		)
 		return true
 	}
@@ -547,6 +568,7 @@ export class GameEngine extends BaseGameEngine {
 					defKind: def.kind,
 					defId: line.itemId,
 					...(def.maxQuantity !== undefined && { quantity: line.quantity }),
+					...(line.qualifiers && { qualifiers: line.qualifiers }),
 				})
 			}
 		}

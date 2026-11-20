@@ -1,6 +1,7 @@
-import type { CarriedDef } from '@shared/types'
+import type { CarriedDef, Qualifiers } from '@shared/types'
 import type { InventoryEntry, PlayerCharacter, PoolItem } from '@/types'
 import { pruneEquipment } from './equipment'
+import { sameQualifiers } from './qualifiers'
 
 /** Pounds a character can carry per point of strength ([Game 17]; may be raised). */
 export const CARRY_PER_STRENGTH = 20
@@ -44,14 +45,16 @@ export const fitsInInventory = (
 
 /**
  * Adds items to a character's inventory. Only a def with a `maxQuantity`
- * stacks: it tops up existing piles of the same def, then starts new ones. Any
- * other def gets one entry per item (DATA-MODEL 7).
+ * stacks: it tops up existing piles of the same def and qualifiers, then
+ * starts new ones. Any other def gets one entry per item (DATA-MODEL 7).
+ * `qualifiers` are the instance's, already rolled ([Game 24]).
  */
 export const addToInventory = (
 	character: PlayerCharacter,
 	itemId: string,
 	def: CarriedInfo,
 	quantity: number,
+	qualifiers?: Qualifiers,
 ): PlayerCharacter => {
 	const max = def.maxQuantity
 	const inventory: InventoryEntry[] = (character.inventory ?? []).map((e) => ({
@@ -61,12 +64,17 @@ export const addToInventory = (
 
 	if (max === undefined) {
 		for (; remaining > 0; remaining--) {
-			inventory.push({ uid: crypto.randomUUID(), itemId })
+			inventory.push({
+				uid: crypto.randomUUID(),
+				itemId,
+				...(qualifiers && { qualifiers }),
+			})
 		}
 	} else {
 		for (const entry of inventory) {
 			if (remaining === 0) break
 			if (entry.itemId !== itemId) continue
+			if (!sameQualifiers(entry.qualifiers, qualifiers)) continue
 			const room = max - (entry.quantity ?? 1)
 			const added = Math.min(room, remaining)
 			if (added > 0) {
@@ -76,7 +84,12 @@ export const addToInventory = (
 		}
 		while (remaining > 0) {
 			const pile = Math.min(max, remaining)
-			inventory.push({ uid: crypto.randomUUID(), itemId, quantity: pile })
+			inventory.push({
+				uid: crypto.randomUUID(),
+				itemId,
+				quantity: pile,
+				...(qualifiers && { qualifiers }),
+			})
 			remaining -= pile
 		}
 	}
@@ -136,7 +149,11 @@ export const buildPool = (
 			console.warn(`[Interaction] GIVE_ITEM: no item with _id ${give.itemId}`)
 			continue
 		}
-		const line = pool.find((p) => p.itemId === give.itemId)
+		const line = pool.find(
+			(p) =>
+				p.itemId === give.itemId &&
+				sameQualifiers(p.qualifiers, give.qualifiers),
+		)
 		if (line) line.quantity += give.quantity
 		else pool.push({ ...give })
 	}

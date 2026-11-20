@@ -4,7 +4,7 @@ import { inputManager, getCharacterEngine, getGameEngine } from '@/engine'
 import { useCharacterCreationStore } from '@/store/useCharacterCreationStore'
 import { useContentStore } from '@/store/useContentStore'
 import { useGameStore } from '@/store/useGameStore'
-import { carryLimit, encumbrance } from '@/utils'
+import { carryLimit, encumbrance, qualifiedName } from '@/utils'
 
 // Trading ([Inventory 21]): first the receiver (a party number), then the item.
 type TradeState =
@@ -338,6 +338,15 @@ export const CharacterSheetScreen = () => {
 		confirmDrop,
 	])
 
+	const dropEntry =
+		drop?.step === 'confirm'
+			? character?.inventory?.find((e) => e.uid === drop.uid)
+			: undefined
+	const dropDef = items.get(dropEntry?.itemId ?? '')
+	const dropName = dropDef
+		? qualifiedName(dropDef.name, dropEntry?.qualifiers)
+		: 'This item'
+
 	if (!character) {
 		return (
 			<div className='flex min-h-screen flex-col items-center justify-center border-4 border-slate-800 bg-slate-950 p-8 font-mono text-slate-100'>
@@ -539,11 +548,7 @@ export const CharacterSheetScreen = () => {
 							Drop this item?
 						</h4>
 						<p className='text-xs text-slate-300'>
-							{items.get(
-								character.inventory?.find((e) => e.uid === drop.uid)?.itemId ??
-									'',
-							)?.name ?? 'This item'}{' '}
-							will be removed from the game.
+							{dropName} will be removed from the game.
 						</p>
 						<p className='text-xs text-slate-500'>
 							[ Y / ENTER ] Drop • [ N / ESC ] Cancel

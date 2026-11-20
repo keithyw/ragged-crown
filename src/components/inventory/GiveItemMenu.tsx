@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { getGameEngine, inputManager } from '@/engine'
 import { useContentStore } from '@/store/useContentStore'
 import { useGameStore } from '@/store/useGameStore'
-import { cn } from '@/utils'
+import { cn, qualifiedName } from '@/utils'
 
 // Hands out the items of a GIVE_ITEM interaction ([Game 17]): up/down picks a
 // line, Enter asks who gets it, a party number gives the whole pile, Escape
@@ -62,7 +62,7 @@ export const GiveItemMenu = () => {
 				<ul className='max-h-64 space-y-1 overflow-y-auto text-sm'>
 					{pool.items.map((line, i) => (
 						<li
-							key={line.itemId}
+							key={`${line.itemId}-${i}`}
 							className={cn(
 								'flex justify-between rounded px-2 py-1',
 								i === cursor
@@ -70,7 +70,12 @@ export const GiveItemMenu = () => {
 									: 'text-slate-300',
 							)}
 						>
-							<span>{items.get(line.itemId)?.name ?? '(unknown)'}</span>
+							<span>
+								{qualifiedName(
+									items.get(line.itemId)?.name ?? '(unknown)',
+									line.qualifiers,
+								)}
+							</span>
 							<span>x{line.quantity}</span>
 						</li>
 					))}
