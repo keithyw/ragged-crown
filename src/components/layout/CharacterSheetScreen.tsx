@@ -285,6 +285,16 @@ export const CharacterSheetScreen = () => {
 					}
 					return true
 				}
+				if (k === 'e' || k === 'u') {
+					if ((character?.inventory ?? []).length === 0) {
+						setNotice('There is nothing carried.')
+					} else {
+						setEquipMode({ mode: k === 'e' ? 'equip' : 'unequip' })
+						setItemCursor(0)
+						setNotice('')
+					}
+					return true
+				}
 				if (k === 't') {
 					if (useGameStore.getState().party.length < 2) {
 						setNotice('There is no one to trade with.')
@@ -351,17 +361,28 @@ export const CharacterSheetScreen = () => {
 				? `Trade to ${trade.toName}: choose an item`
 				: drop?.step === 'item'
 					? 'Drop: choose an item'
-					: ''
+					: equipMode
+						? `${equipMode.mode === 'equip' ? 'Equip' : 'Unequip'}: choose an item`
+						: ''
 	const commands: [string, string][] =
 		trade?.step === 'recipient'
 			? [
 					['1-9', 'Choose character'],
 					['ESC', 'Cancel'],
 				]
-			: trade?.step === 'item' || drop?.step === 'item'
+			: trade?.step === 'item' || drop?.step === 'item' || equipMode
 				? [
 						['←/→', 'Select'],
-						['ENTER', trade ? 'Give' : 'Drop'],
+						[
+							'ENTER',
+							trade
+								? 'Give'
+								: equipMode
+									? equipMode.mode === 'equip'
+										? 'Equip'
+										: 'Unequip'
+									: 'Drop',
+						],
 						['ESC', 'Cancel'],
 					]
 				: context === 'WORLD'
@@ -369,6 +390,8 @@ export const CharacterSheetScreen = () => {
 							['1-4', 'Character'],
 							['T', 'Trade'],
 							['D', 'Drop'],
+							['E', 'Equip'],
+							['U', 'Unequip'],
 							['X / M / ESC', 'Return to Map'],
 						]
 					: [['ESC', 'Return to Roster']]
