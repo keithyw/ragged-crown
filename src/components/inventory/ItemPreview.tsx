@@ -22,9 +22,16 @@ export const ItemPreview = ({
 	onClose,
 	onTrade,
 	onDrop,
+	equipped,
+	onEquip,
+	onUnequip,
 }: {
 	entry: InventoryEntry
 	onClose: () => void
+	/** Whether this entry is equipped. Equip or Unequip shows when given. */
+	equipped?: boolean
+	onEquip?: () => void
+	onUnequip?: () => void
 	/** Trade and Drop are offered only when these are given. */
 	onTrade?: () => void
 	onDrop?: () => void
@@ -47,10 +54,12 @@ export const ItemPreview = ({
 			if (key === 'Escape') onClose()
 			else if (k === 't') onTrade?.()
 			else if (k === 'd' && canDrop) onDrop?.()
+			else if (k === 'e' && !equipped) onEquip?.()
+			else if (k === 'u' && equipped) onUnequip?.()
 			return true
 		})
 		return () => unbind()
-	}, [onClose, onTrade, onDrop, canDrop])
+	}, [onClose, onTrade, onDrop, canDrop, equipped, onEquip, onUnequip])
 
 	const quantity = entry.quantity ?? 1
 	const weapon = def?.kind === 'weapon' ? def : undefined
@@ -128,8 +137,26 @@ export const ItemPreview = ({
 					</dl>
 				)}
 
-				{(onTrade || onDrop) && (
+				{(onTrade || onDrop || onEquip || onUnequip) && (
 					<div className='flex gap-2'>
+						{onEquip && !equipped && (
+							<button
+								type='button'
+								onClick={onEquip}
+								className='rounded border border-slate-700 bg-slate-800 px-3 py-1 text-xs font-bold text-slate-200 hover:border-amber-500'
+							>
+								[ E ] Equip
+							</button>
+						)}
+						{onUnequip && equipped && (
+							<button
+								type='button'
+								onClick={onUnequip}
+								className='rounded border border-slate-700 bg-slate-800 px-3 py-1 text-xs font-bold text-slate-200 hover:border-amber-500'
+							>
+								[ U ] Unequip
+							</button>
+						)}
 						{onTrade && (
 							<button
 								type='button'

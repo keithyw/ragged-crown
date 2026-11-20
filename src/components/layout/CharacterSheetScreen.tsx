@@ -15,6 +15,9 @@ type TradeState =
 // Dropping ([Inventory 22]): pick an item, then confirm.
 type DropState = null | { step: 'item' } | { step: 'confirm'; uid: string }
 
+// Equipping and unequipping: pick an entry (the preview's buttons skip this).
+type EquipState = null | { mode: 'equip' | 'unequip' }
+
 export const CharacterSheetScreen = () => {
 	const setScreen = useGameStore((state) => state.setScreen)
 	const inspectedId = useGameStore((state) => state.inspectedCharacterId)
@@ -54,6 +57,7 @@ export const CharacterSheetScreen = () => {
 	}
 
 	const [drop, setDrop] = useState<DropState>(null)
+	const [equipMode, setEquipMode] = useState<EquipState>(null)
 	const items = useContentStore((state) => state.items)
 
 	// The quest-item check comes before the confirmation.
@@ -67,6 +71,33 @@ export const CharacterSheetScreen = () => {
 				setDrop({ step: 'confirm', uid })
 				setNotice('')
 			}
+		},
+		[character],
+	)
+
+	// Shared by the E and U keys and the preview's buttons. Equipping runs the
+	// engine's checks and says why when one fails; unequipping has none.
+	const doEquip = useCallback(
+		(uid: string | undefined) => {
+			if (!character || !uid) return
+			const problem = getGameEngine().equipItem(character.id, uid)
+			if (problem) {
+				setNotice(problem)
+				return
+			}
+			showToast()
+			setEquipMode(null)
+			setNotice('')
+		},
+		[character],
+	)
+
+	const doUnequip = useCallback(
+		(uid: string | undefined) => {
+			if (!character || !uid) return
+			if (getGameEngine().unequipItem(character.id, uid)) showToast()
+			setEquipMode(null)
+			setNotice('')
 		},
 		[character],
 	)
@@ -193,6 +224,23 @@ export const CharacterSheetScreen = () => {
 				return true
 			}
 
+			if (equipMode) {
+				const entries = character?.inventory ?? []
+				if (key === 'Escape') {
+					setEquipMode(null)
+					setNotice('')
+				} else if (key === 'ArrowLeft' || key === 'ArrowUp') {
+					setItemCursor((c) => Math.max(0, c - 1))
+				} else if (key === 'ArrowRight' || key === 'ArrowDown') {
+					setItemCursor((c) => Math.min(entries.length - 1, c + 1))
+				} else if (key === 'Enter') {
+					const uid = entries[itemCursor]?.uid
+					if (equipMode.mode === 'equip') doEquip(uid)
+					else doUnequip(uid)
+				}
+				return true
+			}
+
 			if (drop) {
 				const entries = character?.inventory ?? []
 				if (key === 'Escape') {
@@ -271,6 +319,9 @@ export const CharacterSheetScreen = () => {
 		showDeleteConfirm,
 		trade,
 		drop,
+		equipMode,
+		doEquip,
+		doUnequip,
 		itemCursor,
 		pickTradeItem,
 		pickDropItem,
@@ -389,6 +440,11 @@ export const CharacterSheetScreen = () => {
 						}}
 						onTrade={context === 'WORLD' ? (e) => startTrade(e.uid) : undefined}
 						onDrop={context === 'WORLD' ? (e) => startDrop(e.uid) : undefined}
+						equipment={character.equipment}
+						onEquip={context === 'WORLD' ? (e) => doEquip(e.uid) : undefined}
+						onUnequip={
+							context === 'WORLD' ? (e) => doUnequip(e.uid) : undefined
+						}
 						selecting={
 							trade?.step === 'item'
 								? {
@@ -400,7 +456,15 @@ export const CharacterSheetScreen = () => {
 											cursor: itemCursor,
 											onPick: (entry) => pickDropItem(entry.uid),
 										}
-									: undefined
+									: equipMode
+										? {
+												cursor: itemCursor,
+												onPick: (entry) =>
+													equipMode.mode === 'equip'
+														? doEquip(entry.uid)
+														: doUnequip(entry.uid),
+											}
+										: undefined
 						}
 					/>
 					{/* Messages: reserved height so the layout doesn't jump */}

@@ -36,6 +36,35 @@ export interface InventoryEntry {
 	quantity?: number
 }
 
+/**
+ * Where a piece can be equipped (tools DATA-MODEL.md section 7, [Inventory 37]).
+ * One slot per armor `type`, except 10 rings (fingers) and 2 earrings. `hand1`
+ * and `hand2` hold weapons; a shield has its own slot. No primary hand.
+ */
+export type EquipmentSlot =
+	| 'head'
+	| 'chest'
+	| 'legs'
+	| 'hands'
+	| 'wrists'
+	| 'feet'
+	| 'shoulders'
+	| 'belt'
+	| 'cloak'
+	| 'shield'
+	| 'neck'
+	| 'brooch'
+	| `ring${1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10}`
+	| `earring${1 | 2}`
+	| 'hand1'
+	| 'hand2'
+
+/**
+ * What a character has equipped: slot to the `uid` of an inventory entry. A
+ * piece never leaves the inventory; this map is only the mark.
+ */
+export type Equipment = Partial<Record<EquipmentSlot, string>>
+
 /** An item waiting to be handed out by a GIVE_ITEM interaction ([Game 17]). */
 export interface PoolItem {
 	itemId: string
@@ -63,4 +92,5 @@ export interface PlayerCharacter {
 	portrait?: string
 	npcDetails?: NpcProfile
 	inventory?: InventoryEntry[]
+	equipment?: Equipment
 }

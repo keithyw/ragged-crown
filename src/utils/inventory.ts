@@ -1,5 +1,6 @@
 import type { CarriedDef } from '@shared/types'
 import type { InventoryEntry, PlayerCharacter, PoolItem } from '@/types'
+import { pruneEquipment } from './equipment'
 
 /** Pounds a character can carry per point of strength ([Game 17]; may be raised). */
 export const CARRY_PER_STRENGTH = 20
@@ -82,14 +83,15 @@ export const addToInventory = (
 	return { ...character, inventory }
 }
 
-/** The character without one inventory entry (a trade or a drop). */
+/** The character without one inventory entry (a trade or a drop), and its equipped mark. */
 export const removeFromInventory = (
 	character: PlayerCharacter,
 	uid: string,
-): PlayerCharacter => ({
-	...character,
-	inventory: (character.inventory ?? []).filter((e) => e.uid !== uid),
-})
+): PlayerCharacter =>
+	pruneEquipment({
+		...character,
+		inventory: (character.inventory ?? []).filter((e) => e.uid !== uid),
+	})
 
 /**
  * Takes up to `quantity` of a def out of a character's piles, in order, and
@@ -114,7 +116,7 @@ export const takeFromInventory = (
 		if (take < have) inventory.push({ ...entry, quantity: have - take })
 	}
 	return {
-		character: { ...character, inventory },
+		character: pruneEquipment({ ...character, inventory }),
 		taken: quantity - remaining,
 	}
 }

@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { SpriteCanvas } from '@/components/map/SpriteCanvas'
 import { useContentStore } from '@/store/useContentStore'
-import type { InventoryEntry } from '@/types'
+import type { Equipment, InventoryEntry } from '@/types'
 import { cn } from '@/utils'
 import { ItemPreview } from './ItemPreview'
 
@@ -14,8 +14,16 @@ export const InventoryPanel = ({
 	selecting,
 	onTrade,
 	onDrop,
+	equipment,
+	onEquip,
+	onUnequip,
 }: {
 	entries: InventoryEntry[]
+	/** What is equipped; an equipped cell gets a mark. */
+	equipment?: Equipment
+	/** The preview offers Equip or Unequip (weapons and armor only) when given. */
+	onEquip?: (entry: InventoryEntry) => void
+	onUnequip?: (entry: InventoryEntry) => void
 	/** Total carried and the most that can be carried; shown below the grid. */
 	weight?: { carried: number; limit: number }
 	/** The preview offers Trade and Drop only when these are given. */
@@ -28,6 +36,11 @@ export const InventoryPanel = ({
 	const sprites = useContentStore((state) => state.sprites)
 	const [selectedUid, setSelectedUid] = useState<string | null>(null)
 	const selected = entries.find((e) => e.uid === selectedUid)
+	const equippedUids = new Set(Object.values(equipment ?? {}))
+	// The store types every item as ItemDef; weapons and armor differ by kind.
+	const selectedKind: string | undefined =
+		selected && items.get(selected.itemId)?.kind
+	const canEquip = selectedKind === 'weapon' || selectedKind === 'armor'
 
 	return (
 		<div className='flex h-0 min-h-96 flex-1 flex-col rounded border border-slate-800 bg-slate-900/40 p-5'>
@@ -66,6 +79,14 @@ export const InventoryPanel = ({
 								) : (
 									<span className='text-lg text-slate-300'>
 										{def?.glyph.symbol ?? '?'}
+									</span>
+								)}
+								{equippedUids.has(entry.uid) && (
+									<span
+										title='Equipped'
+										className='absolute top-0.5 left-0.5 rounded bg-amber-500 px-1 text-[10px] leading-tight font-bold text-slate-950'
+									>
+										E
 									</span>
 								)}
 								{entry.quantity !== undefined && (
@@ -117,6 +138,23 @@ export const InventoryPanel = ({
 							setSelectedUid(null)
 							onDrop(selected)
 						})
+					}
+					equipped={equippedUids.has(selected.uid)}
+					onEquip={
+						canEquip && onEquip
+							? () => {
+									setSelectedUid(null)
+									onEquip(selected)
+								}
+							: undefined
+					}
+					onUnequip={
+						canEquip && onUnequip
+							? () => {
+									setSelectedUid(null)
+									onUnequip(selected)
+								}
+							: undefined
 					}
 				/>
 			)}

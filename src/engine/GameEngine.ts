@@ -24,12 +24,15 @@ import {
 	addPlacement,
 	addToInventory,
 	cellKey,
+	equip,
 	findPortalAt,
 	fitsInInventory,
 	generateSaveGameId,
 	lookupPlacementDef,
 	removeFromInventory,
 	removePlacement,
+	slotOf,
+	unequip,
 } from '@/utils'
 
 // TODO [Game 7]: regions (dialog files) and zones are keyed differently until
@@ -485,6 +488,42 @@ export class GameEngine extends BaseGameEngine {
 			`> ${character.name} drops ${def?.name ?? 'an item'}${entry.quantity && entry.quantity > 1 ? ` x${entry.quantity}` : ''}.`,
 		)
 		return 'dropped'
+	}
+
+	/**
+	 * Equips a weapon or armor entry ([Inventory 40], [Inventory 41]). Returns
+	 * why it can't be, or null when it was.
+	 */
+	public equipItem(characterId: string, uid: string): string | null {
+		const store = useGameStore.getState()
+		const character = store.party.find((c) => c.id === characterId)
+		if (!character) return 'No such character.'
+		const items = useContentStore.getState().items
+		const result = equip(character, uid, items)
+		if ('problem' in result) return result.problem
+		store.setParty(
+			store.party.map((c) => (c.id === characterId ? result.character : c)),
+		)
+		const entry = character.inventory?.find((e) => e.uid === uid)
+		store.addLog(
+			`> ${character.name} equips ${items.get(entry?.itemId ?? '')?.name ?? 'an item'}.`,
+		)
+		return null
+	}
+
+	/** Takes a piece off. No checks; an entry that isn't equipped does nothing. */
+	public unequipItem(characterId: string, uid: string): boolean {
+		const store = useGameStore.getState()
+		const character = store.party.find((c) => c.id === characterId)
+		if (!character || !slotOf(character, uid)) return false
+		const entry = character.inventory?.find((e) => e.uid === uid)
+		store.setParty(
+			store.party.map((c) => (c.id === characterId ? unequip(c, uid) : c)),
+		)
+		store.addLog(
+			`> ${character.name} takes off ${useContentStore.getState().items.get(entry?.itemId ?? '')?.name ?? 'an item'}.`,
+		)
+		return true
 	}
 
 	/**
