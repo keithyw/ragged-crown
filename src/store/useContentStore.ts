@@ -10,7 +10,7 @@ interface ContentStore {
 	tiles: ById<TileDef>
 	items: ById<ItemDef>
 	sprites: ById<Sprite>
-	/** Objects, creatures and portals share the `entities` collection. */
+	/** Objects and portals share the `entities` collection. */
 	entities: ById<EntityDef>
 	isLoaded: boolean
 	loadDefs: () => Promise<void>

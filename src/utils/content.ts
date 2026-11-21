@@ -1,6 +1,5 @@
 import type {
 	CellKey,
-	CreatureDef,
 	ItemDef,
 	ObjectDef,
 	Placement,
@@ -13,7 +12,7 @@ import type { StoredDoc } from '@/services/ContentSource'
 // types are types only. "x,y", x first, no spaces; only build keys with this.
 export const cellKey = (x: number, y: number): CellKey => `${x},${y}`
 
-export type EntityDef = ObjectDef | CreatureDef | PortalDef
+export type EntityDef = ObjectDef | PortalDef
 export type PlacedDef = EntityDef | ItemDef
 
 /** The loaded defs, keyed by `_id` (see `useContentStore`). */
