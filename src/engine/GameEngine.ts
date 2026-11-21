@@ -70,16 +70,15 @@ export class GameEngine extends BaseGameEngine {
 
 		try {
 			const characters = CharacterStorageService.getAll()
-			const [, startingZone, monsters] = await Promise.all([
+			const [, startingZone] = await Promise.all([
 				useContentStore.getState().loadDefs(),
 				zoneLoaderService.loadByDisplayId(regionToZoneId('starter_town')),
-				EncounterService.fetchMonsters(),
 			])
 			useCharacterCreationStore.setState({
 				createdCharacters: characters,
 			})
 			useGameStore.getState().setCurrentZone(startingZone)
-			useGameStore.setState({ isMapLoading: false, monsters })
+			useGameStore.setState({ isMapLoading: false })
 		} catch (e) {
 			console.error(e)
 		}

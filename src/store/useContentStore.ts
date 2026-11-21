@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import type { ItemDef, TileDef } from '@shared/types'
+import type { ItemDef, MonsterDef, TileDef } from '@shared/types'
 import type { Sprite } from '@/types'
 import { contentSource, type StoredDoc } from '@/services/ContentSource'
 import type { EntityDef } from '@/utils/content'
@@ -12,6 +12,7 @@ interface ContentStore {
 	sprites: ById<Sprite>
 	/** Objects and portals share the `entities` collection. */
 	entities: ById<EntityDef>
+	monsters: ById<MonsterDef>
 	isLoaded: boolean
 	loadDefs: () => Promise<void>
 }
@@ -24,12 +25,14 @@ export const useContentStore = create<ContentStore>((set) => ({
 	items: new Map(),
 	sprites: new Map(),
 	entities: new Map(),
+	monsters: new Map(),
 	isLoaded: false,
 	loadDefs: async () => {
-		const [tiles, items, entities, sprites] = await Promise.all([
+		const [tiles, items, entities, monsters, sprites] = await Promise.all([
 			contentSource.getAll<TileDef>('tile_defs'),
 			contentSource.getAll<ItemDef>('items'),
 			contentSource.getAll<EntityDef>('entities'),
+			contentSource.getAll<MonsterDef>('monsters'),
 			contentSource.getAll<Sprite>('sprites'),
 		])
 		set({
@@ -37,6 +40,7 @@ export const useContentStore = create<ContentStore>((set) => ({
 			items: byId(items),
 			sprites: byId(sprites),
 			entities: byId(entities),
+			monsters: byId(monsters),
 			isLoaded: true,
 		})
 	},

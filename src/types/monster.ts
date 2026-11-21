@@ -1,16 +1,7 @@
 import type { ResourceBar } from '@/types'
-export interface Monster {
-	id: string
-	name: string
-	level: number
-	maxHp: number
-	portraitSymbol: string // ASCII placeholder or sprite key
-	color?: string
-}
-
 export interface ActiveMonster {
 	id: string // Unique instance ID (e.g. "goblin-1", "goblin-2")
-	templateId: string // References base monster definition
+	templateId: string // The monster def's _id (useContentStore.monsters)
 	name: string
 	hp: ResourceBar // Individual current & max HP
 	// Future expansion: equipment, status effects, custom stats, loot

@@ -1,3 +1,5 @@
+import { Layer } from '@/components/map/MapSquare'
+import { useContentStore } from '@/store/useContentStore'
 import { useGameStore } from '@/store/useGameStore'
 import type { ActiveEncounter, MonsterGroup } from '@/types'
 import { cn } from '@/utils'
@@ -16,6 +18,9 @@ export const MonsterGroupSection = ({
 }: MonsterGroupSectionProps) => {
 	const subPhase = useGameStore((state) => state.subPhase)
 	const isTargeting = subPhase === 'TARGET_SELECT'
+	const leadDef = useContentStore((state) =>
+		state.monsters.get(leadGroup.monsters[0]?.templateId ?? ''),
+	)
 
 	// Partition groups while preserving original array indices
 	const indexedGroups = activeEncounter.groups.map((group, originalIndex) => ({
@@ -54,9 +59,15 @@ export const MonsterGroupSection = ({
 		<div className='flex items-start gap-4'>
 			{/* Lead Monster Portrait Box */}
 			<div className='flex h-24 w-24 shrink-0 flex-col items-center justify-center rounded border-2 border-amber-500/50 bg-slate-900'>
-				<span className='font-mono text-3xl font-bold text-amber-400'>
-					{leadGroup.name.charAt(0)}
-				</span>
+				{leadDef ? (
+					<div className='h-12 w-12 font-mono text-3xl font-bold'>
+						<Layer def={leadDef} />
+					</div>
+				) : (
+					<span className='font-mono text-3xl font-bold text-amber-400'>
+						{leadGroup.name.charAt(0)}
+					</span>
+				)}
 				<span className='mt-1 max-w-20 truncate font-mono text-[10px] text-slate-400'>
 					{leadGroup.name}
 				</span>

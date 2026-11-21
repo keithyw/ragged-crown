@@ -7,7 +7,6 @@ import type {
 	GetPrompt,
 	GivePool,
 	OpenPrompt,
-	Monster,
 	PlanningSubPhase,
 	PlayerCharacter,
 	Position,
@@ -36,7 +35,6 @@ interface GameState {
 	inspectedCharacterId: string | null
 	inspectedContext: CharacterSheetContext
 	isMapLoading: boolean
-	monsters: Monster[]
 	playerPosition: Position
 	party: PlayerCharacter[]
 	savedGame: SaveGameDocument | null
@@ -79,7 +77,6 @@ interface GameState {
 		characterId: string | null,
 		context?: CharacterSheetContext,
 	) => void
-	setMonsters: (monsters: Monster[]) => void
 	setParty: (party: PlayerCharacter[]) => void
 	setSavedGame: (game: SaveGameDocument) => void
 	setSubPhase: (phase: PlanningSubPhase) => void
@@ -114,7 +111,6 @@ export const useGameStore = create<GameState>((set) => ({
 	logs: [],
 	latestLogCount: 0,
 	newCommand: true,
-	monsters: [],
 	playerPosition: { x: 3, y: 3 },
 	party: [],
 	savedGame: null,
@@ -177,7 +173,6 @@ export const useGameStore = create<GameState>((set) => ({
 	setGivePool: (givePool) => set({ givePool }),
 	setOpenPrompt: (openPrompt) => set({ openPrompt }),
 	setGetPrompt: (getPrompt) => set({ getPrompt }),
-	setMonsters: (monsters) => set({ monsters }),
 	setParty: (party) => set({ party }),
 	setPlayerPosition: (position: Position) => set({ playerPosition: position }),
 	setSavedGame: (game) => set({ savedGame: game }),

@@ -14,7 +14,7 @@ interface MapSquareProps {
 }
 
 /** A def's sprite if it has one that exists, otherwise its glyph. */
-const Layer = ({ def }: { def: Appearance }) => {
+export const Layer = ({ def }: { def: Appearance }) => {
 	const sprite = useContentStore((s) => s.sprites.get(def.spriteId ?? ''))
 	return sprite ? (
 		<SpriteCanvas sprite={sprite} className='h-full w-full' />

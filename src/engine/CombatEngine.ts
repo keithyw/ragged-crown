@@ -1,4 +1,5 @@
 import { inputManager } from '@/engine'
+import { useContentStore } from '@/store/useContentStore'
 import { useGameStore } from '@/store/useGameStore'
 import { zoneLoaderService } from '@/services/ZoneLoaderService'
 import {
@@ -6,11 +7,11 @@ import {
 	type ActiveEncounter,
 	type ActiveMonster,
 	type CombatActionType,
-	type Monster,
 	type MonsterGroup,
 	type QueuedAction,
 } from '@/types'
-import type { TileDef, Zone } from '@shared/types'
+import type { MonsterDef, TileDef, Zone } from '@shared/types'
+import type { StoredDoc } from '@/services/ContentSource'
 
 export class CombatEngine {
 	private unbindInput?: () => void
@@ -178,19 +179,18 @@ export class CombatEngine {
 	}
 
 	public createMonsterGroup(
-		monsterTemplate: Monster,
+		monsterTemplate: StoredDoc<MonsterDef>,
 		count: number,
 		inMeleeRange: boolean,
 	): MonsterGroup {
 		const monsters: ActiveMonster[] = []
 
 		for (let i = 0; i < count; i++) {
-			// Future: Evaluate variable HP roll (e.g. 1d6) here
-			const hpValue = monsterTemplate.maxHp || 8
+			const hpValue = monsterTemplate.hp
 
 			monsters.push({
 				id: `${monsterTemplate.id}-${Date.now()}-${i}`,
-				templateId: monsterTemplate.id,
+				templateId: monsterTemplate._id,
 				name: `${monsterTemplate.name} #${i + 1}`,
 				hp: {
 					current: hpValue,
@@ -209,13 +209,19 @@ export class CombatEngine {
 	}
 
 	public generateEncounter(zone: Zone, tile: TileDef): ActiveEncounter {
-		const store = useGameStore.getState()
-		const monsterTemplates = store.monsters
+		// Still the hard-coded groups; the pool comes from the difficulty
+		// configuration in [Combat 8]. Defs are found by their user-facing `id`.
+		const monsterTemplates = [...useContentStore.getState().monsters.values()]
+		const findMonster = (id: string) => {
+			const def = monsterTemplates.find((m) => m.id === id)
+			if (!def) console.warn(`No monster def with id '${id}'`)
+			return def
+		}
 
 		// need to eventually convert this into something that uses
 		// a category based system
 		const isRoad = tile.name.toLowerCase().includes('road')
-		const primaryDefId = isRoad ? 'bandit' : 'goblin'
+		const primaryDefId = isRoad ? 'BANDIT' : 'GOBLIN'
 		const primaryCount = isRoad
 			? Math.floor(Math.random() * 3) + 1
 			: Math.floor(Math.random() * 4) + 1
@@ -223,25 +229,23 @@ export class CombatEngine {
 		const groups: MonsterGroup[] = []
 
 		// Instantiate primary group
-		const monster = monsterTemplates.find((m) => m.id === primaryDefId)
-		const primaryGroup = this.createMonsterGroup(
-			monster as Monster,
-			primaryCount,
-			true,
-		)
-		if (primaryGroup) groups.push(primaryGroup)
+		const monster = findMonster(primaryDefId)
+		if (monster) {
+			groups.push(this.createMonsterGroup(monster, primaryCount, true))
+		}
 
 		// 30% chance for secondary ranged group
 		if (Math.random() < 0.3) {
-			const secondMonster = monsterTemplates.find(
-				(m) => m.id === 'giant_spider',
-			)
-			const secondaryGroup = this.createMonsterGroup(
-				secondMonster as Monster,
-				Math.floor(Math.random() * 2) + 1,
-				false,
-			)
-			if (secondaryGroup) groups.push(secondaryGroup)
+			const secondMonster = findMonster('GIANT_SPIDER')
+			if (secondMonster) {
+				groups.push(
+					this.createMonsterGroup(
+						secondMonster,
+						Math.floor(Math.random() * 2) + 1,
+						false,
+					),
+				)
+			}
 		}
 
 		return {
