@@ -142,6 +142,7 @@ export const CharacterSheetScreen = () => {
 				trade.toNumber,
 			)
 			if (result === 'too_heavy') setNotice('Too heavy!')
+			else if (result === 'equipped') setNotice('Unequip it first.')
 			else {
 				if (result === 'traded') showToast()
 				setTrade(null)
@@ -202,6 +203,7 @@ export const CharacterSheetScreen = () => {
 							Number(key),
 						)
 						if (result === 'too_heavy') setNotice('Too heavy!')
+						else if (result === 'equipped') setNotice('Unequip it first.')
 						else {
 							if (result === 'traded') showToast()
 							endTrade()

@@ -154,6 +154,10 @@ export const useGameStore = create<GameState>((set) => ({
 				return {
 					...p,
 					hp: { ...p.hp, current: nextHp },
+					debuffs:
+						nextHp === 0 && !p.debuffs.includes('dead')
+							? [...p.debuffs, 'dead']
+							: p.debuffs,
 				}
 			}),
 		})),

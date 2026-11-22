@@ -36,6 +36,11 @@ export class CombatEngine {
 		store.setCombatPhase('PLANNING')
 		store.setSubPhase('ACTION_SELECT')
 		store.setSelectedTargetIndex(-1)
+		// A downed character gets no turn: start at the first one still up.
+		const first = store.party.findIndex(
+			(p, i) => i >= store.activeCharacter && p.hp.current > 0,
+		)
+		if (first >= 0) store.setActiveCharacter(first)
 		this.bindPlanningInputs()
 	}
 
@@ -331,8 +336,11 @@ export class CombatEngine {
 		store.setSelectedTargetIndex(-1)
 
 		// Advance actor or finish planning phase
-		const nextIndex = store.activeCharacter + 1
-		if (nextIndex < party.length) {
+		// Downed characters are skipped.
+		const nextIndex = party.findIndex(
+			(p, i) => i > store.activeCharacter && p.hp.current > 0,
+		)
+		if (nextIndex >= 0) {
 			store.setActiveCharacter(nextIndex)
 			this.bindPlanningInputs()
 		} else {

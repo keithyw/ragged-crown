@@ -450,7 +450,7 @@ export class GameEngine extends BaseGameEngine {
 		fromId: string,
 		uid: string,
 		partyNumber: number,
-	): 'traded' | 'too_heavy' | 'invalid' {
+	): 'traded' | 'too_heavy' | 'equipped' | 'invalid' {
 		const store = useGameStore.getState()
 		const to = [...store.party].sort((a, b) => a.order - b.order)[
 			partyNumber - 1
@@ -460,6 +460,9 @@ export class GameEngine extends BaseGameEngine {
 		const items = useContentStore.getState().items
 		const def = entry ? items.get(entry.itemId) : undefined
 		if (!from || !to || !entry || !def || from.id === to.id) return 'invalid'
+
+		// An equipped piece has to be unequipped first.
+		if (slotOf(from, uid)) return 'equipped'
 
 		const quantity = entry.quantity ?? 1
 		if (!fitsInInventory(to, def, quantity, items)) return 'too_heavy'
