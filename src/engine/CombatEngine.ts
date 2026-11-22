@@ -373,7 +373,13 @@ export class CombatEngine {
 			if (livingMembers.length === 0) break
 			const target =
 				livingMembers[Math.floor(Math.random() * livingMembers.length)]
-			const damage = Math.floor(Math.random() * 4) + 1
+			// The def's base damage ([Monsters 7]); the old flat 1d4 if it is gone.
+			const roll = useContentStore.getState().monsters.get(m.templateId)
+				?.damage ?? { count: 1, die: 4 }
+			let damage = 0
+			for (let i = 0; i < roll.count; i++) {
+				damage += Math.floor(Math.random() * roll.die) + 1
+			}
 
 			store.addLog(`> ${m.name} hits ${target.name} for ${damage} damage!`)
 			store.damageCharacter(target.id, damage)
