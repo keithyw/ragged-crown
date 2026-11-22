@@ -253,6 +253,23 @@ export class GameEngine extends BaseGameEngine {
 			setParty: (party) => get().setParty(party),
 			openGivePool: (pos, items) => get().setGivePool({ pos, items }),
 			getDifficulty: () => zoneLoaderService.configFor(get().currentZone),
+			startEncounter: (groups, barrier) => {
+				const zone = get().currentZone
+				const encounter = zone && combatEngine.buildSetEncounter(zone, groups)
+				if (!encounter) return
+				this.unbindWorldInput?.()
+				get().setEncounter(encounter)
+				combatEngine.enterCombat((outcome) => {
+					// Winning clears the barrier; fleeing leaves it for another try.
+					if (outcome === 'won') {
+						const g = useGameStore.getState()
+						g.setRuntimePlacements(
+							removePlacement(g.runtimePlacements, barrier.pos, barrier.uid),
+						)
+					}
+					this.enterWorldMode()
+				})
+			},
 		}
 	}
 

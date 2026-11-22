@@ -10,16 +10,16 @@ import {
 	type MonsterGroup,
 	type QueuedAction,
 } from '@/types'
-import type { MonsterDef, TileDef, Zone } from '@shared/types'
+import type { EncounterGroup, MonsterDef, TileDef, Zone } from '@shared/types'
 import type { StoredDoc } from '@/services/ContentSource'
 
 export class CombatEngine {
 	private unbindInput?: () => void
-	private onExitCombat?: () => void
+	private onExitCombat?: (outcome: 'won' | 'fled') => void
 
 	private pendingActionType: CombatActionType | null = null
 
-	public enterCombat(onExitCombat?: () => void): void {
+	public enterCombat(onExitCombat?: (outcome: 'won' | 'fled') => void): void {
 		if (onExitCombat) {
 			this.onExitCombat = onExitCombat
 		}
@@ -257,6 +257,45 @@ export class CombatEngine {
 		}
 	}
 
+	/**
+	 * A set encounter ([Combat 7]): the placement's monster groups, each in
+	 * melee range. A blank count is rolled from the def's numberAppearing; a
+	 * unique monster is always one.
+	 */
+	public buildSetEncounter(
+		zone: Zone,
+		groups: EncounterGroup[],
+	): ActiveEncounter | undefined {
+		const defs = useContentStore.getState().monsters
+		const built: MonsterGroup[] = []
+		for (const g of groups) {
+			const def = defs.get(g.defId)
+			if (!def) {
+				console.warn(`No monster def with _id '${g.defId}'`)
+				continue
+			}
+			let count = g.count
+			if (count === undefined) {
+				count = 1
+				if (!def.isUnique) {
+					count = 0
+					for (let i = 0; i < def.numberAppearing.count; i++) {
+						count += Math.floor(Math.random() * def.numberAppearing.die) + 1
+					}
+				}
+			}
+			built.push(this.createMonsterGroup(def, count, true))
+		}
+		if (built.length === 0) return undefined
+		return {
+			id: `enc-${Date.now()}`,
+			zoneId: zone.id,
+			difficultyLevel: zoneLoaderService.difficultyLevel(zone),
+			groups: built,
+			phase: 'INIT',
+		}
+	}
+
 	private cancelTargetSelection(): void {
 		const store = useGameStore.getState()
 		this.pendingActionType = null
@@ -469,7 +508,7 @@ export class CombatEngine {
 		store.setEncounter(null)
 		store.setScreen('WORLD_MAP')
 		store.clearActionQueue()
-		this.onExitCombat?.()
+		this.onExitCombat?.('won')
 	}
 
 	public flee(): void {
@@ -478,7 +517,7 @@ export class CombatEngine {
 		store.setEncounter(null)
 		store.setScreen('WORLD_MAP')
 		store.addLog('> You fled from combat!')
-		this.onExitCombat?.()
+		this.onExitCombat?.('fled')
 	}
 
 	public cleanup(): void {

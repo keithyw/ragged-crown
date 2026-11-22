@@ -3,6 +3,7 @@ import type {
 	CellKey,
 	Condition,
 	DifficultyConfig,
+	EncounterGroup,
 	InteractionType,
 	Kind,
 	MoveResult,
@@ -43,6 +44,14 @@ export interface InteractionHost {
 	openGivePool: (pos: Position, items: PoolItem[]) => void
 	/** The current zone's difficulty configuration, for rolling qualifiers. */
 	getDifficulty: () => DifficultyConfig | undefined
+	/**
+	 * Starts a set encounter ([Combat 7]). The barrier placement is removed
+	 * when the party wins; a flee leaves it where it is.
+	 */
+	startEncounter: (
+		groups: EncounterGroup[],
+		barrier: { pos: Position; uid: string },
+	) => void
 }
 
 export class InteractionEngine {
@@ -300,6 +309,18 @@ export class InteractionEngine {
 			case 'SPAWN':
 				this.spawn(action, placement, pos, host)
 				return
+			case 'SPAWN_MONSTER': {
+				const value = action.slot
+					? placement.customValues?.[action.slot]
+					: undefined
+				const groups = value?.type === 'SPAWN_MONSTER' ? value.groups : []
+				if (!groups?.length) {
+					console.warn('[Interaction] SPAWN_MONSTER has no groups')
+					return
+				}
+				host.startEncounter(groups, { pos, uid: placement.uid })
+				return
+			}
 			default:
 				console.warn(`[Interaction] action ${action.type} is not implemented`)
 		}

@@ -57,6 +57,7 @@ export const OverheadMap = ({ title = 'Overhead View' }: OverheadMapProps) => {
 	const tiles = useContentStore((state) => state.tiles)
 	const items = useContentStore((state) => state.items)
 	const entities = useContentStore((state) => state.entities)
+	const monsters = useContentStore((state) => state.monsters)
 
 	const grid = useMemo(() => {
 		return currentZone
@@ -64,9 +65,10 @@ export const OverheadMap = ({ title = 'Overhead View' }: OverheadMapProps) => {
 					{ tiles, items, entities },
 					currentZone,
 					runtimePlacements,
+					monsters,
 				)
 			: []
-	}, [currentZone, runtimePlacements, tiles, items, entities])
+	}, [currentZone, runtimePlacements, tiles, items, entities, monsters])
 
 	const { width, height } = currentZone?.dimensions || { width: 0, height: 0 }
 	const cellPx = SPRITE_SIZE * useMapScale(width, height)
