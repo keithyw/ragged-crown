@@ -4,7 +4,7 @@ import { inputManager, getCharacterEngine, getGameEngine } from '@/engine'
 import { useCharacterCreationStore } from '@/store/useCharacterCreationStore'
 import { useContentStore } from '@/store/useContentStore'
 import { useGameStore } from '@/store/useGameStore'
-import { carryLimit, encumbrance, qualifiedName } from '@/utils'
+import { carryLimit, defenseRating, encumbrance, qualifiedName } from '@/utils'
 
 // Trading ([Inventory 21]): first the receiver (a party number), then the item.
 type TradeState =
@@ -447,6 +447,12 @@ export const CharacterSheetScreen = () => {
 							<span className='text-slate-500'>SPELL POINTS:</span>
 							<span className='font-bold text-sky-400'>
 								{character.sp.current} / {character.sp.max}
+							</span>
+						</div>
+						<div className='flex justify-between border-b border-slate-800/60 pb-1'>
+							<span className='text-slate-500'>DEFENSE:</span>
+							<span className='font-bold text-slate-200'>
+								{defenseRating(character, items)}
 							</span>
 						</div>
 					</div>

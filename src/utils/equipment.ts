@@ -198,6 +198,23 @@ export const unequip = (
 	}
 }
 
+/**
+ * A character's defense rating ([Inventory 43]): the sum of the `defenseValue`
+ * of every armor piece equipped. Computed, never stored, and quality doesn't
+ * change it. Combat reads it too ([Combat 16]).
+ */
+export const defenseRating = (
+	character: PlayerCharacter,
+	defs: Map<string, { kind: string; defenseValue?: number }>,
+): number => {
+	const inventory = character.inventory ?? []
+	return Object.values(character.equipment ?? {}).reduce((sum, uid) => {
+		const entry = inventory.find((e) => e.uid === uid)
+		const def = entry && defs.get(entry.itemId)
+		return def?.kind === 'armor' ? sum + (def.defenseValue ?? 0) : sum
+	}, 0)
+}
+
 /** What a party attack reads of the weapon: dice, name and qualifiers. */
 export type AttackWeapon = {
 	name: string
