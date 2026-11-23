@@ -1,5 +1,6 @@
 import type { Action, CharacterStat } from '@shared/types'
 import type { Attributes, PlayerCharacter } from '@/types'
+import type { ModifierTable } from '@/constants'
 
 export type ModifyAttribute = Extract<Action, { type: 'MODIFY_ATTRIBUTE' }>
 
@@ -70,4 +71,13 @@ export const applyStatChange = (
 	}
 
 	return undefined
+}
+
+/** The modifier a value earns in a `ModifierTable` (constants/attributes.ts). */
+export const tableModifier = (table: ModifierTable, value: number): number => {
+	let modifier = table[0][1]
+	for (const [min, mod] of table) {
+		if (value >= min) modifier = mod
+	}
+	return modifier
 }

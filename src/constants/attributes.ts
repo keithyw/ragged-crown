@@ -1,0 +1,33 @@
+/**
+ * What an attribute's value does in combat, one object per attribute with its
+ * own subfields ([Attributes 1]; strength and speed follow in [Attributes 2]
+ * and [Attributes 3]).
+ *
+ * A table is a list of `[min, modifier]` steps in ascending order: a value
+ * takes the modifier of the highest step whose `min` it reaches, and a value
+ * below the first step takes the first modifier. Attributes have no ceiling,
+ * so the last step covers everything above it.
+ *
+ * The numbers are starting guesses to be tuned by playing. Penalties at the
+ * low end stay small so a starting party survives but still feels like farm
+ * boys; bonuses start at 12 and grow toward 18.
+ */
+export type ModifierTable = readonly (readonly [
+	min: number,
+	modifier: number,
+])[]
+
+export const ATTRIBUTE_EFFECTS = {
+	dexterity: {
+		/** Added to a character's defense rating. */
+		defense: [
+			[1, -2], // 1-3
+			[4, -1], // 4-6
+			[7, 0], // 7-11 (10 is the starting value)
+			[12, 1], // 12-14
+			[15, 2], // 15-16
+			[17, 3], // 17
+			[18, 4], // 18 and up
+		],
+	},
+} as const satisfies Record<string, Record<string, ModifierTable>>
