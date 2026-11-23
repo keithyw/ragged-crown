@@ -1,3 +1,4 @@
+import type { RandomRoll } from '@shared/types'
 import type {
 	Equipment,
 	EquipmentSlot,
@@ -195,6 +196,30 @@ export const unequip = (
 		...character,
 		equipment: without(character.equipment ?? {}, slots),
 	}
+}
+
+/** What a party attack rolls: the dice, and the weapon's name for the log. */
+export type AttackWeapon = { name: string; damage: RandomRoll }
+
+/**
+ * The weapon a character attacks with ([Combat 3]): the first one in `hand1`,
+ * then `hand2`. Dual wielding is not designed ([Combat 20]), so a second
+ * weapon is ignored. Missile and thrown weapons are treated as plain ones.
+ * Undefined when the hands are empty (the caller falls back to bare hands).
+ */
+export const equippedWeapon = (
+	character: PlayerCharacter,
+	defs: Map<string, { kind: string; name: string; damage?: RandomRoll }>,
+): AttackWeapon | undefined => {
+	for (const slot of HAND_SLOTS) {
+		const uid = character.equipment?.[slot]
+		const entry = (character.inventory ?? []).find((e) => e.uid === uid)
+		const def = entry && defs.get(entry.itemId)
+		if (def?.kind === 'weapon' && def.damage) {
+			return { name: def.name, damage: def.damage }
+		}
+	}
+	return undefined
 }
 
 /**

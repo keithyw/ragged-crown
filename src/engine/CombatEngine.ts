@@ -8,8 +8,10 @@ import {
 	type ActiveMonster,
 	type CombatActionType,
 	type MonsterGroup,
+	type PlayerCharacter,
 	type QueuedAction,
 } from '@/types'
+import { equippedWeapon } from '@/utils/equipment'
 import type { EncounterGroup, MonsterDef, TileDef, Zone } from '@shared/types'
 import type { StoredDoc } from '@/services/ContentSource'
 
@@ -373,7 +375,7 @@ export class CombatEngine {
 	}
 
 	private resolvePartyAttack(
-		actorName: string,
+		actor: PlayerCharacter,
 		targetGroupIndex: number,
 	): void {
 		const store = useGameStore.getState()
@@ -386,16 +388,23 @@ export class CombatEngine {
 
 		if (!targetMonster) {
 			store.addLog(
-				`> ${actorName} attacks ${targetGroup.name}, but no targets remain!`,
+				`> ${actor.name} attacks ${targetGroup.name}, but no targets remain!`,
 			)
 			return
 		}
 
-		// Placeholder combat calculation: 1d6 + 2 damage
-		const damage = Math.floor(Math.random() * 6) + 3
+		// The equipped weapon's dice ([Combat 3]); bare hands are 1d4.
+		const weapon = equippedWeapon(actor, useContentStore.getState().items)
+		const roll = weapon?.damage ?? { count: 1, die: 4 }
+		let damage = 0
+		for (let i = 0; i < roll.count; i++) {
+			damage += Math.floor(Math.random() * roll.die) + 1
+		}
 		targetMonster.hp.current = Math.max(0, targetMonster.hp.current - damage)
 		store.addLog(
-			`> ${actorName} attacks ${targetGroup.name} for ${damage} damage!`,
+			weapon
+				? `> ${actor.name} hits ${targetGroup.name} with ${weapon.name} for ${damage} damage!`
+				: `> ${actor.name} punches ${targetGroup.name} for ${damage} damage!`,
 		)
 
 		if (targetMonster.hp.current <= 0) {
@@ -495,7 +504,7 @@ export class CombatEngine {
 
 			if (action.actionType === 'ATTACK') {
 				const targetIdx = action.target?.index ?? 0
-				this.resolvePartyAttack(actor.name, targetIdx)
+				this.resolvePartyAttack(actor, targetIdx)
 			} else if (action.actionType === 'DEFEND') {
 				store.addLog(`> ${actor.name} takes a defensive stance!`)
 			} else if (action.actionType === 'CAST_SPELL') {
