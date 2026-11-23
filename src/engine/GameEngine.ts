@@ -196,6 +196,13 @@ export class GameEngine extends BaseGameEngine {
 					if (!useGameStore.getState().currentZone) return false
 					useGameStore.getState().setGetPrompt({ step: 'direction' })
 					return true
+				case 't':
+				case 'T':
+					// Talk: asks for a direction, Space for the player's own cell
+					// ([Game 25]).
+					if (!useGameStore.getState().currentZone) return false
+					useGameStore.getState().setTalkPrompt({ step: 'direction' })
+					return true
 				case 'c':
 				case 'C': {
 					// First party member by order; cycling members comes later.
@@ -319,6 +326,34 @@ export class GameEngine extends BaseGameEngine {
 			this.interactionHost(),
 			member,
 		)
+	}
+
+	/**
+	 * The talk command, step two ([Game 25]): looks at the cell one step in a
+	 * direction (`0, 0` is the player's own cell). Only an object with a TALK
+	 * interaction answers; anything else is a joke. No character is chosen, so
+	 * HAS_ITEM and TAKE_ITEM search the whole party.
+	 */
+	public talkToward(dx: number, dy: number): void {
+		const store = useGameStore.getState()
+		store.setTalkPrompt(null)
+		const target = {
+			x: store.playerPosition.x + dx,
+			y: store.playerPosition.y + dy,
+		}
+		const stack = store.runtimePlacements[cellKey(target.x, target.y)]
+		const top = stack?.[stack.length - 1]
+		const defs = useContentStore.getState()
+		const host = this.interactionHost()
+		if (
+			top?.defKind !== 'object' ||
+			this.interactiveEngine.requirementFor('TALK', target, defs, host) ===
+				'none'
+		) {
+			store.addLog('> Who are you trying to talk to?')
+			return
+		}
+		this.interactiveEngine.trigger('TALK', target, defs, host)
 	}
 
 	/**

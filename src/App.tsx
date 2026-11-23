@@ -3,6 +3,7 @@ import { CommandList } from '@/components/commands/CommandList'
 import { EncounterViewport } from '@/components/encounter/EncounterViewport'
 import { GiveItemMenu } from '@/components/inventory/GiveItemMenu'
 import { GetPrompt } from '@/components/commands/GetPrompt'
+import { TalkPrompt } from '@/components/commands/TalkPrompt'
 import { OpenPrompt } from '@/components/commands/OpenPrompt'
 import { EventLog } from '@/components/log/EventLog'
 import {
@@ -32,6 +33,7 @@ export default function App() {
 	const isGiving = useGameStore((state) => state.givePool !== null)
 	const isOpening = useGameStore((state) => state.openPrompt !== null)
 	const isGetting = useGameStore((state) => state.getPrompt !== null)
+	const isTalking = useGameStore((state) => state.talkPrompt !== null)
 
 	return (
 		<>
@@ -56,6 +58,7 @@ export default function App() {
 			{screen === 'WORLD_MAP' && isGiving && <GiveItemMenu />}
 			{screen === 'WORLD_MAP' && isOpening && <OpenPrompt />}
 			{screen === 'WORLD_MAP' && isGetting && <GetPrompt />}
+			{screen === 'WORLD_MAP' && isTalking && <TalkPrompt />}
 		</>
 	)
 }

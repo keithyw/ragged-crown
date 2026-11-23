@@ -7,6 +7,7 @@ import type {
 	GetPrompt,
 	GivePool,
 	OpenPrompt,
+	TalkPrompt,
 	PlanningSubPhase,
 	PlayerCharacter,
 	Position,
@@ -32,6 +33,8 @@ interface GameState {
 	/** The open command is waiting for a direction or a character. */
 	openPrompt: OpenPrompt | null
 	getPrompt: GetPrompt | null
+	/** The talk command is waiting for a direction ([Game 25]). */
+	talkPrompt: TalkPrompt | null
 	inspectedCharacterId: string | null
 	inspectedContext: CharacterSheetContext
 	isMapLoading: boolean
@@ -73,6 +76,7 @@ interface GameState {
 	setGivePool: (pool: GivePool | null) => void
 	setOpenPrompt: (prompt: OpenPrompt | null) => void
 	setGetPrompt: (prompt: GetPrompt | null) => void
+	setTalkPrompt: (prompt: TalkPrompt | null) => void
 	setInspectedCharacter: (
 		characterId: string | null,
 		context?: CharacterSheetContext,
@@ -103,6 +107,7 @@ export const useGameStore = create<GameState>((set) => ({
 	givePool: null,
 	openPrompt: null,
 	getPrompt: null,
+	talkPrompt: null,
 	inspectedCharacterId: null,
 	inspectedContext: 'GUILD',
 	isMapLoading: false,
@@ -177,6 +182,7 @@ export const useGameStore = create<GameState>((set) => ({
 	setGivePool: (givePool) => set({ givePool }),
 	setOpenPrompt: (openPrompt) => set({ openPrompt }),
 	setGetPrompt: (getPrompt) => set({ getPrompt }),
+	setTalkPrompt: (talkPrompt) => set({ talkPrompt }),
 	setParty: (party) => set({ party }),
 	setPlayerPosition: (position: Position) => set({ playerPosition: position }),
 	setSavedGame: (game) => set({ savedGame: game }),
@@ -210,6 +216,7 @@ export const useGameStore = create<GameState>((set) => ({
 			givePool: null,
 			openPrompt: null,
 			getPrompt: null,
+			talkPrompt: null,
 			flags: {},
 			interactionRuns: {},
 			runtimePlacements: {},

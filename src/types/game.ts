@@ -24,6 +24,9 @@ export type GameScreen =
 export type GetPrompt =
 	{ step: 'direction' } | { step: 'character'; pos: { x: number; y: number } }
 
+/** The "talk" command's prompt ([Game 25]): a direction, or Space for the player's own cell. No character is chosen. */
+export type TalkPrompt = { step: 'direction' }
+
 /** The "open" command's prompts ([Game 18]): first a direction, then, when the target needs one, a character. */
 export type OpenPrompt =
 	{ step: 'direction' } | { step: 'character'; pos: { x: number; y: number } }

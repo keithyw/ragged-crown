@@ -202,9 +202,10 @@ export class InteractionEngine {
 		return value !== undefined && value !== false
 	}
 
-	// HAS_ITEM checks the chosen character's own inventory, so it needs an
-	// actor ([Game 18]). A condition that can't be evaluated fails, so the
-	// fallback interaction is tried.
+	// HAS_ITEM checks the chosen character's own inventory ([Game 18]). With no
+	// character chosen (the talk command, [Game 25]) it checks the whole party.
+	// A condition that can't be evaluated fails, so the fallback interaction is
+	// tried.
 	private conditionPasses(
 		condition: Condition,
 		host: InteractionHost,
@@ -217,7 +218,6 @@ export class InteractionEngine {
 			case 'FLAG_NOT_SET':
 				return !this.isFlagSet(host, condition.flag)
 			case 'HAS_ITEM': {
-				if (!actor) return false
 				let wanted: { itemId?: string; amount?: number }
 				if (condition.custom) {
 					const value = condition.slot
@@ -228,7 +228,12 @@ export class InteractionEngine {
 					wanted = condition
 				}
 				if (!wanted.itemId) return false
-				return countCarried(actor, wanted.itemId) >= (wanted.amount ?? 1)
+				const itemId = wanted.itemId
+				const holders = actor ? [actor] : host.getParty()
+				return (
+					holders.reduce((sum, c) => sum + countCarried(c, itemId), 0) >=
+					(wanted.amount ?? 1)
+				)
 			}
 		}
 	}
