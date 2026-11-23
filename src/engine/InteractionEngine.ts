@@ -15,6 +15,7 @@ import type { FlagValue, PlayerCharacter, Position, PoolItem } from '@/types'
 import { cellKey, lookupPlacementDef, type DefLookup } from '@/utils/content'
 import {
 	addPlacement,
+	removeObjectByUid,
 	removePlacement,
 	type PlacementMap,
 } from '@/utils/placements'
@@ -311,6 +312,27 @@ export class InteractionEngine {
 					removePlacement(host.getPlacements(), pos, placement.uid),
 				)
 				return
+			case 'REMOVE_OBJECT': {
+				// The target is named on the placement, by uid ([Game 26]).
+				const value = action.slot
+					? placement.customValues?.[action.slot]
+					: undefined
+				const uid =
+					value?.type === 'REMOVE_OBJECT' ? value.targetUid : undefined
+				if (!uid) {
+					console.warn('[Interaction] REMOVE_OBJECT has no target')
+					return
+				}
+				const next = removeObjectByUid(host.getPlacements(), uid)
+				if (!next) {
+					console.warn(
+						`[Interaction] REMOVE_OBJECT: no object placement with uid ${uid}`,
+					)
+					return
+				}
+				host.setPlacements(next)
+				return
+			}
 			case 'SPAWN':
 				this.spawn(action, placement, pos, host)
 				return
