@@ -11,7 +11,9 @@ import {
 	type PlayerCharacter,
 	type QueuedAction,
 } from '@/types'
+import { QUALITY_DAMAGE_BONUS } from '@/constants'
 import { equippedWeapon } from '@/utils/equipment'
+import { qualifiedName } from '@/utils/qualifiers'
 import type { EncounterGroup, MonsterDef, TileDef, Zone } from '@shared/types'
 import type { StoredDoc } from '@/services/ContentSource'
 
@@ -400,10 +402,13 @@ export class CombatEngine {
 		for (let i = 0; i < roll.count; i++) {
 			damage += Math.floor(Math.random() * roll.die) + 1
 		}
+		// The weapon's quality adds a flat amount ([Combat 13]); never below 0.
+		const quality = weapon?.qualifiers?.quality
+		damage = Math.max(0, damage + (quality ? QUALITY_DAMAGE_BONUS[quality] : 0))
 		targetMonster.hp.current = Math.max(0, targetMonster.hp.current - damage)
 		store.addLog(
 			weapon
-				? `> ${actor.name} hits ${targetGroup.name} with ${weapon.name} for ${damage} damage!`
+				? `> ${actor.name} hits ${targetGroup.name} with ${qualifiedName(weapon.name, weapon.qualifiers)} for ${damage} damage!`
 				: `> ${actor.name} punches ${targetGroup.name} for ${damage} damage!`,
 		)
 

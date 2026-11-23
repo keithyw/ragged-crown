@@ -2,6 +2,7 @@ import type {
 	ArmorGroup,
 	ArmorMaterial,
 	ArmorMaterialCategory,
+	Quality,
 	WeaponGroup,
 	WeaponMaterial,
 	WeaponMaterialCategory,
@@ -73,4 +74,18 @@ export const ARMOR_GROUPS: Record<ArmorGroup, Group<ArmorMaterialCategory>> = {
 		types: ['neck', 'ring', 'earring', 'brooch'],
 		categories: ['metal'],
 	},
+}
+
+/**
+ * Flat damage a weapon's quality adds to a party attack ([Combat 13]). Game
+ * only, so not part of the tools' copy above. Starting values are guesses: a
+ * Shoddy weapon's penalty is speed, not damage ([Game 22]), so it adds
+ * nothing here.
+ */
+export const QUALITY_DAMAGE_BONUS: Record<Quality, number> = {
+	shoddy: 0,
+	poor: -1,
+	normal: 0,
+	good: 1,
+	superior: 2,
 }

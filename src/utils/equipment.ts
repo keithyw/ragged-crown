@@ -1,4 +1,4 @@
-import type { RandomRoll } from '@shared/types'
+import type { Qualifiers, RandomRoll } from '@shared/types'
 import type {
 	Equipment,
 	EquipmentSlot,
@@ -198,8 +198,12 @@ export const unequip = (
 	}
 }
 
-/** What a party attack rolls: the dice, and the weapon's name for the log. */
-export type AttackWeapon = { name: string; damage: RandomRoll }
+/** What a party attack reads of the weapon: dice, name and qualifiers. */
+export type AttackWeapon = {
+	name: string
+	damage: RandomRoll
+	qualifiers?: Qualifiers
+}
 
 /**
  * The weapon a character attacks with ([Combat 3]): the first one in `hand1`,
@@ -216,7 +220,11 @@ export const equippedWeapon = (
 		const entry = (character.inventory ?? []).find((e) => e.uid === uid)
 		const def = entry && defs.get(entry.itemId)
 		if (def?.kind === 'weapon' && def.damage) {
-			return { name: def.name, damage: def.damage }
+			return {
+				name: def.name,
+				damage: def.damage,
+				qualifiers: entry?.qualifiers,
+			}
 		}
 	}
 	return undefined
