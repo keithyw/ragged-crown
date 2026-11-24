@@ -1,5 +1,5 @@
 interface GameLayoutProps {
-	/** Combat shows the encounter in the middle and the log along the bottom. */
+	/** Combat swaps the map and command list for the encounter; the log stays put. */
 	inCombat: boolean
 	header: React.ReactNode
 	mapViewport: React.ReactNode
@@ -29,30 +29,28 @@ export const GameLayout = ({
 			<div className='flex min-h-0 flex-1'>
 				{/* Left/Center Main Column */}
 				<div className='flex min-w-0 flex-1 flex-col gap-3 p-3'>
-					{/* The map is sized to its content; the middle takes the rest */}
 					<div className='flex min-h-0 flex-1 items-start gap-3'>
-						{/* The command list is as wide as the map and no wider */}
-						<div className='flex shrink-0 flex-col gap-3'>
-							<div className='flex flex-col rounded-lg border-2 border-slate-800 bg-slate-900 p-3'>
-								{mapViewport}
+						{inCombat ? (
+							// The encounter takes the map's place and the log stays where it is
+							// in exploration, so there is one place to look for it ([Game 27]).
+							<div className='flex w-136 shrink-0 flex-col self-stretch rounded-lg border-2 border-slate-800 bg-slate-900 p-3'>
+								{encounterViewport}
 							</div>
-							{!inCombat && (
+						) : (
+							/* The command list is as wide as the map and no wider */
+							<div className='flex shrink-0 flex-col gap-3'>
+								<div className='flex flex-col rounded-lg border-2 border-slate-800 bg-slate-900 p-3'>
+									{mapViewport}
+								</div>
 								<div className='flex w-0 min-w-full flex-col rounded-lg border-2 border-slate-800 bg-slate-900 p-3'>
 									{commandList}
 								</div>
-							)}
-						</div>
+							</div>
+						)}
 						<div className='flex min-w-0 flex-1 flex-col self-stretch rounded-lg border-2 border-slate-800 bg-slate-900 p-3'>
-							{inCombat ? encounterViewport : eventLog}
-						</div>
-					</div>
-
-					{/* In combat the middle holds the encounter, so the log moves down */}
-					{inCombat && (
-						<div className='flex h-32 flex-col rounded-lg border-2 border-slate-800 bg-slate-900 p-3'>
 							{eventLog}
 						</div>
-					)}
+					</div>
 				</div>
 
 				{/* Right Column: Party Roster */}
