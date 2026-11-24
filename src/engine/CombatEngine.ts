@@ -14,6 +14,7 @@ import {
 } from '@/types'
 import { attackProfile, initiativeRating, mitigate } from '@/utils/combat'
 import { defenseRating } from '@/utils/equipment'
+import { isDown, withStatus } from '@/utils/status'
 import { qualifiedName } from '@/utils/qualifiers'
 import type { EncounterGroup, MonsterDef, TileDef, Zone } from '@shared/types'
 import type { StoredDoc } from '@/services/ContentSource'
@@ -43,7 +44,7 @@ export class CombatEngine {
 		store.setSelectedTargetIndex(-1)
 		// A downed character gets no turn: start at the first one still up.
 		const first = store.party.findIndex(
-			(p, i) => i >= store.activeCharacter && p.hp.current > 0,
+			(p, i) => i >= store.activeCharacter && !isDown(p),
 		)
 		if (first >= 0) store.setActiveCharacter(first)
 		this.bindPlanningInputs()
@@ -151,7 +152,7 @@ export class CombatEngine {
 			this.commitAction(actionType, 0)
 		} else {
 			const monsterGroups = encounter.groups
-				.map((g, idx) => (g.monsters.some((m) => m.hp.current > 0) ? idx : -1))
+				.map((g, idx) => (g.monsters.some((m) => !isDown(m)) ? idx : -1))
 				.filter((idx) => idx !== -1)
 			if (monsterGroups.length === 0) return
 
@@ -206,6 +207,7 @@ export class CombatEngine {
 					current: hpValue,
 					max: hpValue,
 				},
+				statuses: [],
 			})
 		}
 
@@ -343,7 +345,7 @@ export class CombatEngine {
 		// Advance actor or finish planning phase
 		// Downed characters are skipped.
 		const nextIndex = party.findIndex(
-			(p, i) => i > store.activeCharacter && p.hp.current > 0,
+			(p, i) => i > store.activeCharacter && !isDown(p),
 		)
 		if (nextIndex >= 0) {
 			store.setActiveCharacter(nextIndex)
@@ -388,7 +390,7 @@ export class CombatEngine {
 
 		const targetGroup = encounter.groups[targetGroupIndex]
 
-		const targetMonster = targetGroup.monsters.find((m) => m.hp.current > 0)
+		const targetMonster = targetGroup.monsters.find((m) => !isDown(m))
 
 		if (!targetMonster) {
 			store.addLog(
@@ -420,6 +422,7 @@ export class CombatEngine {
 		)
 
 		if (targetMonster.hp.current <= 0) {
+			targetMonster.statuses = withStatus(targetMonster.statuses ?? [], 'dead')
 			store.addLog(`> ${targetMonster.name} is defeated!`)
 		}
 
@@ -428,7 +431,7 @@ export class CombatEngine {
 
 	private resolveMonsterAttack(m: ActiveMonster, initiative: number): void {
 		const store = useGameStore.getState()
-		const livingMembers = store.party.filter((p) => p.hp.current > 0)
+		const livingMembers = store.party.filter((p) => !isDown(p))
 		if (livingMembers.length === 0) return
 		const target =
 			livingMembers[Math.floor(Math.random() * livingMembers.length)]
@@ -476,7 +479,7 @@ export class CombatEngine {
 
 		// Check Victory
 		const allEnemiesDefeated = encounter?.groups.every((g) =>
-			g.monsters.every((m) => m.hp.current <= 0),
+			g.monsters.every((m) => isDown(m)),
 		)
 		if (allEnemiesDefeated) {
 			store.addLog('> Victory! All enemies defeated.')
@@ -487,7 +490,7 @@ export class CombatEngine {
 		}
 
 		// Check Wipe
-		const partyWiped = store.party.every((p) => p.hp.current <= 0)
+		const partyWiped = store.party.every((p) => isDown(p))
 		if (partyWiped) {
 			store.addLog('> Your party has fallen... Game Over.')
 			return
@@ -519,7 +522,7 @@ export class CombatEngine {
 
 		const turns: Turn[] = [
 			...store.party
-				.filter((p) => p.hp.current > 0)
+				.filter((p) => !isDown(p))
 				.map((p): Turn => ({
 					side: 'party',
 					id: p.id,
@@ -527,7 +530,7 @@ export class CombatEngine {
 				})),
 			...(store.encounter?.groups ?? []).flatMap((g) =>
 				g.monsters
-					.filter((m) => m.hp.current > 0)
+					.filter((m) => !isDown(m))
 					.map((m): Turn => ({
 						side: 'monster',
 						monster: m,
@@ -543,13 +546,13 @@ export class CombatEngine {
 
 		for (const turn of turns) {
 			if (turn.side === 'monster') {
-				if (turn.monster.hp.current > 0) {
+				if (!isDown(turn.monster)) {
 					this.resolveMonsterAttack(turn.monster, turn.initiative)
 				}
 				continue
 			}
 			const actor = useGameStore.getState().party.find((p) => p.id === turn.id)
-			if (!actor || actor.hp.current <= 0) continue // Skip if downed
+			if (!actor || isDown(actor)) continue // Skip if downed
 			const action = queue.find((a) => a.actorId === actor.id)
 			if (!action) continue
 

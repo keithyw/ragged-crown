@@ -1,6 +1,6 @@
-import { TEXT } from '@/constants'
+import { STATUS_ABBR, TEXT } from '@/constants'
 import type { ActiveMonster } from '@/types'
-import { calculateHPPercent, cn } from '@/utils'
+import { calculateHPPercent, cn, isDown, statusesOf } from '@/utils'
 
 interface MonsterEncounterStatsProps {
 	monster: ActiveMonster
@@ -11,7 +11,8 @@ export const MonsterEncounterStats = ({
 	monster,
 	midx,
 }: MonsterEncounterStatsProps) => {
-	const isAlive = monster.hp.current > 0
+	const isAlive = !isDown(monster)
+	const statuses = statusesOf(monster)
 	const hpPercent = calculateHPPercent(monster.hp.current, monster.hp.max)
 	return (
 		<div
@@ -40,7 +41,7 @@ export const MonsterEncounterStats = ({
 							: 'border border-red-800 bg-red-950 text-red-400',
 					)}
 				>
-					{isAlive ? 'OK' : 'Dead'}
+					{isAlive ? 'OK' : statuses.map((st) => STATUS_ABBR[st]).join(' ')}
 				</span>
 				<div className='h-2 w-20 overflow-hidden rounded-full bg-slate-950'>
 					<div

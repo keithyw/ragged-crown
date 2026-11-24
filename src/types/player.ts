@@ -1,7 +1,11 @@
 import type { Qualifiers } from '@shared/types'
 
-export type Debuff =
-	'poisoned' | 'paralyzed' | 'silenced' | 'blinded' | 'cursed' | 'dead'
+/**
+ * A condition on a character or monster ([Combat 21]). Several can be held at
+ * once. Only `dead` is set by anything yet; asleep and unconscious are data
+ * waiting for what causes them.
+ */
+export type Status = 'dead' | 'asleep' | 'unconscious'
 export type ClassType = 'Fighter' | 'Mage' | 'Cleric' | 'Rogue' | 'Paladin'
 
 export type GenderType = 'male' | 'female' | 'non-binary'
@@ -93,7 +97,7 @@ export interface PlayerCharacter {
 	sp: ResourceBar
 	attributes: Attributes
 	order: number
-	debuffs: Debuff[]
+	statuses: Status[]
 	portrait?: string
 	npcDetails?: NpcProfile
 	inventory?: InventoryEntry[]

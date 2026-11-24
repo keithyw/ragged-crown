@@ -1,9 +1,10 @@
-import type { ResourceBar } from '@/types'
+import type { ResourceBar, Status } from '@/types'
 export interface ActiveMonster {
 	id: string // Unique instance ID (e.g. "goblin-1", "goblin-2")
 	templateId: string // The monster def's _id (useContentStore.monsters)
 	name: string
 	hp: ResourceBar // Individual current & max HP
+	statuses: Status[]
 	// Future expansion: equipment, status effects, custom stats, loot
 }
 

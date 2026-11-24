@@ -33,7 +33,7 @@ export const useCharacterCreationStore = create<DraftCharacterState>(
 			hp: { current: DEFAULT_HP, max: DEFAULT_HP },
 			sp: { current: 0, max: 0 },
 			attributes: DEFAULT_ATTRIBUTES,
-			debuffs: [],
+			statuses: [],
 		},
 
 		setStep: (step) => set({ currentStep: Math.max(0, step) }),
@@ -77,7 +77,7 @@ export const useCharacterCreationStore = create<DraftCharacterState>(
 				sp: { current: 0, max: 0 },
 				attributes,
 				order: 0,
-				debuffs: [],
+				statuses: [],
 			}
 
 			set((state) => ({
@@ -106,7 +106,7 @@ export const useCharacterCreationStore = create<DraftCharacterState>(
 					hp: { current: DEFAULT_HP, max: DEFAULT_HP },
 					sp: { current: DEFAULT_SP, max: DEFAULT_SP },
 					attributes: DEFAULT_ATTRIBUTES,
-					debuffs: [],
+					statuses: [],
 				},
 			}),
 	}),

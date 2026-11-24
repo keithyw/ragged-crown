@@ -1,6 +1,9 @@
-import { TEXT } from '@/constants'
+import { STATUS_ABBR, STATUS_LABEL, TEXT } from '@/constants'
 import type { PlayerCharacter } from '@/types'
-import { cn } from '@/utils'
+import { cn, statusesOf } from '@/utils'
+
+/** More than this and the rest collapse into a +N. */
+const MAX_STATUS_CHIPS = 2
 
 interface CharacterCardProps {
 	playerCharacter: PlayerCharacter
@@ -19,9 +22,10 @@ export const CharacterCard = ({
 		level,
 		hp,
 		sp,
-		debuffs,
+		statuses,
 	} = playerCharacter
 
+	const shown = statusesOf({ hp, statuses })
 	const hpPercent = Math.max(0, Math.min(100, (hp.current / hp.max) * 100))
 	const spPercent =
 		sp.max > 0 ? Math.max(0, Math.min(100, (sp.current / sp.max) * 100)) : 0
@@ -104,17 +108,24 @@ export const CharacterCard = ({
 				</div>
 			</div>
 
-			{/* Debuffs List */}
-			{debuffs.length > 0 && (
+			{/* Statuses: abbreviated, and capped so the card stays small. The
+			    character sheet lists them all ([Combat 21]). */}
+			{shown.length > 0 && (
 				<div className='mt-0.5 flex flex-wrap gap-1'>
-					{debuffs.map((debuff) => (
+					{shown.slice(0, MAX_STATUS_CHIPS).map((status) => (
 						<span
-							key={debuff}
+							key={status}
+							title={STATUS_LABEL[status]}
 							className='rounded border border-red-800/50 bg-red-950/80 px-1 font-mono text-[9px] text-red-400 uppercase'
 						>
-							{debuff}
+							{STATUS_ABBR[status]}
 						</span>
 					))}
+					{shown.length > MAX_STATUS_CHIPS && (
+						<span className='font-mono text-[9px] text-red-400'>
+							+{shown.length - MAX_STATUS_CHIPS}
+						</span>
+					)}
 				</div>
 			)}
 		</div>

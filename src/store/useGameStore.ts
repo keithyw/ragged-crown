@@ -1,4 +1,5 @@
 import { create } from 'zustand'
+import { withStatus } from '@/utils/status'
 import type {
 	ActiveEncounter,
 	CharacterSheetContext,
@@ -159,10 +160,10 @@ export const useGameStore = create<GameState>((set) => ({
 				return {
 					...p,
 					hp: { ...p.hp, current: nextHp },
-					debuffs:
-						nextHp === 0 && !p.debuffs.includes('dead')
-							? [...p.debuffs, 'dead']
-							: p.debuffs,
+					statuses:
+						nextHp === 0
+							? withStatus(p.statuses ?? [], 'dead')
+							: (p.statuses ?? []),
 				}
 			}),
 		})),

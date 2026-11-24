@@ -21,6 +21,7 @@ import {
 } from '@/utils/placements'
 import { buildPool, countCarried, takeFromInventory } from '@/utils/inventory'
 import { completeQualifiers } from '@/utils/qualifiers'
+import { isDown } from '@/utils/status'
 import { applyStatChange, type ModifyAttribute } from '@/utils/stats'
 import {
 	failureMessage,
@@ -466,7 +467,7 @@ export class InteractionEngine {
 		action: ModifyAttribute,
 		party: PlayerCharacter[],
 	): PlayerCharacter[] {
-		const standing = party.filter((c) => c.hp.current > 0)
+		const standing = party.filter((c) => !isDown(c))
 		if (action.target === 'party') {
 			// A downed member can't be hurt or healed by a current-HP change.
 			const isCurrentHp = action.attribute === 'hp' && action.bar !== 'max'

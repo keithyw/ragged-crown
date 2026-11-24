@@ -4,13 +4,16 @@ import { inputManager, getCharacterEngine, getGameEngine } from '@/engine'
 import { useCharacterCreationStore } from '@/store/useCharacterCreationStore'
 import { useContentStore } from '@/store/useContentStore'
 import { useGameStore } from '@/store/useGameStore'
+import { STATUS_LABEL } from '@/constants'
 import {
 	attackProfile,
 	carryLimit,
+	cn,
 	defenseRating,
 	encumbrance,
 	initiativeRating,
 	qualifiedName,
+	statusesOf,
 } from '@/utils'
 
 // Trading ([Inventory 21]): first the receiver (a party number), then the item.
@@ -372,6 +375,7 @@ export const CharacterSheetScreen = () => {
 	}
 
 	const damageRange = attackProfile(character, items)
+	const statuses = statusesOf(character)
 
 	// What the Commands panel shows for the current mode.
 	const modeLabel =
@@ -450,6 +454,19 @@ export const CharacterSheetScreen = () => {
 							<span className='text-slate-500'>HEALTH:</span>
 							<span className='font-bold text-emerald-400'>
 								{character.hp.current} / {character.hp.max}
+							</span>
+						</div>
+						<div className='flex justify-between border-b border-slate-800/60 pb-1'>
+							<span className='text-slate-500'>STATUS:</span>
+							<span
+								className={cn(
+									'font-bold',
+									statuses.length ? 'text-red-400' : 'text-emerald-400',
+								)}
+							>
+								{statuses.length
+									? statuses.map((s) => STATUS_LABEL[s]).join(', ')
+									: 'Healthy'}
 							</span>
 						</div>
 						<div className='flex justify-between border-b border-slate-800/60 pb-1'>
