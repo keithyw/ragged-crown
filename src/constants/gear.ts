@@ -89,3 +89,35 @@ export const QUALITY_DAMAGE_BONUS: Record<Quality, number> = {
 	good: 1,
 	superior: 2,
 }
+
+/**
+ * What the equipped weapon's quality adds to a character's initiative
+ * ([Combat 17]): Shoddy -1, Superior +1, nothing for the rest. Game only.
+ */
+export const WEAPON_QUALITY_INITIATIVE: Partial<Record<Quality, number>> = {
+	shoddy: -1,
+	superior: 1,
+}
+
+/**
+ * What a worn armor piece's quality counts for in the armor initiative penalty
+ * ([Combat 17]): Shoddy -2, Poor -1, nothing for the rest (Good and Superior
+ * armor do nothing yet). Game only.
+ */
+export const ARMOR_QUALITY_INITIATIVE: Partial<Record<Quality, number>> = {
+	shoddy: -2,
+	poor: -1,
+}
+
+/** The slots the armor initiative penalty averages over: all but jewelry and the shield. */
+export const BODY_ARMOR_SLOTS = [
+	'head',
+	'chest',
+	'legs',
+	'hands',
+	'wrists',
+	'feet',
+	'shoulders',
+	'belt',
+	'cloak',
+] as const

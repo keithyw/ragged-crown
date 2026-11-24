@@ -1,4 +1,11 @@
-import { ATTRIBUTE_EFFECTS, QUALITY_DAMAGE_BONUS } from '@/constants'
+import {
+	ARMOR_QUALITY_INITIATIVE,
+	ATTRIBUTE_EFFECTS,
+	BASE_INITIATIVE,
+	BODY_ARMOR_SLOTS,
+	QUALITY_DAMAGE_BONUS,
+	WEAPON_QUALITY_INITIATIVE,
+} from '@/constants'
 import type { ActiveMonster, PlayerCharacter } from '@/types'
 import { equippedWeapon } from './equipment'
 import { tableModifier } from './stats'
@@ -56,3 +63,40 @@ export const damageReduction = (defense: number): number =>
 /** A hit after the target's defense, never below 0. */
 export const mitigate = (damage: number, defense: number): number =>
 	Math.max(0, damage - damageReduction(defense))
+
+/**
+ * A character's initiative before the round's 1d6 ([Combat 17]): the base,
+ * plus speed ([Attributes 3]), plus the equipped weapon's quality, plus the
+ * armor quality penalty. The penalty is the average over the worn body pieces
+ * only (empty slots don't dilute it), rounded toward 0, so it never passes the
+ * worst single piece (-2). The sheet shows this number; combat adds the roll.
+ */
+export const initiativeRating = (
+	character: PlayerCharacter,
+	defs: Parameters<typeof equippedWeapon>[1],
+): number => {
+	const weaponQuality = equippedWeapon(character, defs)?.qualifiers?.quality
+	const inventory = character.inventory ?? []
+	const worn = BODY_ARMOR_SLOTS.flatMap((slot) => {
+		const uid = character.equipment?.[slot]
+		const entry = inventory.find((e) => e.uid === uid)
+		return entry ? [entry.qualifiers?.quality] : []
+	})
+	const armorPenalty = worn.length
+		? Math.trunc(
+				worn.reduce(
+					(sum, q) => sum + ((q && ARMOR_QUALITY_INITIATIVE[q]) || 0),
+					0,
+				) / worn.length,
+			) || 0
+		: 0
+	return (
+		BASE_INITIATIVE +
+		tableModifier(
+			ATTRIBUTE_EFFECTS.speed.initiative,
+			character.attributes.speed,
+		) +
+		((weaponQuality && WEAPON_QUALITY_INITIATIVE[weaponQuality]) || 0) +
+		armorPenalty
+	)
+}
