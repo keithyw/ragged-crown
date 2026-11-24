@@ -11,7 +11,8 @@ import {
 	type PlayerCharacter,
 	type QueuedAction,
 } from '@/types'
-import { attackProfile } from '@/utils/combat'
+import { attackProfile, mitigate } from '@/utils/combat'
+import { defenseRating } from '@/utils/equipment'
 import { qualifiedName } from '@/utils/qualifiers'
 import type { EncounterGroup, MonsterDef, TileDef, Zone } from '@shared/types'
 import type { StoredDoc } from '@/services/ContentSource'
@@ -404,7 +405,11 @@ export class CombatEngine {
 		for (let i = 0; i < roll.count; i++) {
 			damage += Math.floor(Math.random() * roll.die) + 1
 		}
-		damage = Math.max(0, damage + bonus)
+		// The monster's defense value takes points off the hit ([Combat 16]).
+		const defense =
+			useContentStore.getState().monsters.get(targetMonster.templateId)
+				?.defenseValue ?? 0
+		damage = mitigate(Math.max(0, damage + bonus), defense)
 		targetMonster.hp.current = Math.max(0, targetMonster.hp.current - damage)
 		store.addLog(
 			weapon
@@ -441,6 +446,11 @@ export class CombatEngine {
 			for (let i = 0; i < roll.count; i++) {
 				damage += Math.floor(Math.random() * roll.die) + 1
 			}
+			// The target's defense rating takes points off the hit ([Combat 16]).
+			damage = mitigate(
+				damage,
+				defenseRating(target, useContentStore.getState().items),
+			)
 
 			store.addLog(`> ${m.name} hits ${target.name} for ${damage} damage!`)
 			store.damageCharacter(target.id, damage)

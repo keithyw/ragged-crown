@@ -43,3 +43,16 @@ export const attackProfile = (
 		max: Math.max(0, roll.count * roll.die + bonus),
 	}
 }
+
+/**
+ * Damage a defense rating takes off every hit ([Combat 16]): one point per 10
+ * of defense, rounded to the nearest, so 0-4 is 0, 5-14 is 1, 15-24 is 2.
+ * Physical damage only; magic and elements are out of scope. A hit can be
+ * reduced to 0.
+ */
+export const damageReduction = (defense: number): number =>
+	Math.max(0, Math.floor((defense + 5) / 10))
+
+/** A hit after the target's defense, never below 0. */
+export const mitigate = (damage: number, defense: number): number =>
+	Math.max(0, damage - damageReduction(defense))
