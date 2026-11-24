@@ -1,5 +1,6 @@
 import type { Action, CharacterStat } from '@shared/types'
 import type { Attributes, PlayerCharacter } from '@/types'
+import { ATTRIBUTE_EFFECTS, DEFAULT_HP } from '@/constants'
 import type { ModifierTable } from '@/constants'
 
 export type ModifyAttribute = Extract<Action, { type: 'MODIFY_ATTRIBUTE' }>
@@ -61,13 +62,22 @@ export const applyStatChange = (
 	if (ATTRIBUTES.includes(attribute)) {
 		const key = attribute as keyof Attributes
 		const value = Math.max(0, character.attributes[key] + amount)
-		return {
-			character: {
-				...character,
-				attributes: { ...character.attributes, [key]: value },
-			},
-			message: `${name}'s ${attribute} ${amount >= 0 ? 'rises' : 'falls'} by ${Math.abs(amount)}.`,
+		const attributes = { ...character.attributes, [key]: value }
+		let next = { ...character, attributes }
+		let message = `${name}'s ${attribute} ${amount >= 0 ? 'rises' : 'falls'} by ${Math.abs(amount)}.`
+		// Constitution moves the maximum hit points with it, and the current
+		// value by the same amount ([Attributes 4]).
+		if (key === 'constitution') {
+			const change =
+				maxHitPoints(attributes) - maxHitPoints(character.attributes)
+			if (change !== 0) {
+				const max = Math.max(1, character.hp.max + change)
+				const current = clamp(character.hp.current + change, 0, max)
+				next = { ...next, hp: { current, max } }
+				message += ` Max HP ${change > 0 ? 'rises' : 'falls'} by ${Math.abs(change)}.`
+			}
 		}
+		return { character: next, message }
 	}
 
 	return undefined
@@ -81,3 +91,15 @@ export const tableModifier = (table: ModifierTable, value: number): number => {
 	}
 	return modifier
 }
+
+/**
+ * A new character's maximum hit points ([Attributes 4]): a flat `DEFAULT_HP`
+ * plus what constitution adds or takes away. Never below 1. Class hit points
+ * come later.
+ */
+export const maxHitPoints = (attributes: Attributes): number =>
+	Math.max(
+		1,
+		DEFAULT_HP +
+			tableModifier(ATTRIBUTE_EFFECTS.constitution.hp, attributes.constitution),
+	)

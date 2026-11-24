@@ -18,9 +18,9 @@ export type ModifierTable = readonly (readonly [
 ])[]
 
 /**
- * The one table dexterity's defense and strength's damage share (owner,
- * 2026-11-23). They are separate entries below, so either can be given its own
- * numbers later.
+ * The one table dexterity's defense, strength's damage and constitution's hit
+ * points share (owner, 2026-11-23). They are separate entries below, so any can
+ * be given its own numbers later.
  */
 const SCORE_BONUS: ModifierTable = [
 	[1, -2], // 1-3
@@ -36,6 +36,10 @@ export const ATTRIBUTE_EFFECTS = {
 	strength: {
 		/** Added to a party attack's damage ([Attributes 2]). */
 		damage: SCORE_BONUS,
+	},
+	constitution: {
+		/** Added to a character's flat starting hit points ([Attributes 4]). */
+		hp: SCORE_BONUS,
 	},
 	dexterity: {
 		/** Added to a character's defense rating ([Attributes 1]). */

@@ -1,6 +1,7 @@
 import { create } from 'zustand'
 import { DEFAULT_ATTRIBUTES, DEFAULT_HP, DEFAULT_SP } from '@/constants'
 import type { PlayerCharacter } from '@/types'
+import { maxHitPoints } from '@/utils/stats'
 
 interface DraftCharacterState {
 	createdCharacters: PlayerCharacter[]
@@ -29,7 +30,7 @@ export const useCharacterCreationStore = create<DraftCharacterState>(
 			gender: 'male',
 			race: 'human',
 			level: 0,
-			hp: { current: 10, max: 10 },
+			hp: { current: DEFAULT_HP, max: DEFAULT_HP },
 			sp: { current: 0, max: 0 },
 			attributes: DEFAULT_ATTRIBUTES,
 			debuffs: [],
@@ -63,15 +64,18 @@ export const useCharacterCreationStore = create<DraftCharacterState>(
 			// perhaps create a draft character function
 			// because i don't like hard coded data in
 			// functions like this
+			const attributes = draft.attributes || DEFAULT_ATTRIBUTES
+			// Hit points follow the attributes ([Attributes 4]).
+			const maxHp = maxHitPoints(attributes)
 			const completedCharacter: PlayerCharacter = {
 				id: `pc_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
 				name: draft.name?.trim() || 'Hero',
 				gender: draft.gender || 'male',
 				race: draft.race || 'human',
 				level: 0,
-				hp: { current: 10, max: 10 },
+				hp: { current: maxHp, max: maxHp },
 				sp: { current: 0, max: 0 },
-				attributes: draft.attributes || DEFAULT_ATTRIBUTES,
+				attributes,
 				order: 0,
 				debuffs: [],
 			}

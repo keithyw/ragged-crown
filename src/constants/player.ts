@@ -31,4 +31,4 @@ export const PER_DESC =
 	'Affects merchant pricing, NPC interactions, and party leadership.'
 export const SPD_DESC =
 	'Determines turn order priority in combat and movement rate.'
-export const CON_DESC = 'Increases maximum health points gained per level.'
+export const CON_DESC = "Adds to a character's maximum health points."
