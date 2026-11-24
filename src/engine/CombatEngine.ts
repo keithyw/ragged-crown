@@ -1,3 +1,4 @@
+import { BASE_INITIATIVE } from '@/constants'
 import { inputManager } from '@/engine'
 import { useContentStore } from '@/store/useContentStore'
 import { useGameStore } from '@/store/useGameStore'
@@ -11,7 +12,7 @@ import {
 	type PlayerCharacter,
 	type QueuedAction,
 } from '@/types'
-import { attackProfile, mitigate } from '@/utils/combat'
+import { attackProfile, initiativeRating, mitigate } from '@/utils/combat'
 import { defenseRating } from '@/utils/equipment'
 import { qualifiedName } from '@/utils/qualifiers'
 import type { EncounterGroup, MonsterDef, TileDef, Zone } from '@shared/types'
@@ -379,6 +380,7 @@ export class CombatEngine {
 	private resolvePartyAttack(
 		actor: PlayerCharacter,
 		targetGroupIndex: number,
+		initiative: number,
 	): void {
 		const store = useGameStore.getState()
 		const encounter = store.encounter
@@ -390,7 +392,7 @@ export class CombatEngine {
 
 		if (!targetMonster) {
 			store.addLog(
-				`> ${actor.name} attacks ${targetGroup.name}, but no targets remain!`,
+				`> [${initiative}] ${actor.name} attacks ${targetGroup.name}, but no targets remain!`,
 			)
 			return
 		}
@@ -413,8 +415,8 @@ export class CombatEngine {
 		targetMonster.hp.current = Math.max(0, targetMonster.hp.current - damage)
 		store.addLog(
 			weapon
-				? `> ${actor.name} hits ${targetGroup.name} with ${qualifiedName(weapon.name, weapon.qualifiers)} for ${damage} damage!`
-				: `> ${actor.name} punches ${targetGroup.name} for ${damage} damage!`,
+				? `> [${initiative}] ${actor.name} hits ${targetGroup.name} with ${qualifiedName(weapon.name, weapon.qualifiers)} for ${damage} damage!`
+				: `> [${initiative}] ${actor.name} punches ${targetGroup.name} for ${damage} damage!`,
 		)
 
 		if (targetMonster.hp.current <= 0) {
@@ -424,40 +426,32 @@ export class CombatEngine {
 		store.setEncounter({ ...encounter })
 	}
 
-	private resolveMonsterAttack(): void {
+	private resolveMonsterAttack(m: ActiveMonster, initiative: number): void {
 		const store = useGameStore.getState()
-		const encounter = store.encounter
-		if (!encounter) return
-
-		const monsters = encounter.groups.flatMap((g) =>
-			g.monsters.filter((m) => m.hp.current > 0),
+		const livingMembers = store.party.filter((p) => p.hp.current > 0)
+		if (livingMembers.length === 0) return
+		const target =
+			livingMembers[Math.floor(Math.random() * livingMembers.length)]
+		// The def's base damage ([Monsters 7]); the old flat 1d4 if it is gone.
+		const roll = useContentStore.getState().monsters.get(m.templateId)
+			?.damage ?? { count: 1, die: 4 }
+		let damage = 0
+		for (let i = 0; i < roll.count; i++) {
+			damage += Math.floor(Math.random() * roll.die) + 1
+		}
+		// The target's defense rating takes points off the hit ([Combat 16]).
+		damage = mitigate(
+			damage,
+			defenseRating(target, useContentStore.getState().items),
 		)
 
-		for (const m of monsters) {
-			const party = store.party
-			const livingMembers = party.filter((p) => p.hp.current > 0)
-			if (livingMembers.length === 0) break
-			const target =
-				livingMembers[Math.floor(Math.random() * livingMembers.length)]
-			// The def's base damage ([Monsters 7]); the old flat 1d4 if it is gone.
-			const roll = useContentStore.getState().monsters.get(m.templateId)
-				?.damage ?? { count: 1, die: 4 }
-			let damage = 0
-			for (let i = 0; i < roll.count; i++) {
-				damage += Math.floor(Math.random() * roll.die) + 1
-			}
-			// The target's defense rating takes points off the hit ([Combat 16]).
-			damage = mitigate(
-				damage,
-				defenseRating(target, useContentStore.getState().items),
-			)
+		store.addLog(
+			`> [${initiative}] ${m.name} hits ${target.name} for ${damage} damage!`,
+		)
+		store.damageCharacter(target.id, damage)
 
-			store.addLog(`> ${m.name} hits ${target.name} for ${damage} damage!`)
-			store.damageCharacter(target.id, damage)
-
-			if (target.hp.current - damage <= 0) {
-				store.addLog(`> ${target.name} is killed by ${m.name}!`)
-			}
+		if (target.hp.current - damage <= 0) {
+			store.addLog(`> ${target.name} is killed by ${m.name}!`)
 		}
 	}
 
@@ -505,32 +499,73 @@ export class CombatEngine {
 		this.startPlanning()
 	}
 
+	/**
+	 * One round in initiative order ([Combat 17]). Everyone still up rolls
+	 * their initiative once, highest acts first, and the party wins ties (then
+	 * party order, then monster order). Whether someone is still up is checked
+	 * on their turn, so one who fell earlier in the round doesn't act.
+	 */
 	public executeRound(): void {
 		const store = useGameStore.getState()
 		store.setCombatPhase('EXECUTING')
 		store.addLog('> Round executing...')
 		const queue = store.actionQueue
+		const { items, monsters: monsterDefs } = useContentStore.getState()
+		const d6 = () => Math.floor(Math.random() * 6) + 1
 
-		// 1. Resolve Party Queued Actions in Order
-		// move into function
-		for (const action of queue) {
-			const actor = store.party.find((p) => p.id === action.actorId)
+		type Turn =
+			| { side: 'party'; id: string; initiative: number }
+			| { side: 'monster'; monster: ActiveMonster; initiative: number }
+
+		const turns: Turn[] = [
+			...store.party
+				.filter((p) => p.hp.current > 0)
+				.map((p): Turn => ({
+					side: 'party',
+					id: p.id,
+					initiative: initiativeRating(p, items) + d6(),
+				})),
+			...(store.encounter?.groups ?? []).flatMap((g) =>
+				g.monsters
+					.filter((m) => m.hp.current > 0)
+					.map((m): Turn => ({
+						side: 'monster',
+						monster: m,
+						initiative:
+							(monsterDefs.get(m.templateId)?.initiative ?? BASE_INITIATIVE) +
+							d6(),
+					})),
+			),
+		]
+		// Highest first. The sort is stable, so the party-then-monsters order
+		// above is the tie-break.
+		turns.sort((a, b) => b.initiative - a.initiative)
+
+		for (const turn of turns) {
+			if (turn.side === 'monster') {
+				if (turn.monster.hp.current > 0) {
+					this.resolveMonsterAttack(turn.monster, turn.initiative)
+				}
+				continue
+			}
+			const actor = useGameStore.getState().party.find((p) => p.id === turn.id)
 			if (!actor || actor.hp.current <= 0) continue // Skip if downed
+			const action = queue.find((a) => a.actorId === actor.id)
+			if (!action) continue
 
 			if (action.actionType === 'ATTACK') {
 				const targetIdx = action.target?.index ?? 0
-				this.resolvePartyAttack(actor, targetIdx)
+				this.resolvePartyAttack(actor, targetIdx, turn.initiative)
 			} else if (action.actionType === 'DEFEND') {
-				store.addLog(`> ${actor.name} takes a defensive stance!`)
+				store.addLog(
+					`> [${turn.initiative}] ${actor.name} takes a defensive stance!`,
+				)
 			} else if (action.actionType === 'CAST_SPELL') {
-				store.addLog(`> ${actor.name} weaves a spell!`)
+				store.addLog(`> [${turn.initiative}] ${actor.name} weaves a spell!`)
 			}
 		}
 
-		// 2. Resolve Monster Group Counter-Attacks
-		this.resolveMonsterAttack()
-
-		// 3. Round Cleanup & Transition Check
+		// Round Cleanup & Transition Check
 		this.evaluateCombatOutcome()
 	}
 
