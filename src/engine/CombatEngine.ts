@@ -11,10 +11,8 @@ import {
 	type PlayerCharacter,
 	type QueuedAction,
 } from '@/types'
-import { ATTRIBUTE_EFFECTS, QUALITY_DAMAGE_BONUS } from '@/constants'
-import { equippedWeapon } from '@/utils/equipment'
+import { attackProfile } from '@/utils/combat'
 import { qualifiedName } from '@/utils/qualifiers'
-import { tableModifier } from '@/utils/stats'
 import type { EncounterGroup, MonsterDef, TileDef, Zone } from '@shared/types'
 import type { StoredDoc } from '@/services/ContentSource'
 
@@ -396,24 +394,17 @@ export class CombatEngine {
 			return
 		}
 
-		// The equipped weapon's dice ([Combat 3]); bare hands are 1d4.
-		const weapon = equippedWeapon(actor, useContentStore.getState().items)
-		const roll = weapon?.damage ?? { count: 1, die: 4 }
+		// The weapon, quality and strength are worked out in one place, so the
+		// character sheet's range matches ([Inventory 46]).
+		const { weapon, roll, bonus } = attackProfile(
+			actor,
+			useContentStore.getState().items,
+		)
 		let damage = 0
 		for (let i = 0; i < roll.count; i++) {
 			damage += Math.floor(Math.random() * roll.die) + 1
 		}
-		// The weapon's quality ([Combat 13]) and the character's strength
-		// ([Attributes 2]) each add a flat amount; the total is never below 0.
-		const quality = weapon?.qualifiers?.quality
-		const strength = tableModifier(
-			ATTRIBUTE_EFFECTS.strength.damage,
-			actor.attributes.strength,
-		)
-		damage = Math.max(
-			0,
-			damage + (quality ? QUALITY_DAMAGE_BONUS[quality] : 0) + strength,
-		)
+		damage = Math.max(0, damage + bonus)
 		targetMonster.hp.current = Math.max(0, targetMonster.hp.current - damage)
 		store.addLog(
 			weapon

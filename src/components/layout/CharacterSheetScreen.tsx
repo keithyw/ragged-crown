@@ -4,7 +4,13 @@ import { inputManager, getCharacterEngine, getGameEngine } from '@/engine'
 import { useCharacterCreationStore } from '@/store/useCharacterCreationStore'
 import { useContentStore } from '@/store/useContentStore'
 import { useGameStore } from '@/store/useGameStore'
-import { carryLimit, defenseRating, encumbrance, qualifiedName } from '@/utils'
+import {
+	attackProfile,
+	carryLimit,
+	defenseRating,
+	encumbrance,
+	qualifiedName,
+} from '@/utils'
 
 // Trading ([Inventory 21]): first the receiver (a party number), then the item.
 type TradeState =
@@ -364,6 +370,8 @@ export const CharacterSheetScreen = () => {
 		)
 	}
 
+	const damageRange = attackProfile(character, items)
+
 	// What the Commands panel shows for the current mode.
 	const modeLabel =
 		trade?.step === 'recipient'
@@ -447,6 +455,14 @@ export const CharacterSheetScreen = () => {
 							<span className='text-slate-500'>SPELL POINTS:</span>
 							<span className='font-bold text-sky-400'>
 								{character.sp.current} / {character.sp.max}
+							</span>
+						</div>
+						<div className='flex justify-between border-b border-slate-800/60 pb-1'>
+							<span className='text-slate-500'>DAMAGE:</span>
+							<span className='font-bold text-slate-200'>
+								{damageRange.min === damageRange.max
+									? damageRange.min
+									: `${damageRange.min}-${damageRange.max}`}
 							</span>
 						</div>
 						<div className='flex justify-between border-b border-slate-800/60 pb-1'>
