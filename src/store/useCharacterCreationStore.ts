@@ -1,5 +1,10 @@
 import { create } from 'zustand'
-import { DEFAULT_ATTRIBUTES, DEFAULT_HP, DEFAULT_SP } from '@/constants'
+import {
+	DEFAULT_ATTRIBUTES,
+	DEFAULT_HP,
+	DEFAULT_SP,
+	STARTING_XP,
+} from '@/constants'
 import type { PlayerCharacter } from '@/types'
 import { maxHitPoints } from '@/utils/stats'
 
@@ -73,6 +78,8 @@ export const useCharacterCreationStore = create<DraftCharacterState>(
 				gender: draft.gender || 'male',
 				race: draft.race || 'human',
 				level: 0,
+				xp: STARTING_XP,
+				isStartingCharacter: true,
 				hp: { current: maxHp, max: maxHp },
 				sp: { current: 0, max: 0 },
 				attributes,

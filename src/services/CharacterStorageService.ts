@@ -1,4 +1,4 @@
-import { STORAGE_KEY } from '@/constants'
+import { STARTING_XP, STORAGE_KEY } from '@/constants'
 import type { PlayerCharacter } from '@/types'
 
 export const CharacterStorageService = {
@@ -9,7 +9,13 @@ export const CharacterStorageService = {
 		try {
 			const data = localStorage.getItem(STORAGE_KEY)
 			if (!data) return []
-			return JSON.parse(data) as PlayerCharacter[]
+			// A character saved before XP existed was made in character creation,
+			// so it is a starting character ([Combat 22]).
+			return (JSON.parse(data) as PlayerCharacter[]).map((c) =>
+				c.xp === undefined
+					? { ...c, xp: STARTING_XP, isStartingCharacter: true }
+					: c,
+			)
 		} catch (error) {
 			console.error('Failed to load characters from LocalStorage:', error)
 			return []

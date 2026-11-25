@@ -93,6 +93,10 @@ export interface PlayerCharacter {
 	race: Race
 	class?: ClassType
 	level: number
+	/** Experience; negative for a starting character ([Combat 22]). */
+	xp: number
+	/** Made in character creation, before the tutorial zones. Absent = false. */
+	isStartingCharacter?: boolean
 	hp: ResourceBar
 	sp: ResourceBar
 	attributes: Attributes

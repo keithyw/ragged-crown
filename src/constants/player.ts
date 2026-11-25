@@ -8,6 +8,11 @@ export const STARTING_POOL = 10
 export const DEFAULT_STAT = 10
 export const DEFAULT_HP = 6
 export const DEFAULT_SP = 0
+/**
+ * The XP a starting character begins with: a penalty they earn back to reach 0
+ * ([Combat 22]). Characters created after the tutorial zones start at 0.
+ */
+export const STARTING_XP = -500
 /** What initiative starts from, for characters and monsters ([Combat 17]). */
 export const BASE_INITIATIVE = 6
 export const MIN_STAT = 1

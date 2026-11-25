@@ -1,6 +1,6 @@
 import { CharacterStorageService } from '@/services'
 import { useCharacterCreationStore } from '@/store/useCharacterCreationStore'
-import { DEFAULT_ATTRIBUTES } from '@/constants'
+import { DEFAULT_ATTRIBUTES, STARTING_XP } from '@/constants'
 import type { PlayerCharacter } from '@/types'
 import { generateCharacterId, maxHitPoints } from '@/utils'
 
@@ -21,6 +21,8 @@ export class CharacterEngine {
 			id: generateCharacterId(),
 			order: 0,
 			hp: { current: max, max },
+			xp: STARTING_XP,
+			isStartingCharacter: true,
 		}
 		store.addCreatedCharacter(character as PlayerCharacter)
 		CharacterStorageService.saveCharacter(character as PlayerCharacter)

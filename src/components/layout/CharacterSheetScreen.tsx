@@ -495,6 +495,10 @@ export const CharacterSheetScreen = () => {
 								{initiativeRating(character, items)}
 							</span>
 						</div>
+						<div className='flex justify-between border-b border-slate-800/60 pb-1'>
+							<span className='text-slate-500'>XP:</span>
+							<span className='font-bold text-slate-200'>{character.xp}</span>
+						</div>
 					</div>
 
 					<div className='space-y-1.5 pt-2 text-xs'>
