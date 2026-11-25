@@ -1,4 +1,5 @@
 import { EncounterActionsSection } from '@/components/encounter/EncounterActionsSection'
+import { PostCombatView } from '@/components/encounter/PostCombatView'
 import { MonsterGroupSection } from '@/components/encounter/MonsterGroupSection'
 import { PanelHeader } from '@/components/ui/PanelHeader'
 import { SHAPES, SURFACES } from '@/constants'
@@ -72,6 +73,8 @@ export const EncounterViewport = () => {
 					handleRun={handleRun}
 				/>
 			</div>
+
+			{combatPhase === 'POST_COMBAT' && <PostCombatView />}
 		</div>
 	)
 }

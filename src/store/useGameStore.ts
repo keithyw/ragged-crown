@@ -3,6 +3,7 @@ import { withStatus } from '@/utils/status'
 import type {
 	ActiveEncounter,
 	CharacterSheetContext,
+	CombatGains,
 	CombatPhase,
 	GameScreen,
 	GetPrompt,
@@ -26,6 +27,8 @@ interface GameState {
 	activeCharacter: number | 0
 	actionQueue: QueuedAction[]
 	combatPhase: CombatPhase | null
+	/** Set when a fight is won, cleared when combat is left ([Game 28]). */
+	combatGains: CombatGains | null
 	currentZone: StoredDoc<Zone> | null
 	currentScreen: GameScreen
 	encounter: ActiveEncounter | null
@@ -73,6 +76,7 @@ interface GameState {
 	resetPlanning: () => void
 	setActiveCharacter: (id: number) => void
 	setCombatPhase: (phase: CombatPhase) => void
+	setCombatGains: (gains: CombatGains | null) => void
 	setEncounter: (encounter: ActiveEncounter | null) => void
 	setGivePool: (pool: GivePool | null) => void
 	setOpenPrompt: (prompt: OpenPrompt | null) => void
@@ -102,6 +106,7 @@ export const useGameStore = create<GameState>((set) => ({
 	activeCharacter: 0,
 	actionQueue: [],
 	combatPhase: null,
+	combatGains: null,
 	currentScreen: 'INTRO',
 	currentZone: null,
 	encounter: null,
@@ -179,6 +184,7 @@ export const useGameStore = create<GameState>((set) => ({
 	setInspectedCharacter: (characterId, context = 'GUILD') =>
 		set({ inspectedCharacterId: characterId, inspectedContext: context }),
 	setCombatPhase: (phase) => set({ combatPhase: phase }),
+	setCombatGains: (gains) => set({ combatGains: gains }),
 	setEncounter: (encounter) => set({ encounter }),
 	setGivePool: (givePool) => set({ givePool }),
 	setOpenPrompt: (openPrompt) => set({ openPrompt }),

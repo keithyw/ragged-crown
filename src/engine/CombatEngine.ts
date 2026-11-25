@@ -492,11 +492,18 @@ export class CombatEngine {
 		)
 		const survivors = store.party.filter((p) => !isDown(p))
 		const share = xpShare(total, survivors.length)
-		if (share === 0) return
+		if (share === 0) {
+			store.setCombatGains({ xpEach: 0, recipients: [] })
+			return
+		}
 		store.setParty(
 			store.party.map((p) => (isDown(p) ? p : { ...p, xp: p.xp + share })),
 		)
 		for (const p of survivors) store.addLog(`> ${p.name} gains ${share} XP.`)
+		store.setCombatGains({
+			xpEach: share,
+			recipients: survivors.map((p) => p.name),
+		})
 	}
 
 	private evaluateCombatOutcome(): void {
@@ -598,10 +605,11 @@ export class CombatEngine {
 		this.evaluateCombatOutcome()
 	}
 
-	private finishCombat(): void {
+	public finishCombat(): void {
 		const store = useGameStore.getState()
 		this.cleanup()
 		store.setEncounter(null)
+		store.setCombatGains(null)
 		store.setScreen('WORLD_MAP')
 		store.clearActionQueue()
 		this.onExitCombat?.('won')

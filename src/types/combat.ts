@@ -17,3 +17,14 @@ export interface QueuedAction {
 	target?: SelectedTarget
 	spellId?: string
 }
+
+/**
+ * What the party earned from a won encounter, for the post-combat popup
+ * ([Game 28]). Loot and gold join it when they exist.
+ */
+export interface CombatGains {
+	/** What each surviving character received ([Combat 15]). */
+	xpEach: number
+	/** The characters who received it. */
+	recipients: string[]
+}
