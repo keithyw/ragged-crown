@@ -27,7 +27,7 @@ export interface StatChange {
 /**
  * Applies a MODIFY_ATTRIBUTE to one character without mutating it
  * (DATA-MODEL 4.4). Permanent changes only. Returns undefined for the stats
- * the game has no home for yet: `xp` and `level` (decided in [Game 5]).
+ * the game has no home for yet: `level`.
  */
 export const applyStatChange = (
 	character: PlayerCharacter,
@@ -56,6 +56,13 @@ export const applyStatChange = (
 				applied === 0
 					? `${name} feels no different.`
 					: `${name} ${applied > 0 ? 'recovers' : 'loses'} ${Math.abs(applied)} ${label}.`,
+		}
+	}
+
+	if (attribute === 'xp') {
+		return {
+			character: { ...character, xp: character.xp + amount },
+			message: `${name} ${amount >= 0 ? 'gains' : 'loses'} ${Math.abs(amount)} XP.`,
 		}
 	}
 

@@ -449,7 +449,7 @@ export class InteractionEngine {
 		for (const character of targets) {
 			const change = applyStatChange(character, action)
 			if (!change) {
-				// xp and level: waiting on [Game 5].
+				// level: not built yet.
 				console.warn(
 					`[Interaction] MODIFY_ATTRIBUTE ${action.attribute} is not implemented`,
 				)

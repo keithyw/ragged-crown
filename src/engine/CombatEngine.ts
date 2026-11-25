@@ -12,7 +12,13 @@ import {
 	type PlayerCharacter,
 	type QueuedAction,
 } from '@/types'
-import { attackProfile, initiativeRating, mitigate } from '@/utils/combat'
+import {
+	attackProfile,
+	encounterXp,
+	initiativeRating,
+	mitigate,
+	xpShare,
+} from '@/utils/combat'
 import { defenseRating } from '@/utils/equipment'
 import { isDown, withStatus } from '@/utils/status'
 import { qualifiedName } from '@/utils/qualifiers'
@@ -462,6 +468,7 @@ export class CombatEngine {
 		const store = useGameStore.getState()
 		store.setCombatPhase('POST_COMBAT')
 		store.addLog('> Victory! All enemies are dead.')
+		this.grantXp()
 		store.addLog('> Press [ENTER] to return to exploration...')
 		this.unbindInput?.()
 		this.unbindInput = inputManager.registerHandler((key) => {
@@ -471,6 +478,25 @@ export class CombatEngine {
 			}
 			return false
 		})
+	}
+
+	/**
+	 * The encounter's XP, summed over its monsters and divided among the
+	 * characters still up; a fallen character gets no share ([Combat 15]).
+	 */
+	private grantXp(): void {
+		const store = useGameStore.getState()
+		const total = encounterXp(
+			store.encounter,
+			useContentStore.getState().monsters,
+		)
+		const survivors = store.party.filter((p) => !isDown(p))
+		const share = xpShare(total, survivors.length)
+		if (share === 0) return
+		store.setParty(
+			store.party.map((p) => (isDown(p) ? p : { ...p, xp: p.xp + share })),
+		)
+		for (const p of survivors) store.addLog(`> ${p.name} gains ${share} XP.`)
 	}
 
 	private evaluateCombatOutcome(): void {

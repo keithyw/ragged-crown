@@ -6,7 +6,7 @@ import {
 	QUALITY_DAMAGE_BONUS,
 	WEAPON_QUALITY_INITIATIVE,
 } from '@/constants'
-import type { ActiveMonster, PlayerCharacter } from '@/types'
+import type { ActiveEncounter, ActiveMonster, PlayerCharacter } from '@/types'
 import { equippedWeapon } from './equipment'
 import { tableModifier } from './stats'
 
@@ -100,3 +100,28 @@ export const initiativeRating = (
 		armorPenalty
 	)
 }
+
+/**
+ * The XP an encounter is worth: the sum over every monster in it, from their
+ * defs ([Combat 15]). Only asked for after a win, when all of them are down.
+ */
+export const encounterXp = (
+	encounter: ActiveEncounter | null,
+	defs: { get: (id: string) => { xp?: number } | undefined },
+): number =>
+	(encounter?.groups ?? []).reduce(
+		(total, group) =>
+			total +
+			group.monsters.reduce(
+				(sum, m) => sum + (defs.get(m.templateId)?.xp ?? 0),
+				0,
+			),
+		0,
+	)
+
+/**
+ * One character's share of an encounter's XP. A share that doesn't divide
+ * evenly rounds up, so the remainder is a small extra (owner, 2026-11-24).
+ */
+export const xpShare = (total: number, members: number): number =>
+	members > 0 ? Math.ceil(total / members) : 0

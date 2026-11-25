@@ -1,11 +1,18 @@
 import { PanelHeader } from '@/components/ui/PanelHeader'
 import { SHAPES, SURFACES } from '@/constants'
+import { useContentStore } from '@/store/useContentStore'
+import { useGameStore } from '@/store/useGameStore'
+import { encounterXp } from '@/utils/combat'
 
 interface PostCombatViewProps {
 	onContinue: () => void
 }
 
 export const PostCombatView = ({ onContinue }: PostCombatViewProps) => {
+	const encounter = useGameStore((state) => state.encounter)
+	const monsters = useContentStore((state) => state.monsters)
+	const xp = encounterXp(encounter, monsters)
+
 	return (
 		<div className={`${SHAPES.panel} ${SURFACES.panelDark}`}>
 			<PanelHeader title='Victory!' subtitle='Encounter Cleared' />
@@ -14,7 +21,9 @@ export const PostCombatView = ({ onContinue }: PostCombatViewProps) => {
 				<div className='space-y-2'>
 					<p className='font-bold text-amber-400'>&gt; Victory is yours!</p>
 					<div className='space-y-1 rounded border border-slate-800 bg-slate-900 p-3 text-slate-500 italic'>
-						<p>[ Experience Points: Placeholder (0 XP) ]</p>
+						<p>
+							[ Experience Points: {xp} XP, shared by those still standing ]
+						</p>
 						<p>[ Loot / Gold: Placeholder (0 Gold) ]</p>
 					</div>
 				</div>
