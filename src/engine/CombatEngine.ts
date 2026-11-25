@@ -21,6 +21,11 @@ import {
 } from '@/utils/combat'
 import { defenseRating } from '@/utils/equipment'
 import { isDown, withStatus } from '@/utils/status'
+import {
+	encounterCandidates,
+	pickWeighted,
+	rollNumberAppearing,
+} from '@/utils/encounters'
 import { qualifiedName } from '@/utils/qualifiers'
 import type { EncounterGroup, MonsterDef, TileDef, Zone } from '@shared/types'
 import type { StoredDoc } from '@/services/ContentSource'
@@ -226,51 +231,39 @@ export class CombatEngine {
 		}
 	}
 
-	public generateEncounter(zone: Zone, tile: TileDef): ActiveEncounter {
-		// Still the hard-coded groups; the pool comes from the difficulty
-		// configuration in [Combat 8]. Defs are found by their user-facing `id`.
-		const monsterTemplates = [...useContentStore.getState().monsters.values()]
-		const findMonster = (id: string) => {
-			const def = monsterTemplates.find((m) => m.id === id)
-			if (!def) console.warn(`No monster def with id '${id}'`)
-			return def
-		}
-
-		// need to eventually convert this into something that uses
-		// a category based system
-		const isRoad = tile.name.toLowerCase().includes('road')
-		const primaryDefId = isRoad ? 'BANDIT' : 'GOBLIN'
-		const primaryCount = isRoad
-			? Math.floor(Math.random() * 3) + 1
-			: Math.floor(Math.random() * 4) + 1
-
-		const groups: MonsterGroup[] = []
-
-		// Instantiate primary group
-		const monster = findMonster(primaryDefId)
-		if (monster) {
-			groups.push(this.createMonsterGroup(monster, primaryCount, true))
-		}
-
-		// 30% chance for secondary ranged group
-		if (Math.random() < 0.3) {
-			const secondMonster = findMonster('GIANT_SPIDER')
-			if (secondMonster) {
-				groups.push(
-					this.createMonsterGroup(
-						secondMonster,
-						Math.floor(Math.random() * 2) + 1,
-						false,
-					),
-				)
-			}
+	/**
+	 * A random encounter ([Combat 24]): one monster picked by rarity from the
+	 * candidates for this zone and terrain, as many as its `numberAppearing`
+	 * rolls. Undefined when nothing can appear (an empty pool, nothing listing
+	 * this terrain, a level that excludes everyone): no encounter is forced.
+	 */
+	public generateEncounter(
+		zone: Zone,
+		tile: TileDef,
+	): ActiveEncounter | undefined {
+		const config = zoneLoaderService.difficultyConfig(zone)
+		const candidates = encounterCandidates(
+			zone.randomEncounters,
+			tile as StoredDoc<TileDef>,
+			config,
+			useContentStore.getState().monsters.values(),
+		)
+		const monster = pickWeighted(candidates)
+		if (!monster) {
+			console.warn(
+				`No monster can appear in "${zone.id}" on "${tile.name}" ` +
+					`(${zone.randomEncounters ?? 'none'}), so there is no encounter.`,
+			)
+			return undefined
 		}
 
 		return {
 			id: `enc-${Date.now()}`,
 			zoneId: zone.id,
-			difficultyLevel: zoneLoaderService.difficultyLevel(zone),
-			groups,
+			difficultyLevel: config.level,
+			groups: [
+				this.createMonsterGroup(monster, rollNumberAppearing(monster), true),
+			],
 			phase: 'INIT',
 		}
 	}

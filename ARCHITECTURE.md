@@ -94,7 +94,7 @@ The game follows the tools' model (DATA-MODEL sections 1, 3, 4 and 5). Section 5
 1. `InteractionEngine.evaluateMove` checks bounds, the terrain def (blocked unless `isWalkable`) and the cell's stack (blocked if any placement is a solid object).
 2. If blocked, `trigger('BUMP_INTERACT', ...)` runs the top placement's interaction. If it had none, the block reason goes to the log.
 3. If allowed, the player moves, then `trigger('WALK', ...)` runs. Stepping onto a portal logs "Press E to enter".
-4. `EncounterService.shouldTriggerEncounter` rolls `encounterRate × level` (never in level-0 zones; the level comes from the zone's difficulty configuration, `difficultyId`, loaded with the zone by `ZoneLoaderService`) and, on a hit, starts combat (section 6).
+4. `EncounterService.shouldTriggerEncounter` rolls a chance by the zone's `randomEncounters` setting (`none` or absent never rolls; `terrain` uses the tile's `encounterRate`, absent = 0; `config` uses the difficulty configuration's `encounterChance` percentage; the configuration comes from `difficultyId`, loaded with the zone by `ZoneLoaderService`) and, on a hit, starts combat (section 6).
 
 **`E` enters a portal** (`GameEngine.enterPortal`): the top-most portal placement under the player. It loads `destination.zoneId` and places the player at `destination.pos`, else the zone's `startingPosition`. A portal with no destination is unconnected.
 
@@ -125,7 +125,7 @@ Saving happens on character creation and deletion, on Start New Game, and at the
 
 **Starting.** `GameEngine.movePlayer` builds an encounter with `generateEncounter(zone, tile)`, unbinds world input, stores it, and calls `enterCombat(onExit)` with a callback back to `enterWorldMode()`.
 
-**Encounter generation.** Monster templates come from `monster.json` (four, hard-coded). A tile whose name contains "road" gives 1-3 bandits, anything else 1-4 goblins, both in melee range; 30% of the time 1-2 giant spiders are added as a second, out-of-range group. HP is the template's `maxHp`. `zone.difficultyLevel` is copied in but not used to choose monsters.
+**Encounter generation** (`utils/encounters.ts`, [Combat 24]). The candidates are the non-unique monsters at most the configuration's level that either list the terrain stepped on (`terrain`) or are in the configuration's `monsterIds` (`config`). One is picked by rarity weight (`RARITY_WEIGHTS`, each monster's weight over the total) and as many appear as its `numberAppearing` rolls, in one melee-range group. With no candidates `generateEncounter` returns undefined and nothing starts. HP is the def's `hp`. Several random groups in one encounter are not built.
 
 **Phases** (`CombatPhase`) and their keys:
 
@@ -210,7 +210,7 @@ Found while writing this doc, by reading the code. **Not fixed.** Items marked _
 10. **Party wipe leaves the game stuck.** On "Game Over" the confirmation handler stays bound, so Enter runs another round. There is no game-over screen.
 11. Downed characters are still asked for actions in planning; only execution skips them.
 12. `resolvePartyAttack` changes monster HP in place and then sets a shallow copy of the encounter.
-13. `generateEncounter` assumes `bandit`, `goblin` and `giant_spider` exist (`as Monster`); a missing template crashes.
+13. _Resolved ([Combat 24])._ `generateEncounter` no longer assumes any def exists; with no candidates it returns undefined.
 14. The encounter viewport's Fight button calls `enterCombat()` without the exit callback, so it reuses whatever callback was stored last.
 
 **Lifecycle, screens, data**
