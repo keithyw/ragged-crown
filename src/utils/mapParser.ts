@@ -11,7 +11,7 @@ import type { CellKey, Placement } from '@shared/types'
 export interface ResolvedCell {
 	position: Position
 	terrain?: StoredDoc<TileDef>
-	/** The top of the cell's stack: what the player sees and bumps into. */
+	/** The topmost visible thing in the cell's stack: what the player sees. */
 	top?: StoredDoc<PlacedDef | MonsterDef>
 }
 
@@ -42,14 +42,22 @@ export const parseZoneGrid = (
 ): ResolvedCell[][] =>
 	zone.terrain.map((row, y) =>
 		row.map((terrainId, x) => {
-			const stack = placements[cellKey(x, y)]
-			const topPlacement = stack?.[stack.length - 1]
+			const stack = placements[cellKey(x, y)] ?? []
+			// The topmost placement that isn't invisible: an invisible one lets
+			// what is below it (or the terrain) show through.
+			let top: ResolvedCell['top']
+			for (let i = stack.length - 1; i >= 0; i--) {
+				top = appearanceOf(defs, stack[i], monsters)
+				if (top?.kind === 'object' && top.isInvisible) {
+					top = undefined
+					continue
+				}
+				break
+			}
 			return {
 				position: { x, y },
 				terrain: defs.tiles.get(terrainId),
-				top: topPlacement
-					? appearanceOf(defs, topPlacement, monsters)
-					: undefined,
+				top,
 			}
 		}),
 	)

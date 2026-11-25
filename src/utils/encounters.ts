@@ -32,10 +32,10 @@ export const RARITY_WEIGHTS: Record<MonsterRarity, number> = {
  */
 export const encounterChance = (
 	mode: Zone['randomEncounters'],
-	tile: TileDef,
+	tile: TileDef | undefined,
 	config: DifficultyConfig,
 ): number => {
-	if (mode === 'terrain') return tile.encounterRate ?? 0
+	if (mode === 'terrain') return tile?.encounterRate ?? 0
 	if (mode === 'config') return (config.encounterChance ?? 0) / 100
 	return 0
 }
@@ -47,7 +47,7 @@ export const encounterChance = (
  */
 export const encounterCandidates = (
 	mode: Zone['randomEncounters'],
-	tile: StoredDoc<TileDef>,
+	tile: StoredDoc<TileDef> | undefined,
 	config: DifficultyConfig,
 	monsters: Iterable<StoredDoc<MonsterDef>>,
 ): StoredDoc<MonsterDef>[] => {
@@ -58,7 +58,7 @@ export const encounterCandidates = (
 		if (RARITY_WEIGHTS[m.rarity] === undefined) continue
 		const listed =
 			mode === 'terrain'
-				? (m.terrainIds ?? []).includes(tile._id)
+				? !!tile && (m.terrainIds ?? []).includes(tile._id)
 				: (config.monsterIds ?? []).includes(m._id)
 		if (listed) out.push(m)
 	}

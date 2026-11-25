@@ -25,6 +25,7 @@ import {
 	addToInventory,
 	cellKey,
 	completeQualifiers,
+	encounterChance,
 	equip,
 	findPortalAt,
 	fitsInInventory,
@@ -260,6 +261,25 @@ export class GameEngine extends BaseGameEngine {
 			setParty: (party) => get().setParty(party),
 			openGivePool: (pos, items) => get().setGivePool({ pos, items }),
 			getDifficulty: () => zoneLoaderService.configFor(get().currentZone),
+			rollRandomEncounter: () => {
+				const zone = get().currentZone
+				if (!zone || !zone.randomEncounters || zone.randomEncounters === 'none')
+					return false
+				const config = zoneLoaderService.difficultyConfig(zone)
+				if (Math.random() < encounterChance('config', undefined, config)) {
+					const encounter = combatEngine.generateEncounter(
+						zone,
+						undefined,
+						'config',
+					)
+					if (encounter) {
+						this.unbindWorldInput?.()
+						get().setEncounter(encounter)
+						combatEngine.enterCombat(() => this.enterWorldMode())
+					}
+				}
+				return true
+			},
 			startEncounter: (groups, barrier) => {
 				const zone = get().currentZone
 				const encounter = zone && combatEngine.buildSetEncounter(zone, groups)

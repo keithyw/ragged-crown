@@ -239,20 +239,21 @@ export class CombatEngine {
 	 */
 	public generateEncounter(
 		zone: Zone,
-		tile: TileDef,
+		tile: TileDef | undefined,
+		mode: Zone['randomEncounters'] = zone.randomEncounters,
 	): ActiveEncounter | undefined {
 		const config = zoneLoaderService.difficultyConfig(zone)
 		const candidates = encounterCandidates(
-			zone.randomEncounters,
-			tile as StoredDoc<TileDef>,
+			mode,
+			tile as StoredDoc<TileDef> | undefined,
 			config,
 			useContentStore.getState().monsters.values(),
 		)
 		const monster = pickWeighted(candidates)
 		if (!monster) {
 			console.warn(
-				`No monster can appear in "${zone.id}" on "${tile.name}" ` +
-					`(${zone.randomEncounters ?? 'none'}), so there is no encounter.`,
+				`No monster can appear in "${zone.id}" on "${tile?.name}" ` +
+					`(${mode ?? 'none'}), so there is no encounter.`,
 			)
 			return undefined
 		}

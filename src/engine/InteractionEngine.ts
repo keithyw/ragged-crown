@@ -54,6 +54,12 @@ export interface InteractionHost {
 		groups: EncounterGroup[],
 		barrier: { pos: Position; uid: string },
 	) => void
+	/**
+	 * A random encounter space's roll ([Combat 12]): the difficulty
+	 * configuration's chance and pool. Starts combat on a success. Returns
+	 * false when the zone has random encounters off, so the space did nothing.
+	 */
+	rollRandomEncounter: () => boolean
 }
 
 export class InteractionEngine {
@@ -313,6 +319,23 @@ export class InteractionEngine {
 					removePlacement(host.getPlacements(), pos, placement.uid),
 				)
 				return
+			case 'RANDOM_ENCOUNTER': {
+				// A space that isn't repeatable is gone after its roll, whether or
+				// not anything appeared. In a zone with encounters off it rolls
+				// nothing and stays.
+				const value = action.slot
+					? placement.customValues?.[action.slot]
+					: undefined
+				const repeatable =
+					value?.type === 'RANDOM_ENCOUNTER' && !!value.repeatable
+				const rolled = host.rollRandomEncounter()
+				if (rolled && !repeatable) {
+					host.setPlacements(
+						removePlacement(host.getPlacements(), pos, placement.uid),
+					)
+				}
+				return
+			}
 			case 'REMOVE_OBJECT': {
 				// The target is named on the placement, by uid ([Game 26]).
 				const value = action.slot
