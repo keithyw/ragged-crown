@@ -4,12 +4,14 @@ import {
 	ATTRIBUTE_EFFECTS,
 	BASE_INITIATIVE,
 	BODY_ARMOR_SLOTS,
+	DUAL_WIELD_DAMAGE_PENALTY,
+	DUAL_WIELD_INITIATIVE_PENALTY,
 	MATERIAL_ARMOR_SLOTS,
 	QUALITY_DAMAGE_BONUS,
 	WEAPON_QUALITY_INITIATIVE,
 } from '@/constants'
 import type { ActiveEncounter, ActiveMonster, PlayerCharacter } from '@/types'
-import { equippedWeapon } from './equipment'
+import { equippedWeapon, equippedWeapons, type HandSlot } from './equipment'
 import { tableModifier } from './stats'
 
 export const areMonstersAlive = (monsters: ActiveMonster[]): boolean => {
@@ -27,14 +29,17 @@ export const calculateHPPercent = (
  * What one party attack deals, worked out in one place so the attack and the
  * character sheet can't disagree ([Inventory 46]): the equipped weapon's dice
  * (1d4 bare-handed, [Combat 3]), plus the weapon's quality ([Combat 13]) and
- * the character's strength ([Attributes 2]). Dual wielding is ignored
- * ([Combat 20]).
+ * the character's strength ([Attributes 2]). A dual wielder ([Combat 27])
+ * names the hand the attack is made with; each attack takes the dual wield
+ * damage penalty.
  */
 export const attackProfile = (
 	character: PlayerCharacter,
 	defs: Parameters<typeof equippedWeapon>[1],
+	slot?: HandSlot,
 ) => {
-	const weapon = equippedWeapon(character, defs)
+	const weapon = equippedWeapon(character, defs, slot)
+	const dual = isDualWielding(character, defs)
 	const roll = weapon?.damage ?? { count: 1, die: 4 }
 	const quality = weapon?.qualifiers?.quality
 	const bonus =
@@ -43,15 +48,30 @@ export const attackProfile = (
 			ATTRIBUTE_EFFECTS.strength.damage,
 			character.attributes.strength,
 		)
+	/** A raw dice total after the bonus and the dual wield penalty. */
+	const hit = (dice: number) => dualWieldHit(Math.max(0, dice + bonus), dual)
 	return {
 		weapon,
 		roll,
-		bonus,
-		/** The lowest and highest an attack can deal, never below 0. */
-		min: Math.max(0, roll.count + bonus),
-		max: Math.max(0, roll.count * roll.die + bonus),
+		hit,
+		/** The lowest and highest an attack can deal, before defense. */
+		min: hit(roll.count),
+		max: hit(roll.count * roll.die),
 	}
 }
+
+/** Two weapons held: two attacks, one per weapon ([Combat 20]). */
+export const isDualWielding = (
+	character: PlayerCharacter,
+	defs: Parameters<typeof equippedWeapons>[1],
+): boolean => equippedWeapons(character, defs).length === 2
+
+/**
+ * The dual wield damage penalty ([Combat 20]): -1, but it can't take a hit
+ * below 1. A hit already at 0 stays 0, so two weapons never beat one.
+ */
+const dualWieldHit = (damage: number, dual: boolean): number =>
+	dual && damage > 0 ? Math.max(1, damage + DUAL_WIELD_DAMAGE_PENALTY) : damage
 
 /**
  * Damage a defense rating takes off every hit ([Combat 16]): one point per 10
@@ -73,12 +93,20 @@ export const mitigate = (damage: number, defense: number): number =>
  * only (empty slots don't dilute it), rounded toward 0, so it never passes the
  * worst single piece (-2). Plus the armor material bonus ([Inventory 48]),
  * averaged the same way. The sheet shows this number; combat adds the roll.
+ * A dual wielder ([Combat 27]) has one per weapon: the hand's weapon quality,
+ * and the `hand1` attack takes the dual wield penalty.
  */
 export const initiativeRating = (
 	character: PlayerCharacter,
 	defs: Parameters<typeof equippedWeapon>[1],
+	slot?: HandSlot,
 ): number => {
-	const weaponQuality = equippedWeapon(character, defs)?.qualifiers?.quality
+	const weaponQuality = equippedWeapon(character, defs, slot)?.qualifiers
+		?.quality
+	const dualPenalty =
+		slot === 'hand1' && isDualWielding(character, defs)
+			? DUAL_WIELD_INITIATIVE_PENALTY
+			: 0
 	const inventory = character.inventory ?? []
 	const worn = BODY_ARMOR_SLOTS.flatMap((slot) => {
 		const uid = character.equipment?.[slot]
@@ -115,7 +143,8 @@ export const initiativeRating = (
 		) +
 		((weaponQuality && WEAPON_QUALITY_INITIATIVE[weaponQuality]) || 0) +
 		armorPenalty +
-		materialBonus
+		materialBonus +
+		dualPenalty
 	)
 }
 

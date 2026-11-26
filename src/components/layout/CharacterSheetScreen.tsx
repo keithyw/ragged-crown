@@ -11,6 +11,7 @@ import {
 	cn,
 	defenseRating,
 	encumbrance,
+	equippedWeapons,
 	initiativeRating,
 	qualifiedName,
 	statusesOf,
@@ -374,7 +375,25 @@ export const CharacterSheetScreen = () => {
 		)
 	}
 
-	const damageRange = attackProfile(character, items)
+	// One line per weapon held, each naming its weapon ([Inventory 49]); bare
+	// hands when there is none.
+	const weapons = equippedWeapons(character, items)
+	const attacks = (
+		weapons.length
+			? weapons.map((w) => ({ name: w.name, slot: w.slot }))
+			: [{ name: 'Bare hands', slot: undefined }]
+	).map(({ name, slot }) => {
+		const profile = attackProfile(character, items, slot)
+		return {
+			name,
+			slot,
+			damage:
+				profile.min === profile.max
+					? `${profile.min}`
+					: `${profile.min}-${profile.max}`,
+			initiative: initiativeRating(character, items, slot),
+		}
+	})
 	const statuses = statusesOf(character)
 
 	// What the Commands panel shows for the current mode.
@@ -477,10 +496,17 @@ export const CharacterSheetScreen = () => {
 						</div>
 						<div className='flex justify-between border-b border-slate-800/60 pb-1'>
 							<span className='text-slate-500'>DAMAGE:</span>
-							<span className='font-bold text-slate-200'>
-								{damageRange.min === damageRange.max
-									? damageRange.min
-									: `${damageRange.min}-${damageRange.max}`}
+							<span className='flex flex-col items-end font-bold text-slate-200'>
+								{attacks.map((a) => (
+									<span key={a.slot ?? 'single'}>
+										{a.name && (
+											<span className='font-normal text-slate-500'>
+												{a.name}:{' '}
+											</span>
+										)}
+										{a.damage}
+									</span>
+								))}
 							</span>
 						</div>
 						<div className='flex justify-between border-b border-slate-800/60 pb-1'>
@@ -491,8 +517,17 @@ export const CharacterSheetScreen = () => {
 						</div>
 						<div className='flex justify-between border-b border-slate-800/60 pb-1'>
 							<span className='text-slate-500'>INITIATIVE:</span>
-							<span className='font-bold text-slate-200'>
-								{initiativeRating(character, items)}
+							<span className='flex flex-col items-end font-bold text-slate-200'>
+								{attacks.map((a) => (
+									<span key={a.slot ?? 'single'}>
+										{a.name && (
+											<span className='font-normal text-slate-500'>
+												{a.name}:{' '}
+											</span>
+										)}
+										{a.initiative}
+									</span>
+								))}
 							</span>
 						</div>
 						<div className='flex justify-between border-b border-slate-800/60 pb-1'>

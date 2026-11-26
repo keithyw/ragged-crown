@@ -38,6 +38,7 @@ const HAND_SLOTS = [
 	'hand1',
 	'hand2',
 ] as const satisfies readonly EquipmentSlot[]
+export type HandSlot = (typeof HAND_SLOTS)[number]
 
 /**
  * The slots an armor type can go in, in the order they are tried. Every type
@@ -227,34 +228,49 @@ export const defenseRating = (
 
 /** What a party attack reads of the weapon: dice, name and qualifiers. */
 export type AttackWeapon = {
+	slot: HandSlot
 	name: string
 	damage: RandomRoll
 	qualifiers?: Qualifiers
 }
 
 /**
- * The weapon a character attacks with ([Combat 3]): the first one in `hand1`,
- * then `hand2`. Dual wielding is not designed ([Combat 20]), so a second
- * weapon is ignored. Missile and thrown weapons are treated as plain ones.
- * Undefined when the hands are empty (the caller falls back to bare hands).
+ * Every weapon a character holds, `hand1` first ([Combat 27]). Two means dual
+ * wielding: one attack per weapon ([Combat 20]). Missile and thrown weapons
+ * are treated as plain ones. Empty when the hands are (bare hands).
  */
-export const equippedWeapon = (
+export const equippedWeapons = (
 	character: PlayerCharacter,
 	defs: Map<string, { kind: string; name: string; damage?: RandomRoll }>,
-): AttackWeapon | undefined => {
-	for (const slot of HAND_SLOTS) {
+): AttackWeapon[] =>
+	HAND_SLOTS.flatMap((slot) => {
 		const uid = character.equipment?.[slot]
 		const entry = (character.inventory ?? []).find((e) => e.uid === uid)
 		const def = entry && defs.get(entry.itemId)
-		if (def?.kind === 'weapon' && def.damage) {
-			return {
-				name: def.name,
-				damage: def.damage,
-				qualifiers: entry?.qualifiers,
-			}
-		}
-	}
-	return undefined
+		return def?.kind === 'weapon' && def.damage
+			? [
+					{
+						slot,
+						name: def.name,
+						damage: def.damage,
+						qualifiers: entry?.qualifiers,
+					},
+				]
+			: []
+	})
+
+/**
+ * The weapon in one hand, or the first one held when no slot is named
+ * ([Combat 3]). Undefined when there is none (the caller falls back to bare
+ * hands).
+ */
+export const equippedWeapon = (
+	character: PlayerCharacter,
+	defs: Parameters<typeof equippedWeapons>[1],
+	slot?: HandSlot,
+): AttackWeapon | undefined => {
+	const weapons = equippedWeapons(character, defs)
+	return slot ? weapons.find((w) => w.slot === slot) : weapons[0]
 }
 
 /**

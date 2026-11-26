@@ -19,7 +19,12 @@ import {
 	mitigate,
 	xpShare,
 } from '@/utils/combat'
-import { defenseRating } from '@/utils/equipment'
+import {
+	defenseRating,
+	equippedWeapon,
+	equippedWeapons,
+	type HandSlot,
+} from '@/utils/equipment'
 import { isDown, withStatus } from '@/utils/status'
 import {
 	encounterCandidates,
@@ -35,6 +40,11 @@ export class CombatEngine {
 	private onExitCombat?: (outcome: 'won' | 'fled') => void
 
 	private pendingActionType: CombatActionType | null = null
+	// A dual wielder's attacks ([Combat 27]): the hands still to be given a
+	// target, and the attacks already given one. Queued together once both
+	// have a target, so Escape cancels both.
+	private pendingSlots: HandSlot[] = []
+	private pendingAttacks: QueuedAction[] = []
 
 	public enterCombat(onExitCombat?: (outcome: 'won' | 'fled') => void): void {
 		if (onExitCombat) {
@@ -137,6 +147,12 @@ export class CombatEngine {
 		if (!currentChar) return false
 
 		if (key === 'a') {
+			const weapons = equippedWeapons(
+				currentChar,
+				useContentStore.getState().items,
+			)
+			this.pendingSlots = weapons.length === 2 ? weapons.map((w) => w.slot) : []
+			this.pendingAttacks = []
 			this.queueOrPromptTarget('ATTACK')
 			return true
 		}
@@ -170,7 +186,13 @@ export class CombatEngine {
 			this.pendingActionType = actionType
 			store.setSubPhase('TARGET_SELECT')
 			store.setSelectedTargetIndex(monsterGroups[0])
-			store.addLog(`> Select Target Group [1-${encounter.groups.length}]`)
+			// A dual wielder picks a target per weapon, so name the weapon.
+			const weapon = this.pendingSlots[0] && this.pendingWeaponName()
+			store.addLog(
+				weapon
+					? `> ${weapon}: select target group [1-${encounter.groups.length}]`
+					: `> Select Target Group [1-${encounter.groups.length}]`,
+			)
 			this.bindTargetSelectInput(monsterGroups)
 		}
 	}
@@ -180,6 +202,8 @@ export class CombatEngine {
 		if (key === 'Escape') {
 			store.setSubPhase('ACTION_SELECT')
 			this.pendingActionType = null
+			this.pendingSlots = []
+			this.pendingAttacks = []
 			store.addLog('> Target selection cancelled.')
 			return true
 		}
@@ -311,6 +335,8 @@ export class CombatEngine {
 	private cancelTargetSelection(): void {
 		const store = useGameStore.getState()
 		this.pendingActionType = null
+		this.pendingSlots = []
+		this.pendingAttacks = []
 		store.setSubPhase('ACTION_SELECT')
 		store.setSelectedTargetIndex(-1)
 		store.addLog('> Target selection cancelled.')
@@ -326,16 +352,32 @@ export class CombatEngine {
 		const currentChar = party[store.activeCharacter]
 		if (!currentChar) return
 
+		const weaponName = this.pendingSlots[0] && this.pendingWeaponName()
+		const weaponSlot = this.pendingSlots.shift()
 		const action: QueuedAction = {
 			actorId: currentChar.id,
 			actionType,
 			...(targetGroupIndex !== undefined && {
 				target: { type: 'MONSTER_GROUP', index: targetGroupIndex },
 			}),
+			...(weaponSlot && { weaponSlot }),
+		}
+		this.pendingAttacks.push(action)
+
+		// A dual wielder's second weapon still needs a target ([Combat 27]).
+		if (this.pendingSlots.length > 0) {
+			store.addLog(
+				`> ${currentChar.name} queued: ${actionType} (${weaponName})`,
+			)
+			this.queueOrPromptTarget(actionType)
+			return
 		}
 
-		store.queueAction(action)
-		store.addLog(`> ${currentChar.name} queued: ${actionType}`)
+		this.pendingAttacks.forEach((a) => store.queueAction(a))
+		this.pendingAttacks = []
+		store.addLog(
+			`> ${currentChar.name} queued: ${actionType}${weaponName ? ` (${weaponName})` : ''}`,
+		)
 
 		// Reset internal sub-state for next actor
 		this.pendingActionType = null
@@ -371,8 +413,20 @@ export class CombatEngine {
 		})
 	}
 
+	/** The weapon in the next hand waiting for a target ([Combat 27]). */
+	private pendingWeaponName(): string | undefined {
+		const store = useGameStore.getState()
+		const character = store.party[store.activeCharacter]
+		const slot = this.pendingSlots[0]
+		return character && slot
+			? equippedWeapon(character, useContentStore.getState().items, slot)?.name
+			: undefined
+	}
+
 	public resetPlanning(): void {
 		const store = useGameStore.getState()
+		this.pendingSlots = []
+		this.pendingAttacks = []
 		store.clearActionQueue()
 		store.setActiveCharacter(0)
 		store.addLog('> Planning phase reset.')
@@ -383,6 +437,7 @@ export class CombatEngine {
 		actor: PlayerCharacter,
 		targetGroupIndex: number,
 		initiative: number,
+		weaponSlot?: HandSlot,
 	): void {
 		const store = useGameStore.getState()
 		const encounter = store.encounter
@@ -392,18 +447,16 @@ export class CombatEngine {
 
 		const targetMonster = targetGroup.monsters.find((m) => !isDown(m))
 
-		if (!targetMonster) {
-			store.addLog(
-				`> [${initiative}] ${actor.name} attacks ${targetGroup.name}, but no targets remain!`,
-			)
-			return
-		}
+		// Nobody left in the group: the attack is skipped silently ([Combat 20]).
+		if (!targetMonster) return
 
 		// The weapon, quality and strength are worked out in one place, so the
-		// character sheet's range matches ([Inventory 46]).
-		const { weapon, roll, bonus } = attackProfile(
+		// character sheet's range matches ([Inventory 46]). A dual wielder's
+		// attack names its hand ([Combat 27]).
+		const { weapon, roll, hit } = attackProfile(
 			actor,
 			useContentStore.getState().items,
+			weaponSlot,
 		)
 		let damage = 0
 		for (let i = 0; i < roll.count; i++) {
@@ -413,7 +466,7 @@ export class CombatEngine {
 		const defense =
 			useContentStore.getState().monsters.get(targetMonster.templateId)
 				?.defenseValue ?? 0
-		damage = mitigate(Math.max(0, damage + bonus), defense)
+		damage = mitigate(hit(damage), defense)
 		targetMonster.hp.current = Math.max(0, targetMonster.hp.current - damage)
 		store.addLog(
 			weapon
@@ -544,17 +597,29 @@ export class CombatEngine {
 		const d6 = () => Math.floor(Math.random() * 6) + 1
 
 		type Turn =
-			| { side: 'party'; id: string; initiative: number }
+			| {
+					side: 'party'
+					id: string
+					action: QueuedAction
+					initiative: number
+			  }
 			| { side: 'monster'; monster: ActiveMonster; initiative: number }
 
+		// One turn per queued action, so a dual wielder's two attacks each roll
+		// their own initiative with their own weapon ([Combat 27]).
 		const turns: Turn[] = [
 			...store.party
 				.filter((p) => !isDown(p))
-				.map((p): Turn => ({
-					side: 'party',
-					id: p.id,
-					initiative: initiativeRating(p, items) + d6(),
-				})),
+				.flatMap((p) =>
+					queue
+						.filter((a) => a.actorId === p.id)
+						.map((action): Turn => ({
+							side: 'party',
+							id: p.id,
+							action,
+							initiative: initiativeRating(p, items, action.weaponSlot) + d6(),
+						})),
+				),
 			...(store.encounter?.groups ?? []).flatMap((g) =>
 				g.monsters
 					.filter((m) => !isDown(m))
@@ -580,12 +645,16 @@ export class CombatEngine {
 			}
 			const actor = useGameStore.getState().party.find((p) => p.id === turn.id)
 			if (!actor || isDown(actor)) continue // Skip if downed
-			const action = queue.find((a) => a.actorId === actor.id)
-			if (!action) continue
+			const action = turn.action
 
 			if (action.actionType === 'ATTACK') {
 				const targetIdx = action.target?.index ?? 0
-				this.resolvePartyAttack(actor, targetIdx, turn.initiative)
+				this.resolvePartyAttack(
+					actor,
+					targetIdx,
+					turn.initiative,
+					action.weaponSlot,
+				)
 			} else if (action.actionType === 'DEFEND') {
 				store.addLog(
 					`> [${turn.initiative}] ${actor.name} takes a defensive stance!`,

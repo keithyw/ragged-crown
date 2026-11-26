@@ -132,6 +132,13 @@ export const ARMOR_MATERIAL_INITIATIVE: Partial<Record<Material, number>> = {
 	cloth: 1,
 }
 
+/**
+ * Dual wielding ([Combat 20]): the `hand1` attack's initiative penalty, and
+ * the damage penalty on both attacks. Game only.
+ */
+export const DUAL_WIELD_INITIATIVE_PENALTY = -1
+export const DUAL_WIELD_DAMAGE_PENALTY = -1
+
 /** The slots the material effect averages over: the body slots minus the belt (too light). */
 export const MATERIAL_ARMOR_SLOTS = BODY_ARMOR_SLOTS.filter(
 	(slot) => slot !== 'belt',

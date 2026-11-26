@@ -16,6 +16,8 @@ export interface QueuedAction {
 	actionType: CombatActionType
 	target?: SelectedTarget
 	spellId?: string
+	/** A dual wielder's attack names its hand ([Combat 27]); absent otherwise. */
+	weaponSlot?: 'hand1' | 'hand2'
 }
 
 /**
