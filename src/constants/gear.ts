@@ -2,6 +2,7 @@ import type {
 	ArmorGroup,
 	ArmorMaterial,
 	ArmorMaterialCategory,
+	Material,
 	Quality,
 	WeaponGroup,
 	WeaponMaterial,
@@ -121,3 +122,17 @@ export const BODY_ARMOR_SLOTS = [
 	'belt',
 	'cloak',
 ] as const
+
+/**
+ * What a worn armor piece's material counts for in initiative ([Inventory 48]):
+ * cloth +1, every other material 0 for now. Averaged like the quality penalty,
+ * so it only shows when every counted piece is cloth. Game only.
+ */
+export const ARMOR_MATERIAL_INITIATIVE: Partial<Record<Material, number>> = {
+	cloth: 1,
+}
+
+/** The slots the material effect averages over: the body slots minus the belt (too light). */
+export const MATERIAL_ARMOR_SLOTS = BODY_ARMOR_SLOTS.filter(
+	(slot) => slot !== 'belt',
+)

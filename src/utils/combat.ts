@@ -1,8 +1,10 @@
 import {
+	ARMOR_MATERIAL_INITIATIVE,
 	ARMOR_QUALITY_INITIATIVE,
 	ATTRIBUTE_EFFECTS,
 	BASE_INITIATIVE,
 	BODY_ARMOR_SLOTS,
+	MATERIAL_ARMOR_SLOTS,
 	QUALITY_DAMAGE_BONUS,
 	WEAPON_QUALITY_INITIATIVE,
 } from '@/constants'
@@ -69,7 +71,8 @@ export const mitigate = (damage: number, defense: number): number =>
  * plus speed ([Attributes 3]), plus the equipped weapon's quality, plus the
  * armor quality penalty. The penalty is the average over the worn body pieces
  * only (empty slots don't dilute it), rounded toward 0, so it never passes the
- * worst single piece (-2). The sheet shows this number; combat adds the roll.
+ * worst single piece (-2). Plus the armor material bonus ([Inventory 48]),
+ * averaged the same way. The sheet shows this number; combat adds the roll.
  */
 export const initiativeRating = (
 	character: PlayerCharacter,
@@ -90,6 +93,20 @@ export const initiativeRating = (
 				) / worn.length,
 			) || 0
 		: 0
+	// Material ([Inventory 48]): averaged the same way, over its own slots.
+	const materials = MATERIAL_ARMOR_SLOTS.flatMap((slot) => {
+		const uid = character.equipment?.[slot]
+		const entry = inventory.find((e) => e.uid === uid)
+		return entry ? [entry.qualifiers?.material] : []
+	})
+	const materialBonus = materials.length
+		? Math.trunc(
+				materials.reduce(
+					(sum, m) => sum + ((m && ARMOR_MATERIAL_INITIATIVE[m]) || 0),
+					0,
+				) / materials.length,
+			) || 0
+		: 0
 	return (
 		BASE_INITIATIVE +
 		tableModifier(
@@ -97,7 +114,8 @@ export const initiativeRating = (
 			character.attributes.speed,
 		) +
 		((weaponQuality && WEAPON_QUALITY_INITIATIVE[weaponQuality]) || 0) +
-		armorPenalty
+		armorPenalty +
+		materialBonus
 	)
 }
 
