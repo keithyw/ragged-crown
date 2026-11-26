@@ -1,4 +1,4 @@
-import { BASE_INITIATIVE } from '@/constants'
+import { BASE_INITIATIVE, DEFAULT_STARTING_POSITION } from '@/constants'
 import { inputManager } from '@/engine'
 import { useContentStore } from '@/store/useContentStore'
 import { useGameStore } from '@/store/useGameStore'
@@ -45,6 +45,8 @@ export class CombatEngine {
 	// have a target, so Escape cancels both.
 	private pendingSlots: HandSlot[] = []
 	private pendingAttacks: QueuedAction[] = []
+	// The monster that downed the last party member to fall ([Combat 26]).
+	private lastKiller: string | null = null
 
 	public enterCombat(onExitCombat?: (outcome: 'won' | 'fled') => void): void {
 		if (onExitCombat) {
@@ -52,6 +54,7 @@ export class CombatEngine {
 		}
 		const store = useGameStore.getState()
 		store.setCombatPhase('INIT')
+		this.lastKiller = null
 		store.setActiveCharacter(0)
 		store.clearActionQueue()
 
@@ -508,6 +511,7 @@ export class CombatEngine {
 
 		if (target.hp.current - damage <= 0) {
 			store.addLog(`> ${target.name} is killed by ${m.name}!`)
+			this.lastKiller = m.name
 		}
 	}
 
@@ -572,7 +576,7 @@ export class CombatEngine {
 		// Check Wipe
 		const partyWiped = store.party.every((p) => isDown(p))
 		if (partyWiped) {
-			store.addLog('> Your party has fallen... Game Over.')
+			this.transitionToGameOver()
 			return
 		}
 
@@ -580,6 +584,46 @@ export class CombatEngine {
 		store.clearActionQueue()
 		store.setActiveCharacter(0)
 		this.startPlanning()
+	}
+
+	/**
+	 * A party wipe ([Combat 26]): tell the player and wait for Space. Nothing
+	 * else does anything meanwhile, so the swallowed keys never reach the map.
+	 */
+	private transitionToGameOver(): void {
+		const store = useGameStore.getState()
+		store.setSlainBy(this.lastKiller ?? 'the monsters')
+		store.setCombatPhase('GAME_OVER')
+		store.addLog('> Your party has fallen... Game Over.')
+		this.unbindInput?.()
+		this.unbindInput = inputManager.registerHandler((key) => {
+			if (key === ' ') this.endGameOver()
+			return true
+		})
+	}
+
+	/**
+	 * Leaves a lost game for the main menu. There is no saved game, so the
+	 * party, the encounter, the log and the position are cleared; the saved
+	 * characters are untouched (damage only reached the party's copies). The
+	 * zone and the flags are reset by Start New Game itself.
+	 */
+	public endGameOver(): void {
+		const store = useGameStore.getState()
+		this.cleanup()
+		this.onExitCombat = undefined
+		this.lastKiller = null
+		store.setEncounter(null)
+		store.setCombatGains(null)
+		store.setSlainBy(null)
+		store.clearActionQueue()
+		store.setActiveCharacter(0)
+		store.setSubPhase('ACTION_SELECT')
+		store.setSelectedTargetIndex(-1)
+		store.setParty([])
+		store.setPlayerPosition(DEFAULT_STARTING_POSITION)
+		useGameStore.setState({ combatPhase: null, logs: [], latestLogCount: 0 })
+		store.setScreen('MAIN_MENU')
 	}
 
 	/**

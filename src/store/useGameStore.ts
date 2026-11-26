@@ -29,6 +29,8 @@ interface GameState {
 	combatPhase: CombatPhase | null
 	/** Set when a fight is won, cleared when combat is left ([Game 28]). */
 	combatGains: CombatGains | null
+	/** Who downed the last party member, shown on the game over popup ([Combat 26]). */
+	slainBy: string | null
 	currentZone: StoredDoc<Zone> | null
 	currentScreen: GameScreen
 	encounter: ActiveEncounter | null
@@ -77,6 +79,7 @@ interface GameState {
 	setActiveCharacter: (id: number) => void
 	setCombatPhase: (phase: CombatPhase) => void
 	setCombatGains: (gains: CombatGains | null) => void
+	setSlainBy: (name: string | null) => void
 	setEncounter: (encounter: ActiveEncounter | null) => void
 	setGivePool: (pool: GivePool | null) => void
 	setOpenPrompt: (prompt: OpenPrompt | null) => void
@@ -107,6 +110,7 @@ export const useGameStore = create<GameState>((set) => ({
 	actionQueue: [],
 	combatPhase: null,
 	combatGains: null,
+	slainBy: null,
 	currentScreen: 'INTRO',
 	currentZone: null,
 	encounter: null,
@@ -185,6 +189,7 @@ export const useGameStore = create<GameState>((set) => ({
 		set({ inspectedCharacterId: characterId, inspectedContext: context }),
 	setCombatPhase: (phase) => set({ combatPhase: phase }),
 	setCombatGains: (gains) => set({ combatGains: gains }),
+	setSlainBy: (name) => set({ slainBy: name }),
 	setEncounter: (encounter) => set({ encounter }),
 	setGivePool: (givePool) => set({ givePool }),
 	setOpenPrompt: (openPrompt) => set({ openPrompt }),

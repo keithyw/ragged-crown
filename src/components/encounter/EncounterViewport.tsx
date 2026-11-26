@@ -1,4 +1,5 @@
 import { EncounterActionsSection } from '@/components/encounter/EncounterActionsSection'
+import { GameOverView } from '@/components/encounter/GameOverView'
 import { PostCombatView } from '@/components/encounter/PostCombatView'
 import { MonsterGroupSection } from '@/components/encounter/MonsterGroupSection'
 import { PanelHeader } from '@/components/ui/PanelHeader'
@@ -75,6 +76,7 @@ export const EncounterViewport = () => {
 			</div>
 
 			{combatPhase === 'POST_COMBAT' && <PostCombatView />}
+			{combatPhase === 'GAME_OVER' && <GameOverView />}
 		</div>
 	)
 }
