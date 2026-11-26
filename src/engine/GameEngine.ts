@@ -287,13 +287,22 @@ export class GameEngine extends BaseGameEngine {
 				this.unbindWorldInput?.()
 				get().setEncounter(encounter)
 				combatEngine.enterCombat((outcome) => {
-					// Winning clears the barrier; fleeing leaves it for another try.
-					if (outcome === 'won') {
-						const g = useGameStore.getState()
+					// Winning clears the barrier. Fleeing rolls the highest
+					// `removalChance` of its groups ([Combat 5]): on a success the
+					// barrier leaves, otherwise it stays for another try.
+					const g = useGameStore.getState()
+					const monsters = useContentStore.getState().monsters
+					const chance = Math.max(
+						0,
+						...groups.map((grp) => monsters.get(grp.defId)?.removalChance ?? 0),
+					)
+					const leaves = outcome === 'fled' && Math.random() * 100 < chance
+					if (outcome === 'won' || leaves) {
 						g.setRuntimePlacements(
 							removePlacement(g.runtimePlacements, barrier.pos, barrier.uid),
 						)
 					}
+					if (leaves) g.addLog('> The monsters give up and wander off.')
 					this.enterWorldMode()
 				})
 			},
