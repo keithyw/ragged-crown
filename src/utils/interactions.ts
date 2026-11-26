@@ -1,4 +1,5 @@
 import type {
+	Action,
 	Condition,
 	Interaction,
 	InteractionType,
@@ -33,6 +34,27 @@ export const runKey = (
 	placement: Placement,
 	interaction: Interaction,
 ): string => `${placement.uid}:${interaction.id}`
+
+/**
+ * A GIVE_ITEM's chance and give limit ([Interactions 16]): the action's own,
+ * or for a custom one the placement's value. Undefined for any other action.
+ */
+export const giveOdds = (
+	action: Action,
+	placement: Placement,
+): { chance?: number; giveLimit?: number } | undefined => {
+	if (action.type !== 'GIVE_ITEM') return undefined
+	const source = action.custom ? placement.customValues?.[action.slot] : action
+	if (source?.type !== 'GIVE_ITEM') return {}
+	return { chance: source.chance, giveLimit: source.giveLimit }
+}
+
+/** The run counter key for one GIVE_ITEM's successes, by its place in the interaction. */
+export const giveKey = (
+	placement: Placement,
+	interaction: Interaction,
+	index: number,
+): string => `${runKey(placement, interaction)}:give:${index}`
 
 /** An interaction is used up once it has run `limit` times (absent = never). */
 export const isExhausted = (interaction: Interaction, runs: number): boolean =>

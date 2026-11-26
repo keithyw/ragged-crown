@@ -26,6 +26,8 @@ import { applyStatChange, type ModifyAttribute } from '@/utils/stats'
 import {
 	failureMessage,
 	gatherInteractions,
+	giveKey,
+	giveOdds,
 	isExhausted,
 	resolveInteraction,
 	runKey,
@@ -185,6 +187,25 @@ export class InteractionEngine {
 			this.conditionPasses(c, host, top, actor),
 		)
 		if (run) {
+			// A give with a chance or a give limit ([Interactions 16]) is checked
+			// before any action runs. A failed roll or a used-up give runs none of
+			// them and counts nothing, the interaction's limit included.
+			const gated = run.actions.flatMap((action, index) => {
+				const odds = giveOdds(action, top)
+				return odds ? [{ ...odds, key: giveKey(top, run, index) }] : []
+			})
+			const blocked = gated.some(
+				(g) =>
+					(g.giveLimit !== undefined && host.getRuns(g.key) >= g.giveLimit) ||
+					(g.chance !== undefined && Math.random() * 100 >= g.chance),
+			)
+			if (blocked) {
+				host.log('> Nothing there!')
+				return true
+			}
+			for (const g of gated) {
+				if (g.giveLimit !== undefined) host.recordRun(g.key)
+			}
 			// Counted when it runs; failed conditions use nothing up.
 			if (run.limit !== undefined) host.recordRun(runKey(top, run))
 			// GIVE_ITEMs are pooled and handed out together afterwards.

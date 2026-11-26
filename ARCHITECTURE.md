@@ -87,7 +87,7 @@ The game follows the tools' model (DATA-MODEL sections 1, 3, 4 and 5). Section 5
 
 **Content.** `useContentStore` holds the defs (`tiles`, `items`, `entities`, `sprites`) as `Map<_id, def>`, loaded through `ContentSource` (section 1). A zone comes from `ZoneLoaderService`, by `_id` (portals) or by its user-facing `id` (the starting zone, via the region bridge in `GameEngine`).
 
-**Runtime state** (`useGameStore`). `currentZone` is the loaded zone and is never changed. `runtimePlacements` is a `structuredClone` of its `placements`, the copy that spawns and removals change. `zoneRuntimes` keeps the copy of each zone left behind, so changes last the session. `flags` and `interactionRuns` (per placement `uid` and interaction `id`) are runtime only. None of this is in the save, and `resetRuntime()` clears it on Start New Game.
+**Runtime state** (`useGameStore`). `currentZone` is the loaded zone and is never changed. `runtimePlacements` is a `structuredClone` of its `placements`, the copy that spawns and removals change. `zoneRuntimes` keeps the copy of each zone left behind, so changes last the session. `flags` and `interactionRuns` (per placement `uid` and interaction `id`; a GIVE_ITEM's successes under the same key plus `:give:<action index>`, [Interactions 16]) are runtime only. None of this is in the save, and `resetRuntime()` clears it on Start New Game.
 
 **Movement** (`GameEngine.movePlayer`):
 
@@ -100,7 +100,7 @@ The game follows the tools' model (DATA-MODEL sections 1, 3, 4 and 5). Section 5
 
 **Interactions** (`InteractionEngine.trigger`, with the pure parts in `utils/interactions.ts`):
 
-- Gather the top placement's interactions for the trigger, then its def's. Skip the ones used up (`limit`). The first whose conditions all pass runs; a run is counted only if the interaction has a `limit`. When none passes, one failing interaction shows its `hint`, several show the def's description, otherwise "Nothing happens.".
+- Gather the top placement's interactions for the trigger, then its def's. Skip the ones used up (`limit`). The first whose conditions all pass runs; a run is counted only if the interaction has a `limit`. Before its actions run, each GIVE_ITEM's `giveLimit` and `chance` are checked ([Interactions 16]): if one is used up or its roll fails, no action runs, nothing is counted (`limit` included) and the log says "Nothing there!"; otherwise each give with a `giveLimit` is counted. When none passes, one failing interaction shows its `hint`, several show the def's description, otherwise "Nothing happens.".
 - The engine reads and changes the game only through an `InteractionHost` (log, flags, run counts, placements, party), which `GameEngine` builds from the stores.
 - **Implemented:** conditions `FLAG_SET`, `FLAG_NOT_SET`; actions `SHOW_DIALOG` (static and custom, to the event log), `SET_FLAG`, `MODIFY_ATTRIBUTE` (stats, hp/sp current and max; xp and level are skipped), `SPAWN`, `REMOVE_SELF`. Everything else warns and is skipped. A condition that can't be evaluated fails, so the fallback runs.
 - **Triggers wired:** `BUMP_INTERACT` and `WALK`. `TALK`, `OPEN`, `USE`, `PICKUP`, `DROP` and `CLOSE` have no key or command yet.
