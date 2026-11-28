@@ -1,4 +1,4 @@
-import type { Qualifiers } from '@shared/types'
+import type { Currency, Qualifiers } from '@shared/types'
 
 /**
  * A condition on a character or monster ([Combat 21]). Several can be held at
@@ -43,6 +43,13 @@ export interface InventoryEntry {
 	/** Weapons and armor only: rolled once on pickup, then carried ([Game 24]). */
 	qualifiers?: Qualifiers
 }
+
+/**
+ * The coins one character holds, a count per currency (tools DATA-MODEL.md
+ * section 8). A field left out is 0. They never sit in the inventory and weigh
+ * nothing. Game-only.
+ */
+export type CharacterCurrency = Partial<Record<Currency, number>>
 
 /**
  * Where a piece can be equipped (tools DATA-MODEL.md section 7, [Inventory 37]).
@@ -106,4 +113,5 @@ export interface PlayerCharacter {
 	npcDetails?: NpcProfile
 	inventory?: InventoryEntry[]
 	equipment?: Equipment
+	currency?: CharacterCurrency
 }

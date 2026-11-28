@@ -14,3 +14,5 @@ export const CURRENCY_VALUES: Record<Currency, number> = {
 	gold: 500,
 	platinum: 1500,
 }
+
+export const CURRENCIES = Object.keys(CURRENCY_VALUES) as Currency[]

@@ -32,6 +32,7 @@ import {
 	generateSaveGameId,
 	lookupPlacementDef,
 	qualifiedName,
+	receiveItem,
 	removeFromInventory,
 	removePlacement,
 	slotOf,
@@ -449,17 +450,19 @@ export class GameEngine extends BaseGameEngine {
 			placement.qualifiers,
 			zoneLoaderService.configFor(store.currentZone),
 		)
-		if (!fitsInInventory(member, def, quantity, items)) {
+		const received = receiveItem(
+			member,
+			placement.defId,
+			def,
+			quantity,
+			items,
+			qualifiers,
+		)
+		if (!received) {
 			store.addLog('> Too heavy!')
 			return
 		}
-		store.setParty(
-			store.party.map((c) =>
-				c.id === member.id
-					? addToInventory(c, placement.defId, def, quantity, qualifiers)
-					: c,
-			),
-		)
+		store.setParty(store.party.map((c) => (c.id === member.id ? received : c)))
 		store.setRuntimePlacements(
 			removePlacement(store.runtimePlacements, pos, placement.uid),
 		)
@@ -488,15 +491,17 @@ export class GameEngine extends BaseGameEngine {
 		const def = line ? items.get(line.itemId) : undefined
 		if (!pool || !line || !member || !def) return 'invalid'
 
-		if (!fitsInInventory(member, def, line.quantity, items)) return 'too_heavy'
-
-		store.setParty(
-			store.party.map((c) =>
-				c.id === member.id
-					? addToInventory(c, line.itemId, def, line.quantity, line.qualifiers)
-					: c,
-			),
+		const received = receiveItem(
+			member,
+			line.itemId,
+			def,
+			line.quantity,
+			items,
+			line.qualifiers,
 		)
+		if (!received) return 'too_heavy'
+
+		store.setParty(store.party.map((c) => (c.id === member.id ? received : c)))
 		store.addLog(
 			`> ${member.name} takes ${qualifiedName(def.name, line.qualifiers)}${line.quantity > 1 ? ` x${line.quantity}` : ''}.`,
 		)

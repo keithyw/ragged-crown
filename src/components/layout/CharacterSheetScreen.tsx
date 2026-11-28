@@ -4,7 +4,7 @@ import { inputManager, getCharacterEngine, getGameEngine } from '@/engine'
 import { useCharacterCreationStore } from '@/store/useCharacterCreationStore'
 import { useContentStore } from '@/store/useContentStore'
 import { useGameStore } from '@/store/useGameStore'
-import { STATUS_LABEL } from '@/constants'
+import { CURRENCIES, STATUS_LABEL } from '@/constants'
 import {
 	attackProfile,
 	carryLimit,
@@ -544,6 +544,23 @@ export const CharacterSheetScreen = () => {
 							>
 								<span className='text-slate-400 uppercase'>{stat}:</span>
 								<span className='font-bold text-amber-400'>{val}</span>
+							</div>
+						))}
+					</div>
+
+					<h3 className='border-b border-slate-800 pt-2 pb-2 text-xs font-bold tracking-widest text-amber-500 uppercase'>
+						Currency
+					</h3>
+					<div className='grid grid-cols-2 gap-1.5 text-xs'>
+						{CURRENCIES.map((c) => (
+							<div
+								key={c}
+								className='flex justify-between rounded border border-slate-800 bg-slate-950/60 p-2'
+							>
+								<span className='text-slate-400 uppercase'>{c}:</span>
+								<span className='font-bold text-amber-400'>
+									{character.currency?.[c] ?? 0}
+								</span>
 							</div>
 						))}
 					</div>

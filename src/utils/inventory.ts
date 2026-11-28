@@ -1,5 +1,6 @@
-import type { CarriedDef, Qualifiers } from '@shared/types'
+import type { CarriedDef, ItemDef, Qualifiers } from '@shared/types'
 import type { InventoryEntry, PlayerCharacter, PoolItem } from '@/types'
+import { addCurrency, currencyOf } from './currency'
 import { pruneEquipment } from './equipment'
 import { sameQualifiers } from './qualifiers'
 
@@ -94,6 +95,25 @@ export const addToInventory = (
 		}
 	}
 	return { ...character, inventory }
+}
+
+/**
+ * A character receiving items from the map or a give. Coins go to their
+ * currency, with no weight check ([Currency 9]); anything else goes to the
+ * inventory if it fits. Null = too heavy.
+ */
+export const receiveItem = (
+	character: PlayerCharacter,
+	itemId: string,
+	def: CarriedInfo & Pick<ItemDef, 'id' | 'isCurrency'>,
+	quantity: number,
+	defs: CarriedLookup,
+	qualifiers?: Qualifiers,
+): PlayerCharacter | null => {
+	const currency = currencyOf(def)
+	if (currency) return addCurrency(character, currency, quantity)
+	if (!fitsInInventory(character, def, quantity, defs)) return null
+	return addToInventory(character, itemId, def, quantity, qualifiers)
 }
 
 /** The character without one inventory entry (a trade or a drop), and its equipped mark. */
