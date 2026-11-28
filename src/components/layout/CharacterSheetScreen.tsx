@@ -16,6 +16,7 @@ import {
 	heldCurrencies,
 	initiativeRating,
 	qualifiedName,
+	slotOf,
 	statusesOf,
 } from '@/utils'
 import type { Currency } from '@shared/types'
@@ -35,9 +36,6 @@ type GiveState =
 
 // Dropping ([Inventory 22]): pick an item, then confirm.
 type DropState = null | { step: 'item' } | { step: 'confirm'; uid: string }
-
-// Equipping and unequipping: pick an entry (the preview's buttons skip this).
-type EquipState = null | { mode: 'equip' | 'unequip' }
 
 export const CharacterSheetScreen = () => {
 	const setScreen = useGameStore((state) => state.setScreen)
@@ -100,7 +98,8 @@ export const CharacterSheetScreen = () => {
 	const backToRecipient = useCallback(() => setGive({ step: 'recipient' }), [])
 
 	const [drop, setDrop] = useState<DropState>(null)
-	const [equipMode, setEquipMode] = useState<EquipState>(null)
+	// Equip mode ([Inventory 51]): Space toggles entries until Escape.
+	const [equipMode, setEquipMode] = useState(false)
 	const items = useContentStore((state) => state.items)
 
 	// The quest-item check comes before the confirmation.
@@ -118,7 +117,7 @@ export const CharacterSheetScreen = () => {
 		[character],
 	)
 
-	// Shared by the E and U keys and the preview's buttons. Equipping runs the
+	// Shared by equip mode and the preview's buttons. Equipping runs the
 	// engine's checks and says why when one fails; unequipping has none.
 	const doEquip = useCallback(
 		(uid: string | undefined) => {
@@ -129,7 +128,6 @@ export const CharacterSheetScreen = () => {
 				return
 			}
 			showToast()
-			setEquipMode(null)
 			setNotice('')
 		},
 		[character],
@@ -139,10 +137,18 @@ export const CharacterSheetScreen = () => {
 		(uid: string | undefined) => {
 			if (!character || !uid) return
 			if (getGameEngine().unequipItem(character.id, uid)) showToast()
-			setEquipMode(null)
 			setNotice('')
 		},
 		[character],
+	)
+
+	const toggleEquip = useCallback(
+		(uid: string | undefined) => {
+			if (!character || !uid) return
+			if (slotOf(character, uid)) doUnequip(uid)
+			else doEquip(uid)
+		},
+		[character, doEquip, doUnequip],
 	)
 
 	const pickDropItem = useCallback(
@@ -213,7 +219,7 @@ export const CharacterSheetScreen = () => {
 	}, [character, handleBack])
 
 	useEffect(() => {
-		const unbind = inputManager.registerHandler((key) => {
+		const unbind = inputManager.registerHandler((key, event) => {
 			const k = key.toLowerCase()
 
 			if (showDeleteConfirm) {
@@ -290,17 +296,17 @@ export const CharacterSheetScreen = () => {
 
 			if (equipMode) {
 				const entries = character?.inventory ?? []
+				// Otherwise a button left focused by a click would also fire.
+				if (key === ' ' || key === 'Enter') event.preventDefault()
 				if (key === 'Escape') {
-					setEquipMode(null)
+					setEquipMode(false)
 					setNotice('')
 				} else if (key === 'ArrowLeft' || key === 'ArrowUp') {
 					setItemCursor((c) => Math.max(0, c - 1))
 				} else if (key === 'ArrowRight' || key === 'ArrowDown') {
 					setItemCursor((c) => Math.min(entries.length - 1, c + 1))
-				} else if (key === 'Enter') {
-					const uid = entries[itemCursor]?.uid
-					if (equipMode.mode === 'equip') doEquip(uid)
-					else doUnequip(uid)
+				} else if (key === ' ') {
+					toggleEquip(entries[itemCursor]?.uid)
 				}
 				return true
 			}
@@ -349,11 +355,11 @@ export const CharacterSheetScreen = () => {
 					}
 					return true
 				}
-				if (k === 'e' || k === 'u') {
+				if (k === 'e') {
 					if ((character?.inventory ?? []).length === 0) {
 						setNotice('There is nothing carried.')
 					} else {
-						setEquipMode({ mode: k === 'e' ? 'equip' : 'unequip' })
+						setEquipMode(true)
 						setItemCursor(0)
 						setNotice('')
 					}
@@ -415,8 +421,7 @@ export const CharacterSheetScreen = () => {
 		trade,
 		drop,
 		equipMode,
-		doEquip,
-		doUnequip,
+		toggleEquip,
 		itemCursor,
 		pickTradeItem,
 		pickDropItem,
@@ -479,7 +484,7 @@ export const CharacterSheetScreen = () => {
 					: drop?.step === 'item'
 						? 'Drop: choose an item'
 						: equipMode
-							? `${equipMode.mode === 'equip' ? 'Equip' : 'Unequip'}: choose an item`
+							? 'Equip: choose items'
 							: ''
 	const commands: [string, string][] =
 		trade?.step === 'recipient' || give?.step === 'recipient'
@@ -487,33 +492,29 @@ export const CharacterSheetScreen = () => {
 					['1-9', 'Choose character'],
 					['ESC', 'Cancel'],
 				]
-			: trade?.step === 'item' || drop?.step === 'item' || equipMode
+			: trade?.step === 'item' || drop?.step === 'item'
 				? [
 						['←/→', 'Select'],
-						[
-							'ENTER',
-							trade
-								? 'Give'
-								: equipMode
-									? equipMode.mode === 'equip'
-										? 'Equip'
-										: 'Unequip'
-									: 'Drop',
-						],
+						['ENTER', trade ? 'Give' : 'Drop'],
 						['ESC', 'Cancel'],
 					]
-				: context === 'WORLD'
+				: equipMode
 					? [
-							['1-4', 'Character'],
-							['T', 'Trade'],
-							['D', 'Drop'],
-							['E', 'Equip'],
-							['U', 'Unequip'],
-							['G', 'Give currency'],
-							['P', 'Pool currency'],
-							['X / M / ESC', 'Return to Map'],
+							['←/→', 'Select'],
+							['SPACE', 'Equip / Unequip'],
+							['ESC', 'Done'],
 						]
-					: [['ESC', 'Return to Roster']]
+					: context === 'WORLD'
+						? [
+								['1-4', 'Character'],
+								['T', 'Trade'],
+								['D', 'Drop'],
+								['E', 'Equip'],
+								['G', 'Give currency'],
+								['P', 'Pool currency'],
+								['X / M / ESC', 'Return to Map'],
+							]
+						: [['ESC', 'Return to Roster']]
 
 	return (
 		<div className='flex min-h-screen flex-col justify-between border-4 border-slate-800 bg-slate-950 p-8 font-mono text-slate-100'>
@@ -671,10 +672,7 @@ export const CharacterSheetScreen = () => {
 									: equipMode
 										? {
 												cursor: itemCursor,
-												onPick: (entry) =>
-													equipMode.mode === 'equip'
-														? doEquip(entry.uid)
-														: doUnequip(entry.uid),
+												onPick: (entry) => toggleEquip(entry.uid),
 											}
 										: undefined
 						}
