@@ -6,14 +6,16 @@ import { cn, qualifiedName } from '@/utils'
 
 // Hands out the items of a GIVE_ITEM interaction ([Game 17]): up/down picks a
 // line, Enter asks who gets it, a party number gives the whole pile, Escape
-// skips (or, on the list, leaves and drops what is left on the cell).
+// skips (or, on the list, leaves and drops what is left on the cell). T asks
+// who takes everything ([Inventory 52]).
 export const GiveItemMenu = () => {
 	const pool = useGameStore((state) => state.givePool)
 	const partySize = useGameStore((state) => state.party.length)
 	const items = useContentStore((state) => state.items)
 
 	const [cursor, setCursor] = useState(0)
-	const [choosing, setChoosing] = useState(false)
+	// What a party number would hand out: the selected line, or all of them.
+	const [choosing, setChoosing] = useState<'line' | 'all' | null>(null)
 	const [message, setMessage] = useState('')
 
 	const count = pool?.items.length ?? 0
@@ -24,14 +26,30 @@ export const GiveItemMenu = () => {
 		const unbind = inputManager.registerHandler((key) => {
 			if (choosing) {
 				if (key === 'Escape') {
-					setChoosing(false)
+					setChoosing(null)
 					setMessage('')
 				} else if (/^[1-9]$/.test(key) && Number(key) <= partySize) {
+					if (choosing === 'all') {
+						const result = getGameEngine().giveAllFromPool(Number(key))
+						if (!result) return true
+						const { taken, tooHeavy } = result
+						if (taken === 0) {
+							// Keeps asking, so someone else can try.
+							setMessage('Too heavy!')
+						} else {
+							setChoosing(null)
+							setCursor(0)
+							setMessage(
+								tooHeavy.length ? `Too heavy: ${tooHeavy.join(', ')}` : '',
+							)
+						}
+						return true
+					}
 					const result = getGameEngine().giveFromPool(cursor, Number(key))
 					if (result === 'too_heavy') {
 						setMessage('Too heavy!')
 					} else {
-						setChoosing(false)
+						setChoosing(null)
 						setMessage('')
 						setCursor((c) => Math.max(0, Math.min(c, count - 2)))
 					}
@@ -42,7 +60,10 @@ export const GiveItemMenu = () => {
 			if (key === 'ArrowUp') setCursor((c) => Math.max(0, c - 1))
 			else if (key === 'ArrowDown') setCursor((c) => Math.min(count - 1, c + 1))
 			else if (key === 'Enter') {
-				setChoosing(true)
+				setChoosing('line')
+				setMessage('')
+			} else if (key === 't' || key === 'T') {
+				setChoosing('all')
 				setMessage('')
 			} else if (key === 'Escape') getGameEngine().closeGivePool()
 			return true
@@ -81,8 +102,10 @@ export const GiveItemMenu = () => {
 					))}
 				</ul>
 
-				<p className='h-4 text-xs text-slate-400'>
-					{choosing ? `Give to (1-${partySize})` : ''}
+				<p className='min-h-4 text-xs text-slate-400'>
+					{choosing
+						? `Give ${choosing === 'all' ? 'everything ' : ''}to (1-${partySize})`
+						: ''}
 					{message && (
 						<span className='ml-2 font-bold text-rose-400'>{message}</span>
 					)}
@@ -90,7 +113,7 @@ export const GiveItemMenu = () => {
 				<p className='text-xs text-slate-600'>
 					{choosing
 						? '[1-9] Choose • [ESC] Skip'
-						: '[↑/↓] Select • [ENTER] Give • [ESC] Leave'}
+						: '[↑/↓] Select • [ENTER] Give • [T] Take all • [ESC] Leave'}
 				</p>
 			</div>
 		</div>

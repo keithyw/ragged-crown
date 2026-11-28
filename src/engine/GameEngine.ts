@@ -592,6 +592,63 @@ export class GameEngine extends BaseGameEngine {
 	}
 
 	/**
+	 * Take all ([Inventory 52]): the party member in position `partyNumber`
+	 * takes, in order, every line of the give pool that they can carry. What is
+	 * too heavy stays in the menu, and lighter lines after it are still taken.
+	 * Returns how many lines were taken and the names of the ones left, or null
+	 * when there is nothing to do.
+	 */
+	public giveAllFromPool(
+		partyNumber: number,
+	): { taken: number; tooHeavy: string[] } | null {
+		const store = useGameStore.getState()
+		const pool = store.givePool
+		let member = [...store.party].sort((a, b) => a.order - b.order)[
+			partyNumber - 1
+		]
+		if (!pool || !member) return null
+		const items = useContentStore.getState().items
+		const taken: string[] = []
+		const rest: typeof pool.items = []
+		const tooHeavy: string[] = []
+		for (const line of pool.items) {
+			const def = items.get(line.itemId)
+			if (!def) {
+				rest.push(line)
+				continue
+			}
+			const name = qualifiedName(def.name, line.qualifiers)
+			const received = receiveItem(
+				member,
+				line.itemId,
+				def,
+				line.quantity,
+				items,
+				line.qualifiers,
+			)
+			if (!received) {
+				rest.push(line)
+				tooHeavy.push(name)
+				continue
+			}
+			member = received
+			taken.push(`${name}${line.quantity > 1 ? ` x${line.quantity}` : ''}`)
+		}
+		const receiver = member
+		if (taken.length > 0) {
+			store.setParty(
+				store.party.map((c) => (c.id === receiver.id ? receiver : c)),
+			)
+			store.addLog(`> ${receiver.name} takes ${taken.join(', ')}.`)
+			store.setGivePool(rest.length > 0 ? { ...pool, items: rest } : null)
+		}
+		if (tooHeavy.length > 0) {
+			store.addLog(`> Too heavy for ${receiver.name}: ${tooHeavy.join(', ')}.`)
+		}
+		return { taken: taken.length, tooHeavy }
+	}
+
+	/**
 	 * Moves a whole inventory entry from one party member to the one in
 	 * position `partyNumber` (1-based, by order), after the weight check on the
 	 * receiver. Stackables merge into the receiver's piles ([Inventory 21]).

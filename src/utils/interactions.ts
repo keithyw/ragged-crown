@@ -1,6 +1,7 @@
 import type {
 	Action,
 	Condition,
+	GiveEntry,
 	Interaction,
 	InteractionType,
 	Placement,
@@ -36,25 +37,66 @@ export const runKey = (
 ): string => `${placement.uid}:${interaction.id}`
 
 /**
- * A GIVE_ITEM's chance and give limit ([Interactions 16]): the action's own,
- * or for a custom one the placement's value. Undefined for any other action.
+ * What a GIVE_ITEM hands over: the action's own list, or for a custom one the
+ * placement's. A give saved before lists ([Interactions 18]) held one item in
+ * its own fields, and reads as a list of one with no `uid`. The tools read it
+ * the same way (`lib/utils/gives.ts` there).
  */
-export const giveOdds = (
+export const giveEntries = (
 	action: Action,
 	placement: Placement,
-): { chance?: number; giveLimit?: number } | undefined => {
-	if (action.type !== 'GIVE_ITEM') return undefined
-	const source = action.custom ? placement.customValues?.[action.slot] : action
-	if (source?.type !== 'GIVE_ITEM') return {}
-	return { chance: source.chance, giveLimit: source.giveLimit }
+): GiveEntry[] => {
+	if (action.type !== 'GIVE_ITEM') return []
+	const give = action.custom ? placement.customValues?.[action.slot] : action
+	if (give?.type !== 'GIVE_ITEM') return []
+	if (give.items) return give.items
+	const { itemId, amount, qualifiers, chance, giveLimit, target } = give
+	return itemId
+		? [{ itemId, amount, qualifiers, chance, giveLimit, target }]
+		: []
 }
 
-/** The run counter key for one GIVE_ITEM's successes, by its place in the interaction. */
+/**
+ * The run counter key for one item's successes: the GIVE_ITEM's place in the
+ * interaction and the item's `uid`. An item saved before lists has no `uid`.
+ */
 export const giveKey = (
 	placement: Placement,
 	interaction: Interaction,
 	index: number,
-): string => `${runKey(placement, interaction)}:give:${index}`
+	uid?: string,
+): string =>
+	`${runKey(placement, interaction)}:give:${index}${uid ? `:${uid}` : ''}`
+
+/**
+ * Rolls every item of an interaction's gives, each on its own `chance` and
+ * `giveLimit` ([Interactions 16], [Inventory 52]). `byAction` holds, per
+ * action, the items that came up; `counted` the keys of those with a limit.
+ * `nothing` means there were items and every one of them failed.
+ */
+export const rollGives = (
+	placement: Placement,
+	interaction: Interaction,
+	getRuns: (key: string) => number,
+	rand: () => number = Math.random,
+) => {
+	let listed = 0
+	let passed = 0
+	const counted: string[] = []
+	const byAction = interaction.actions.map((action, index) =>
+		giveEntries(action, placement).filter((entry) => {
+			listed++
+			const key = giveKey(placement, interaction, index, entry.uid)
+			const { chance, giveLimit } = entry
+			if (giveLimit !== undefined && getRuns(key) >= giveLimit) return false
+			if (chance !== undefined && rand() * 100 >= chance) return false
+			if (giveLimit !== undefined) counted.push(key)
+			passed++
+			return true
+		}),
+	)
+	return { byAction, counted, nothing: listed > 0 && passed === 0 }
+}
 
 /** An interaction is used up once it has run `limit` times (absent = never). */
 export const isExhausted = (interaction: Interaction, runs: number): boolean =>

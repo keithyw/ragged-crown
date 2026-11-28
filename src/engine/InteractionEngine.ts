@@ -4,12 +4,12 @@ import type {
 	Condition,
 	DifficultyConfig,
 	EncounterGroup,
+	GiveEntry,
 	InteractionType,
 	Kind,
 	MoveResult,
 	Placement,
 	Qualifiers,
-	StatTarget,
 	Zone,
 } from '@shared/types'
 import type { FlagValue, PlayerCharacter, Position, PoolItem } from '@/types'
@@ -34,10 +34,10 @@ import { applyStatChange, type ModifyAttribute } from '@/utils/stats'
 import {
 	failureMessage,
 	gatherInteractions,
-	giveKey,
-	giveOdds,
+	giveEntries,
 	isExhausted,
 	resolveInteraction,
+	rollGives,
 	runKey,
 } from '@/utils/interactions'
 
@@ -195,36 +195,26 @@ export class InteractionEngine {
 			this.conditionPasses(c, host, top, actor),
 		)
 		if (run) {
-			// A give with a chance or a give limit ([Interactions 16]) is checked
-			// before any action runs. A failed roll or a used-up give runs none of
-			// them and counts nothing, the interaction's limit included.
-			const gated = run.actions.flatMap((action, index) => {
-				const odds = giveOdds(action, top)
-				return odds ? [{ ...odds, key: giveKey(top, run, index) }] : []
-			})
-			const blocked = gated.some(
-				(g) =>
-					(g.giveLimit !== undefined && host.getRuns(g.key) >= g.giveLimit) ||
-					(g.chance !== undefined && Math.random() * 100 >= g.chance),
-			)
-			if (blocked) {
+			// Gives are rolled before any action runs. A failed item is left out
+			// on its own; if every one fails, nothing runs and nothing is counted,
+			// the interaction's limit included.
+			const rolled = rollGives(top, run, (key) => host.getRuns(key))
+			if (rolled.nothing) {
 				host.log('> Nothing there!')
 				return true
 			}
-			for (const g of gated) {
-				if (g.giveLimit !== undefined) host.recordRun(g.key)
-			}
+			for (const key of rolled.counted) host.recordRun(key)
 			// Counted when it runs; failed conditions use nothing up.
 			if (run.limit !== undefined) host.recordRun(runKey(top, run))
 			// GIVE_ITEMs are pooled and handed out together afterwards.
 			const gives: PoolItem[] = []
-			for (const action of run.actions) {
-				this.runAction(action, top, pos, host, gives, {
+			run.actions.forEach((action, index) => {
+				this.runAction(action, top, pos, host, gives, rolled.byAction[index], {
 					defs,
 					source: def?.name ?? 'Something',
 					actor,
 				})
-			}
+			})
 			const pool = buildPool(gives, defs.items)
 			if (pool.length > 0) host.openGivePool(pos, pool)
 		} else {
@@ -281,6 +271,7 @@ export class InteractionEngine {
 		pos: Position,
 		host: InteractionHost,
 		gives: PoolItem[],
+		entries: GiveEntry[], // a GIVE_ITEM's items that came up
 		ctx: { defs: DefLookup; source: string; actor?: PlayerCharacter },
 	): void {
 		switch (action.type) {
@@ -293,47 +284,12 @@ export class InteractionEngine {
 				return
 			}
 			case 'GIVE_ITEM': {
-				let given: {
-					itemId?: string
-					amount?: number
-					qualifiers?: Qualifiers
-					target?: StatTarget
-				}
-				if (action.custom) {
-					const value = action.slot
-						? placement.customValues?.[action.slot]
-						: undefined
-					given = value?.type === 'GIVE_ITEM' ? value : {}
-				} else {
-					given = action
-				}
-				if (!given.itemId) {
+				if (giveEntries(action, placement).length === 0) {
 					console.warn('[Interaction] GIVE_ITEM has no item to give')
-					return
 				}
-				if (given.target === 'party') {
-					this.giveToParty(
-						given.itemId,
-						given.amount ?? 1,
-						given.qualifiers,
-						host,
-						gives,
-						ctx.defs,
-					)
-					return
+				for (const entry of entries) {
+					this.giveEntry(entry, host, gives, ctx.defs)
 				}
-				// A set qualifier is kept; a missing one is rolled here, once, so
-				// the pool and anything left on the cell agree ([Game 24]).
-				const qualifiers = completeQualifiers(
-					ctx.defs.items.get(given.itemId),
-					given.qualifiers,
-					host.getDifficulty(),
-				)
-				gives.push({
-					itemId: given.itemId,
-					quantity: given.amount ?? 1,
-					...(qualifiers && { qualifiers }),
-				})
 				return
 			}
 			case 'TAKE_ITEM': {
@@ -423,6 +379,39 @@ export class InteractionEngine {
 			default:
 				console.warn(`[Interaction] action ${action.type} is not implemented`)
 		}
+	}
+
+	/** One item of a give: to the whole party at once, or into the pool. */
+	private giveEntry(
+		entry: GiveEntry,
+		host: InteractionHost,
+		gives: PoolItem[],
+		defs: DefLookup,
+	): void {
+		const quantity = entry.amount ?? 1
+		if (entry.target === 'party') {
+			this.giveToParty(
+				entry.itemId,
+				quantity,
+				entry.qualifiers,
+				host,
+				gives,
+				defs,
+			)
+			return
+		}
+		// A set qualifier is kept; a missing one is rolled here, once, so the
+		// pool and anything left on the cell agree ([Game 24]).
+		const qualifiers = completeQualifiers(
+			defs.items.get(entry.itemId),
+			entry.qualifiers,
+			host.getDifficulty(),
+		)
+		gives.push({
+			itemId: entry.itemId,
+			quantity,
+			...(qualifiers && { qualifiers }),
+		})
 	}
 
 	/**
