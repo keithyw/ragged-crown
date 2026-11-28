@@ -102,7 +102,7 @@ The game follows the tools' model (DATA-MODEL sections 1, 3, 4 and 5). Section 5
 
 - Gather the top placement's interactions for the trigger, then its def's. Skip the ones used up (`limit`). The first whose conditions all pass runs; a run is counted only if the interaction has a `limit`. Before its actions run, each GIVE_ITEM's `giveLimit` and `chance` are checked ([Interactions 16]): if one is used up or its roll fails, no action runs, nothing is counted (`limit` included) and the log says "Nothing there!"; otherwise each give with a `giveLimit` is counted. When none passes, one failing interaction shows its `hint`, several show the def's description, otherwise "Nothing happens.".
 - The engine reads and changes the game only through an `InteractionHost` (log, flags, run counts, placements, party), which `GameEngine` builds from the stores.
-- **Implemented:** conditions `FLAG_SET`, `FLAG_NOT_SET`; actions `SHOW_DIALOG` (static and custom, to the event log), `SET_FLAG`, `MODIFY_ATTRIBUTE` (stats, hp/sp current and max; xp and level are skipped), `SPAWN`, `REMOVE_SELF`. Everything else warns and is skipped. A condition that can't be evaluated fails, so the fallback runs.
+- **Implemented:** conditions `FLAG_SET`, `FLAG_NOT_SET`; actions `SHOW_DIALOG` (static and custom, to the event log), `SET_FLAG`, `MODIFY_ATTRIBUTE` (stats, hp/sp current and max; xp and level are skipped), `GIVE_CURRENCY` (to the first standing character, or in full to each party member, [Currency 10]), `SPAWN`, `REMOVE_SELF`. Everything else warns and is skipped. A condition that can't be evaluated fails, so the fallback runs.
 - **Triggers wired:** `BUMP_INTERACT` and `WALK`. `TALK`, `OPEN`, `USE`, `PICKUP`, `DROP` and `CLOSE` have no key or command yet.
 
 Decisions made while building this are recorded on [Game 5].
@@ -110,7 +110,7 @@ Decisions made while building this are recorded on [Game 5].
 ### 5.2 What is left
 
 - **Items.** `GIVE_ITEM`, `TAKE_ITEM` and `HAS_ITEM` wait for an inventory, which is out of scope for now. A `HAS_ITEM` condition fails, so those interactions show their hint.
-- `GIVE_CURRENCY`, `TELEPORT` and `PLAY_SOUND` ([Game 2]); `TELEPORT` could reuse `enterPortal`'s travel.
+- `TELEPORT` and `PLAY_SOUND` ([Game 2]); `TELEPORT` could reuse `enterPortal`'s travel.
 - Blocking the player when a portal's conditions fail (undesigned in DATA-MODEL), edge exits ([Game 7]).
 - Persisting the runtime state in the save, once the shape is decided (`SaveGameDocument.worldState.flags` exists but holds only the new-game flags).
 - Dialog is only a line in the event log; there is no dialog box in the world view ([Game 11]).

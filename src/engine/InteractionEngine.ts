@@ -9,6 +9,7 @@ import type {
 	MoveResult,
 	Placement,
 	Qualifiers,
+	StatTarget,
 	Zone,
 } from '@shared/types'
 import type { FlagValue, PlayerCharacter, Position, PoolItem } from '@/types'
@@ -19,8 +20,15 @@ import {
 	removePlacement,
 	type PlacementMap,
 } from '@/utils/placements'
-import { buildPool, countCarried, takeFromInventory } from '@/utils/inventory'
-import { completeQualifiers } from '@/utils/qualifiers'
+import {
+	buildPool,
+	countCarried,
+	receiveItem,
+	takeFromInventory,
+} from '@/utils/inventory'
+import { addCurrency } from '@/utils/currency'
+import { completeQualifiers, qualifiedName } from '@/utils/qualifiers'
+import { CURRENCIES } from '@/constants'
 import { isDown } from '@/utils/status'
 import { applyStatChange, type ModifyAttribute } from '@/utils/stats'
 import {
@@ -285,7 +293,12 @@ export class InteractionEngine {
 				return
 			}
 			case 'GIVE_ITEM': {
-				let given: { itemId?: string; amount?: number; qualifiers?: Qualifiers }
+				let given: {
+					itemId?: string
+					amount?: number
+					qualifiers?: Qualifiers
+					target?: StatTarget
+				}
 				if (action.custom) {
 					const value = action.slot
 						? placement.customValues?.[action.slot]
@@ -296,6 +309,17 @@ export class InteractionEngine {
 				}
 				if (!given.itemId) {
 					console.warn('[Interaction] GIVE_ITEM has no item to give')
+					return
+				}
+				if (given.target === 'party') {
+					this.giveToParty(
+						given.itemId,
+						given.amount ?? 1,
+						given.qualifiers,
+						host,
+						gives,
+						ctx.defs,
+					)
 					return
 				}
 				// A set qualifier is kept; a missing one is rolled here, once, so
@@ -329,6 +353,9 @@ export class InteractionEngine {
 				this.takeItem(taken.itemId, taken.amount ?? 1, host, ctx)
 				return
 			}
+			case 'GIVE_CURRENCY':
+				this.giveCurrency(action.slot, placement, host)
+				return
 			case 'SET_FLAG':
 				host.setFlag(action.flag)
 				return
@@ -396,6 +423,91 @@ export class InteractionEngine {
 			default:
 				console.warn(`[Interaction] action ${action.type} is not implemented`)
 		}
+	}
+
+	/**
+	 * A GIVE_ITEM to the party ([Currency 10]): every member receives the full
+	 * amount, with no menu. A share too heavy for its member joins the give
+	 * pool, so it can go to someone else or be left on the cell.
+	 */
+	private giveToParty(
+		itemId: string,
+		quantity: number,
+		authored: Qualifiers | undefined,
+		host: InteractionHost,
+		gives: PoolItem[],
+		defs: DefLookup,
+	): void {
+		const def = defs.items.get(itemId)
+		if (!def) {
+			console.warn(`[Interaction] GIVE_ITEM: no item with _id ${itemId}`)
+			return
+		}
+		const party = host.getParty().map((member) => {
+			// Rolled per member: each one's is a separate piece.
+			const qualifiers = completeQualifiers(def, authored, host.getDifficulty())
+			const received = receiveItem(
+				member,
+				itemId,
+				def,
+				quantity,
+				defs.items,
+				qualifiers,
+			)
+			if (!received) {
+				host.log(`> Too heavy for ${member.name}!`)
+				gives.push({ itemId, quantity, ...(qualifiers && { qualifiers }) })
+				return member
+			}
+			host.log(
+				`> ${member.name} takes ${qualifiedName(def.name, qualifiers)}${quantity > 1 ? ` x${quantity}` : ''}.`,
+			)
+			return received
+		})
+		host.setParty(party)
+	}
+
+	/**
+	 * Pays the amounts the placement lists ([Currency 10]): to every party
+	 * member in full, or to the first character. Blank = nothing happens.
+	 */
+	private giveCurrency(
+		slot: string | undefined,
+		placement: Placement,
+		host: InteractionHost,
+	): void {
+		const value = slot ? placement.customValues?.[slot] : undefined
+		const given = value?.type === 'GIVE_CURRENCY' ? value : undefined
+		const coins = CURRENCIES.flatMap((currency) => {
+			const amount = given?.amounts?.[currency]
+			return amount ? [{ currency, amount }] : []
+		})
+		if (coins.length === 0) {
+			console.warn('[Interaction] GIVE_CURRENCY has no amounts')
+			return
+		}
+		const party = host.getParty()
+		const first = this.firstCharacter(party)
+		const receivers = given?.target === 'party' ? party : first ? [first] : []
+		const text = coins.map((c) => `${c.amount} ${c.currency}`).join(', ')
+		host.setParty(
+			party.map((member) =>
+				receivers.includes(member)
+					? coins.reduce((m, c) => addCurrency(m, c.currency, c.amount), member)
+					: member,
+			),
+		)
+		for (const member of receivers) {
+			host.log(`> ${member.name} receives ${text}.`)
+		}
+	}
+
+	/** The first party member by order who is still standing, else the first. */
+	private firstCharacter(
+		party: PlayerCharacter[],
+	): PlayerCharacter | undefined {
+		const ordered = [...party].sort((a, b) => a.order - b.order)
+		return ordered.find((c) => !isDown(c)) ?? ordered[0]
 	}
 
 	/**
