@@ -19,8 +19,9 @@ import { useDialogStore } from '@/store/useDialogStore'
 import { useContentStore } from '@/store/useContentStore'
 import { useGameStore } from '@/store/useGameStore'
 import type { CharacterSheetContext, Position, SaveGameDocument } from '@/types'
-import type { Qualifiers, TileDef } from '@shared/types'
+import type { Currency, Qualifiers, TileDef } from '@shared/types'
 import {
+	addCurrency,
 	addPlacement,
 	addToInventory,
 	cellKey,
@@ -29,7 +30,9 @@ import {
 	equip,
 	findPortalAt,
 	fitsInInventory,
+	gatherCurrency,
 	generateSaveGameId,
+	heldCurrencies,
 	lookupPlacementDef,
 	qualifiedName,
 	receiveItem,
@@ -554,6 +557,53 @@ export class GameEngine extends BaseGameEngine {
 			`> ${from.name} gives ${qualifiedName(def.name, entry.qualifiers)}${quantity > 1 ? ` x${quantity}` : ''} to ${to.name}.`,
 		)
 		return 'traded'
+	}
+
+	/**
+	 * Moves an amount of one currency from a party member to the one in
+	 * position `partyNumber` (1-based, by order) ([Currency 11]). False when
+	 * the amount isn't 1 up to what the giver holds.
+	 */
+	public giveCurrency(
+		fromId: string,
+		partyNumber: number,
+		currency: Currency,
+		amount: number,
+	): boolean {
+		const store = useGameStore.getState()
+		const to = [...store.party].sort((a, b) => a.order - b.order)[
+			partyNumber - 1
+		]
+		const from = store.party.find((c) => c.id === fromId)
+		if (!from || !to || from.id === to.id) return false
+		const held = from.currency?.[currency] ?? 0
+		if (!Number.isInteger(amount) || amount < 1 || amount > held) return false
+
+		store.setParty(
+			store.party.map((c) => {
+				if (c.id === from.id) return addCurrency(c, currency, -amount)
+				if (c.id === to.id) return addCurrency(c, currency, amount)
+				return c
+			}),
+		)
+		store.addLog(`> ${from.name} gives ${amount} ${currency} to ${to.name}.`)
+		return true
+	}
+
+	/**
+	 * Gathers the whole party's currency onto one member ([Currency 11]).
+	 * False when no one else holds any.
+	 */
+	public poolCurrency(characterId: string): boolean {
+		const store = useGameStore.getState()
+		const character = store.party.find((c) => c.id === characterId)
+		const others = store.party.filter((c) => c.id !== characterId)
+		if (!character || !others.some((c) => heldCurrencies(c).length > 0)) {
+			return false
+		}
+		store.setParty(gatherCurrency(store.party, characterId))
+		store.addLog(`> ${character.name} gathers the party's currency.`)
+		return true
 	}
 
 	/**

@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
+import { GiveCurrencyMenu } from '@/components/inventory/GiveCurrencyMenu'
 import { InventoryPanel } from '@/components/inventory/InventoryPanel'
 import { inputManager, getCharacterEngine, getGameEngine } from '@/engine'
 import { useCharacterCreationStore } from '@/store/useCharacterCreationStore'
@@ -12,16 +13,25 @@ import {
 	defenseRating,
 	encumbrance,
 	equippedWeapons,
+	heldCurrencies,
 	initiativeRating,
 	qualifiedName,
 	statusesOf,
 } from '@/utils'
+import type { Currency } from '@shared/types'
 
 // Trading ([Inventory 21]): first the receiver (a party number), then the item.
 type TradeState =
 	| null
 	| { step: 'recipient'; uid?: string } // uid: chosen already, from the preview
 	| { step: 'item'; toNumber: number; toName: string }
+
+// Giving currency ([Currency 11]): first the receiver (a party number), then
+// the currency and amount in the popup.
+type GiveState =
+	| null
+	| { step: 'recipient' }
+	| { step: 'amount'; toNumber: number; toName: string }
 
 // Dropping ([Inventory 22]): pick an item, then confirm.
 type DropState = null | { step: 'item' } | { step: 'confirm'; uid: string }
@@ -66,6 +76,28 @@ export const CharacterSheetScreen = () => {
 		setTrade(null)
 		setNotice('')
 	}
+
+	const [give, setGive] = useState<GiveState>(null)
+
+	const finishGive = useCallback(
+		(currency: Currency, amount: number) => {
+			if (give?.step !== 'amount' || !character) return
+			if (
+				getGameEngine().giveCurrency(
+					character.id,
+					give.toNumber,
+					currency,
+					amount,
+				)
+			)
+				showToast()
+			setGive(null)
+			setNotice('')
+		},
+		[give, character],
+	)
+
+	const backToRecipient = useCallback(() => setGive({ step: 'recipient' }), [])
 
 	const [drop, setDrop] = useState<DropState>(null)
 	const [equipMode, setEquipMode] = useState<EquipState>(null)
@@ -196,6 +228,25 @@ export const CharacterSheetScreen = () => {
 				return false
 			}
 
+			if (give) {
+				// The popup handles its own keys.
+				if (give.step === 'amount') return false
+				const sorted = [...useGameStore.getState().party].sort(
+					(a, b) => a.order - b.order,
+				)
+				const to = /^[1-9]$/.test(key) ? sorted[Number(key) - 1] : undefined
+				if (key === 'Escape') {
+					setGive(null)
+					setNotice('')
+				} else if (to?.id === character?.id) {
+					setNotice('Choose another character.')
+				} else if (to) {
+					setGive({ step: 'amount', toNumber: Number(key), toName: to.name })
+					setNotice('')
+				}
+				return true
+			}
+
 			if (trade) {
 				const sorted = [...useGameStore.getState().party].sort(
 					(a, b) => a.order - b.order,
@@ -308,6 +359,26 @@ export const CharacterSheetScreen = () => {
 					}
 					return true
 				}
+				if (k === 'g' && character) {
+					if (useGameStore.getState().party.length < 2) {
+						setNotice('There is no one to give to.')
+					} else if (heldCurrencies(character).length === 0) {
+						setNotice('There is no currency to give.')
+					} else {
+						setGive({ step: 'recipient' })
+						setNotice('')
+					}
+					return true
+				}
+				if (k === 'p' && character) {
+					if (getGameEngine().poolCurrency(character.id)) {
+						showToast()
+						setNotice('')
+					} else {
+						setNotice('There is nothing to pool.')
+					}
+					return true
+				}
 				if (k === 't') {
 					if (useGameStore.getState().party.length < 2) {
 						setNotice('There is no one to trade with.')
@@ -340,6 +411,7 @@ export const CharacterSheetScreen = () => {
 		character,
 		context,
 		showDeleteConfirm,
+		give,
 		trade,
 		drop,
 		equipMode,
@@ -398,17 +470,19 @@ export const CharacterSheetScreen = () => {
 
 	// What the Commands panel shows for the current mode.
 	const modeLabel =
-		trade?.step === 'recipient'
-			? 'Trade: choose who receives it'
-			: trade?.step === 'item'
-				? `Trade to ${trade.toName}: choose an item`
-				: drop?.step === 'item'
-					? 'Drop: choose an item'
-					: equipMode
-						? `${equipMode.mode === 'equip' ? 'Equip' : 'Unequip'}: choose an item`
-						: ''
+		give?.step === 'recipient'
+			? 'Give currency: choose who receives it'
+			: trade?.step === 'recipient'
+				? 'Trade: choose who receives it'
+				: trade?.step === 'item'
+					? `Trade to ${trade.toName}: choose an item`
+					: drop?.step === 'item'
+						? 'Drop: choose an item'
+						: equipMode
+							? `${equipMode.mode === 'equip' ? 'Equip' : 'Unequip'}: choose an item`
+							: ''
 	const commands: [string, string][] =
-		trade?.step === 'recipient'
+		trade?.step === 'recipient' || give?.step === 'recipient'
 			? [
 					['1-9', 'Choose character'],
 					['ESC', 'Cancel'],
@@ -435,6 +509,8 @@ export const CharacterSheetScreen = () => {
 							['D', 'Drop'],
 							['E', 'Equip'],
 							['U', 'Unequip'],
+							['G', 'Give currency'],
+							['P', 'Pool currency'],
 							['X / M / ESC', 'Return to Map'],
 						]
 					: [['ESC', 'Return to Roster']]
@@ -644,6 +720,15 @@ export const CharacterSheetScreen = () => {
 					</div>
 				</div>
 			</div>
+
+			{give?.step === 'amount' && (
+				<GiveCurrencyMenu
+					from={character}
+					toName={give.toName}
+					onGive={finishGive}
+					onBack={backToRecipient}
+				/>
+			)}
 
 			{drop?.step === 'confirm' && (
 				<div className='fixed inset-0 z-50 flex items-center justify-center bg-slate-950/90 p-6 font-mono'>
