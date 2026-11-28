@@ -16,6 +16,18 @@ export const addPlacement = (
 	return { ...placements, [key]: [...(placements[key] ?? []), placement] }
 }
 
+/**
+ * The items on top of a stack, top first: everything down to the first thing
+ * that isn't an item, weapon or armor ([Inventory 50]).
+ */
+export const itemRun = (stack: Placement[]): Placement[] => {
+	const topDown = [...stack].reverse()
+	const end = topDown.findIndex(
+		(p) => !['item', 'weapon', 'armor'].includes(p.defKind),
+	)
+	return end === -1 ? topDown : topDown.slice(0, end)
+}
+
 /** Takes the placement with this `uid` out of a cell's stack. */
 export const removePlacement = (
 	placements: PlacementMap,

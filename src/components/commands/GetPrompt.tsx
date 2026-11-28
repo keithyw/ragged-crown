@@ -29,7 +29,8 @@ export const GetPrompt = () => {
 			if (key === 'Escape') {
 				setPrompt(null)
 			} else if (prompt.step === 'direction') {
-				const d = DIRECTIONS[key]
+				// Shift may still be held from a capital G.
+				const d = DIRECTIONS[key.length === 1 ? key.toLowerCase() : key]
 				if (d) getGameEngine().getToward(d[0], d[1])
 			} else if (/^[1-9]$/.test(key) && Number(key) <= partySize) {
 				getGameEngine().getWith(prompt.pos, Number(key))
@@ -44,8 +45,8 @@ export const GetPrompt = () => {
 	return (
 		<div className='fixed bottom-6 left-1/2 z-40 -translate-x-1/2 rounded border border-amber-500 bg-slate-900 px-4 py-2 font-mono text-xs text-amber-300 shadow-2xl'>
 			{prompt.step === 'direction'
-				? 'Get - which direction? [Arrows / WASD] • [SPACE] Here • [ESC] Cancel'
-				: `Who takes it? (1-${partySize}) • [ESC] Cancel`}
+				? `Get${prompt.all ? ' all' : ''} - which direction? [Arrows / WASD] • [SPACE] Here • [ESC] Cancel`
+				: `Who takes ${prompt.all ? 'them' : 'it'}? (1-${partySize}) • [ESC] Cancel`}
 		</div>
 	)
 }

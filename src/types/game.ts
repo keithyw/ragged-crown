@@ -20,9 +20,10 @@ export type GameScreen =
 	| 'COMBAT_PLANNING'
 	| 'CUT_SCENE'
 
-/** The "get" command's prompts ([Game ?]): a direction (or Space for the player's own cell), then which character takes the item. */
-export type GetPrompt =
+/** The "get" command's prompts ([Game ?]): a direction (or Space for the player's own cell), then which character takes the item. `all` is get all ([Inventory 50]). */
+export type GetPrompt = { all?: boolean } & (
 	{ step: 'direction' } | { step: 'character'; pos: { x: number; y: number } }
+)
 
 /** The "talk" command's prompt ([Game 25]): a direction, or Space for the player's own cell. No character is chosen. */
 export type TalkPrompt = { step: 'direction' }

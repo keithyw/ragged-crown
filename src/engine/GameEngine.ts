@@ -33,6 +33,7 @@ import {
 	gatherCurrency,
 	generateSaveGameId,
 	heldCurrencies,
+	itemRun,
 	lookupPlacementDef,
 	qualifiedName,
 	receiveItem,
@@ -198,8 +199,11 @@ export class GameEngine extends BaseGameEngine {
 				case 'g':
 				case 'G':
 					// Get: asks for a direction, Space for the player's own cell.
+					// Capital G gets every item on top of the stack ([Inventory 50]).
 					if (!useGameStore.getState().currentZone) return false
-					useGameStore.getState().setGetPrompt({ step: 'direction' })
+					useGameStore
+						.getState()
+						.setGetPrompt({ step: 'direction', all: key === 'G' })
 					return true
 				case 't':
 				case 'T':
@@ -419,14 +423,15 @@ export class GameEngine extends BaseGameEngine {
 			store.addLog('> Nothing there!')
 			return
 		}
+		const all = store.getPrompt?.all
 		// An inventory entry can't hold contents yet, so a loaded container
-		// would lose them. Taking one is its own feature.
-		if (found.placement.contents?.length) {
+		// would lose them. Taking one is its own feature. Get all passes over it.
+		if (!all && found.placement.contents?.length) {
 			store.setGetPrompt(null)
 			store.addLog(`> ${found.def.name} is too full to pick up yet.`)
 			return
 		}
-		store.setGetPrompt({ step: 'character', pos: target })
+		store.setGetPrompt({ step: 'character', pos: target, all })
 	}
 
 	/**
@@ -436,6 +441,10 @@ export class GameEngine extends BaseGameEngine {
 	 */
 	public getWith(pos: Position, partyNumber: number): void {
 		const store = useGameStore.getState()
+		if (store.getPrompt?.all) {
+			this.getAllWith(pos, partyNumber)
+			return
+		}
 		const member = [...store.party].sort((a, b) => a.order - b.order)[
 			partyNumber - 1
 		]
@@ -473,6 +482,75 @@ export class GameEngine extends BaseGameEngine {
 		store.addLog(
 			`> ${member.name} takes ${qualifiedName(def.name, qualifiers)}${quantity > 1 ? ` x${quantity}` : ''}.`,
 		)
+	}
+
+	/**
+	 * Get all, step three ([Inventory 50]): the chosen party member takes, top
+	 * first, every item on top of the stack that they can carry. What is too
+	 * heavy stays, and lighter items below it are still taken. If they can take
+	 * none for weight, the prompt stays open for another character.
+	 */
+	private getAllWith(pos: Position, partyNumber: number): void {
+		const store = useGameStore.getState()
+		let member = [...store.party].sort((a, b) => a.order - b.order)[
+			partyNumber - 1
+		]
+		if (!member) {
+			store.setGetPrompt(null)
+			return
+		}
+		const items = useContentStore.getState().items
+		const config = zoneLoaderService.configFor(store.currentZone)
+		let placements = store.runtimePlacements
+		const taken: string[] = []
+		const tooHeavy: string[] = []
+		const tooFull: string[] = []
+		for (const placement of itemRun(placements[cellKey(pos.x, pos.y)] ?? [])) {
+			const def = items.get(placement.defId)
+			if (!def) continue
+			if (placement.contents?.length) {
+				tooFull.push(def.name)
+				continue
+			}
+			const quantity = placement.quantity ?? 1
+			const qualifiers = completeQualifiers(def, placement.qualifiers, config)
+			const received = receiveItem(
+				member,
+				placement.defId,
+				def,
+				quantity,
+				items,
+				qualifiers,
+			)
+			if (!received) {
+				tooHeavy.push(def.name)
+				continue
+			}
+			member = received
+			placements = removePlacement(placements, pos, placement.uid)
+			taken.push(
+				`${qualifiedName(def.name, qualifiers)}${quantity > 1 ? ` x${quantity}` : ''}`,
+			)
+		}
+		if (taken.length === 0 && tooHeavy.length > 0) {
+			store.addLog('> Too heavy!')
+			return
+		}
+		const receiver = member
+		store.setParty(
+			store.party.map((c) => (c.id === receiver.id ? receiver : c)),
+		)
+		store.setRuntimePlacements(placements)
+		store.setGetPrompt(null)
+		if (taken.length > 0) {
+			store.addLog(`> ${receiver.name} takes ${taken.join(', ')}.`)
+		}
+		if (tooHeavy.length > 0) {
+			store.addLog(`> Too heavy for ${receiver.name}: ${tooHeavy.join(', ')}.`)
+		}
+		for (const name of tooFull) {
+			store.addLog(`> ${name} is too full to pick up yet.`)
+		}
 	}
 
 	/**
