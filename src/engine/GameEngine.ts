@@ -24,6 +24,8 @@ import {
 	addCurrency,
 	addPlacement,
 	addToInventory,
+	canBeMoved,
+	canPushOnto,
 	cellKey,
 	completeQualifiers,
 	encounterChance,
@@ -35,11 +37,14 @@ import {
 	heldCurrencies,
 	itemRun,
 	lookupPlacementDef,
+	placementWeight,
+	pushLimit,
 	qualifiedName,
 	receiveItem,
 	removeFromInventory,
 	removePlacement,
 	slotOf,
+	thingToMove,
 	unequip,
 } from '@/utils'
 
@@ -212,6 +217,12 @@ export class GameEngine extends BaseGameEngine {
 					if (!useGameStore.getState().currentZone) return false
 					useGameStore.getState().setTalkPrompt({ step: 'direction' })
 					return true
+				case 'm':
+				case 'M':
+					// Move: pick a thing, then which way to push it ([Game 31]).
+					if (!useGameStore.getState().currentZone) return false
+					useGameStore.getState().setMovePrompt({ step: 'direction' })
+					return true
 				case 'c':
 				case 'C': {
 					// First party member by order; cycling members comes later.
@@ -362,6 +373,71 @@ export class GameEngine extends BaseGameEngine {
 			useContentStore.getState(),
 			this.interactionHost(),
 			member,
+		)
+	}
+
+	/**
+	 * The move command, step two ([Game 31]): looks at the cell one step in a
+	 * direction (`0, 0` is the player's own cell). A thing the party can push
+	 * asks which way; otherwise it says why not.
+	 */
+	public moveToward(dx: number, dy: number): void {
+		const store = useGameStore.getState()
+		const target = {
+			x: store.playerPosition.x + dx,
+			y: store.playerPosition.y + dy,
+		}
+		const defs = useContentStore.getState()
+		const thing = thingToMove(
+			store.runtimePlacements[cellKey(target.x, target.y)] ?? [],
+			defs,
+		)
+		const problem = !thing
+			? 'Move what?'
+			: !canBeMoved(thing, defs)
+				? "Can't move!"
+				: placementWeight(thing, defs) > pushLimit(store.party)
+					? 'Too heavy!'
+					: undefined
+		if (problem) {
+			store.setMovePrompt(null)
+			store.addLog(`> ${problem}`)
+			return
+		}
+		store.setMovePrompt({ step: 'push', pos: target })
+	}
+
+	/**
+	 * The move command, step three: pushes the thing on `pos` one cell. Only
+	 * pushes, so it never goes onto the player's cell. It keeps its `uid` and
+	 * contents, and no interaction fires.
+	 */
+	public pushThing(pos: Position, dx: number, dy: number): void {
+		const store = useGameStore.getState()
+		store.setMovePrompt(null)
+		const zone = store.currentZone
+		const defs = useContentStore.getState()
+		const thing = thingToMove(
+			store.runtimePlacements[cellKey(pos.x, pos.y)] ?? [],
+			defs,
+		)
+		if (!zone || !thing) return
+		const to = { x: pos.x + dx, y: pos.y + dy }
+		const ontoPlayer =
+			to.x === store.playerPosition.x && to.y === store.playerPosition.y
+		if (ontoPlayer || !canPushOnto(zone, store.runtimePlacements, to, defs)) {
+			store.addLog("> Can't move!")
+			return
+		}
+		store.setRuntimePlacements(
+			addPlacement(
+				removePlacement(store.runtimePlacements, pos, thing.uid),
+				to,
+				thing,
+			),
+		)
+		store.addLog(
+			`> The party moves the ${lookupPlacementDef(defs, thing)?.name}.`,
 		)
 	}
 

@@ -3,6 +3,7 @@ import { CommandList } from '@/components/commands/CommandList'
 import { EncounterViewport } from '@/components/encounter/EncounterViewport'
 import { GiveItemMenu } from '@/components/inventory/GiveItemMenu'
 import { GetPrompt } from '@/components/commands/GetPrompt'
+import { MovePrompt } from '@/components/commands/MovePrompt'
 import { TalkPrompt } from '@/components/commands/TalkPrompt'
 import { OpenPrompt } from '@/components/commands/OpenPrompt'
 import { EventLog } from '@/components/log/EventLog'
@@ -34,6 +35,7 @@ export default function App() {
 	const isOpening = useGameStore((state) => state.openPrompt !== null)
 	const isGetting = useGameStore((state) => state.getPrompt !== null)
 	const isTalking = useGameStore((state) => state.talkPrompt !== null)
+	const isMoving = useGameStore((state) => state.movePrompt !== null)
 
 	return (
 		<>
@@ -59,6 +61,7 @@ export default function App() {
 			{screen === 'WORLD_MAP' && isOpening && <OpenPrompt />}
 			{screen === 'WORLD_MAP' && isGetting && <GetPrompt />}
 			{screen === 'WORLD_MAP' && isTalking && <TalkPrompt />}
+			{screen === 'WORLD_MAP' && isMoving && <MovePrompt />}
 		</>
 	)
 }

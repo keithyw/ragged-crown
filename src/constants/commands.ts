@@ -12,5 +12,6 @@ export const WORLD_COMMANDS: CommandHelp[] = [
 	{ keys: 'G', label: 'Get (pick up an item, then a direction)' },
 	{ keys: 'Shift + G', label: 'Get all (the items on top, then a direction)' },
 	{ keys: 'T', label: 'Talk (to a person or object, then a direction)' },
+	{ keys: 'M', label: 'Move (pick a thing, then push it one space)' },
 	{ keys: 'C', label: 'Character sheet' },
 ]

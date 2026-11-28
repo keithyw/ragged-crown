@@ -25,6 +25,10 @@ export type GetPrompt = { all?: boolean } & (
 	{ step: 'direction' } | { step: 'character'; pos: { x: number; y: number } }
 )
 
+/** The "move" command's prompts ([Game 31]): which thing (a direction, or Space for the player's own cell), then which way to push it. */
+export type MovePrompt =
+	{ step: 'direction' } | { step: 'push'; pos: { x: number; y: number } }
+
 /** The "talk" command's prompt ([Game 25]): a direction, or Space for the player's own cell. No character is chosen. */
 export type TalkPrompt = { step: 'direction' }
 
