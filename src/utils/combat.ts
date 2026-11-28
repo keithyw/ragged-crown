@@ -4,13 +4,20 @@ import {
 	ATTRIBUTE_EFFECTS,
 	BASE_INITIATIVE,
 	BODY_ARMOR_SLOTS,
+	CURRENCIES,
 	DUAL_WIELD_DAMAGE_PENALTY,
 	DUAL_WIELD_INITIATIVE_PENALTY,
 	MATERIAL_ARMOR_SLOTS,
 	QUALITY_DAMAGE_BONUS,
 	WEAPON_QUALITY_INITIATIVE,
 } from '@/constants'
-import type { ActiveEncounter, ActiveMonster, PlayerCharacter } from '@/types'
+import type {
+	ActiveEncounter,
+	ActiveMonster,
+	CharacterCurrency,
+	PlayerCharacter,
+} from '@/types'
+import type { MonsterDef } from '@shared/types'
 import { equippedWeapon, equippedWeapons, type HandSlot } from './equipment'
 import { tableModifier } from './stats'
 
@@ -172,3 +179,45 @@ export const encounterXp = (
  */
 export const xpShare = (total: number, members: number): number =>
 	members > 0 ? Math.ceil(total / members) : 0
+
+/**
+ * The currency an encounter's monsters carried ([Currency 12]): every monster
+ * rolls its def's dice, totalled per currency. One that carries none adds
+ * nothing. Only asked for after a win, when all of them are down.
+ */
+export const encounterCurrency = (
+	encounter: ActiveEncounter | null,
+	defs: { get: (id: string) => Pick<MonsterDef, 'currency'> | undefined },
+	rand: () => number = Math.random,
+): CharacterCurrency => {
+	const total: CharacterCurrency = {}
+	for (const group of encounter?.groups ?? []) {
+		for (const m of group.monsters) {
+			const carried = defs.get(m.templateId)?.currency
+			for (const currency of CURRENCIES) {
+				const roll = carried?.[currency]
+				if (!roll) continue
+				let amount = 0
+				for (let i = 0; i < roll.count; i++) {
+					amount += Math.floor(rand() * roll.die) + 1
+				}
+				total[currency] = (total[currency] ?? 0) + amount
+			}
+		}
+	}
+	return total
+}
+
+/** One character's share of each currency, rounded up like XP. */
+export const currencyShare = (
+	total: CharacterCurrency,
+	members: number,
+): CharacterCurrency => {
+	const share: CharacterCurrency = {}
+	if (members <= 0) return share
+	for (const currency of CURRENCIES) {
+		const amount = total[currency]
+		if (amount) share[currency] = Math.ceil(amount / members)
+	}
+	return share
+}

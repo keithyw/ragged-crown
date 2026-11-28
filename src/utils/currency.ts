@@ -1,6 +1,6 @@
 import type { Currency, ItemDef } from '@shared/types'
 import { CURRENCIES } from '@/constants'
-import type { PlayerCharacter } from '@/types'
+import type { CharacterCurrency, PlayerCharacter } from '@/types'
 
 /**
  * The currency a def is a coin of: an `isCurrency` item, named by its `id`
@@ -48,3 +48,9 @@ export const gatherCurrency = (
 		}
 		return gathered
 	})
+
+/** "20 copper, 5 silver", lowest first; empty when there is none. */
+export const currencyText = (amounts: CharacterCurrency): string =>
+	CURRENCIES.filter((c) => amounts[c])
+		.map((c) => `${amounts[c]} ${c}`)
+		.join(', ')

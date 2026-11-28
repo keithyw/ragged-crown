@@ -1,4 +1,6 @@
 // src/types/combat.ts
+import type { CharacterCurrency } from './player'
+
 export type CombatPhase =
 	| 'INIT'
 	| 'PLANNING'
@@ -27,11 +29,13 @@ export interface QueuedAction {
 
 /**
  * What the party earned from a won encounter, for the post-combat popup
- * ([Game 28]). Loot and gold join it when they exist.
+ * ([Game 28]). Loot joins it when it exists.
  */
 export interface CombatGains {
 	/** What each surviving character received ([Combat 15]). */
 	xpEach: number
 	/** The characters who received it. */
 	recipients: string[]
+	/** Each living member's share times the members ([Currency 12]). */
+	currency?: CharacterCurrency
 }

@@ -1,4 +1,8 @@
-import { BASE_INITIATIVE, DEFAULT_STARTING_POSITION } from '@/constants'
+import {
+	BASE_INITIATIVE,
+	CURRENCIES,
+	DEFAULT_STARTING_POSITION,
+} from '@/constants'
 import { inputManager } from '@/engine'
 import { useContentStore } from '@/store/useContentStore'
 import { useGameStore } from '@/store/useGameStore'
@@ -7,6 +11,7 @@ import {
 	SpellCaster,
 	type ActiveEncounter,
 	type ActiveMonster,
+	type CharacterCurrency,
 	type CombatActionType,
 	type MonsterGroup,
 	type PlayerCharacter,
@@ -14,6 +19,8 @@ import {
 } from '@/types'
 import {
 	attackProfile,
+	currencyShare,
+	encounterCurrency,
 	encounterXp,
 	initiativeRating,
 	mitigate,
@@ -25,7 +32,8 @@ import {
 	equippedWeapons,
 	type HandSlot,
 } from '@/utils/equipment'
-import { isDown, withStatus } from '@/utils/status'
+import { addCurrency, currencyText } from '@/utils/currency'
+import { isDown, statusesOf, withStatus } from '@/utils/status'
 import {
 	encounterCandidates,
 	pickWeighted,
@@ -520,6 +528,7 @@ export class CombatEngine {
 		store.setCombatPhase('POST_COMBAT')
 		store.addLog('> Victory! All enemies are dead.')
 		this.grantXp()
+		this.grantCurrency()
 		store.addLog('> Press [ENTER] to return to exploration...')
 		this.unbindInput?.()
 		this.unbindInput = inputManager.registerHandler((key) => {
@@ -555,6 +564,34 @@ export class CombatEngine {
 			xpEach: share,
 			recipients: survivors.map((p) => p.name),
 		})
+	}
+
+	/**
+	 * What the beaten monsters carried, shared among the living characters,
+	 * each share rounded up ([Currency 12]). A flee never gets here.
+	 */
+	private grantCurrency(): void {
+		const store = useGameStore.getState()
+		const living = store.party.filter((p) => !statusesOf(p).includes('dead'))
+		const share = currencyShare(
+			encounterCurrency(store.encounter, useContentStore.getState().monsters),
+			living.length,
+		)
+		const coins = CURRENCIES.filter((c) => share[c])
+		if (coins.length === 0) return
+		store.setParty(
+			store.party.map((p) =>
+				living.includes(p)
+					? coins.reduce((m, c) => addCurrency(m, c, share[c] ?? 0), p)
+					: p,
+			),
+		)
+		// What is shown is what was handed out, not what the monsters rolled.
+		const total: CharacterCurrency = {}
+		for (const c of coins) total[c] = (share[c] ?? 0) * living.length
+		store.addLog(`> The party collects ${currencyText(total)}.`)
+		const gains = useGameStore.getState().combatGains
+		if (gains) store.setCombatGains({ ...gains, currency: total })
 	}
 
 	private evaluateCombatOutcome(): void {

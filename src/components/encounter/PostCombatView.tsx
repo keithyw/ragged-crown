@@ -1,13 +1,15 @@
 import { combatEngine } from '@/engine'
 import { useGameStore } from '@/store/useGameStore'
+import { currencyText } from '@/utils'
 
 /**
  * The popup shown after a won fight: what the party earned ([Game 28]).
  * Enter or Space (bound by the combat engine) closes it and returns to the
- * map. Loot and gold get their own rows here once they exist.
+ * map. Loot gets its own row here once it exists.
  */
 export const PostCombatView = () => {
 	const gains = useGameStore((state) => state.combatGains)
+	const coins = currencyText(gains?.currency ?? {})
 
 	return (
 		<div className='fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 font-mono backdrop-blur-sm'>
@@ -32,6 +34,12 @@ export const PostCombatView = () => {
 						</>
 					) : (
 						<p className='text-slate-500'>No experience this time.</p>
+					)}
+					{coins && (
+						<p>
+							The party collects{' '}
+							<span className='font-bold text-amber-300'>{coins}</span>
+						</p>
 					)}
 				</div>
 
